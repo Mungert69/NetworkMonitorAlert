@@ -33,10 +33,10 @@ namespace NetworkMonitor.Service.Controllers
             result.Message = "MessageAPI : WakeUp : ";
             try
             {
-                _alertMessageService.Awake=true;
+                /*_alertMessageService.Awake=true;
                 result.Message+="Success : Set Awake to true in AlertMessageService.";
-                result.Success=true;
-                //result=_alertMessageService.WakeUp();
+                result.Success=true;*/
+                result=_alertMessageService.WakeUp();
                 _logger.LogWarning(result.Message);
             }
             catch (Exception e)

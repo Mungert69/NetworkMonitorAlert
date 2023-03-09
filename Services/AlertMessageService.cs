@@ -131,7 +131,7 @@ namespace NetworkMonitor.Service.Services
                     {
                         try
                         {
-                            _userInfos=FileRepo.GetStateJsonZ<List<UserInfo>>("UserInfos");
+                            _userInfos = FileRepo.GetStateJsonZ<List<UserInfo>>("UserInfos");
                             //userInfos = _daprClient.GetStateAsync<List<UserInfo>>("statestore", "UserInfos").Result;
                             _logger.LogInformation("Got UserInfos from statestore ");
                             if (_userInfos == null) _userInfos = new List<UserInfo>();
@@ -256,11 +256,20 @@ namespace NetworkMonitor.Service.Services
 
             try
             {
-                AlertServiceInitObj alertObj = new AlertServiceInitObj();
-                alertObj.IsAlertServiceReady = true;
-                _daprClient.PublishEventAsync<AlertServiceInitObj>("pubsub", "alertServiceReady", alertObj, _daprMetadata);
-                result.Message += "Received WakeUp so Published event AlertServiceItitObj.IsAlertServiceReady = true";
-                result.Success = true;
+                if (_awake)
+                {
+                    result.Message += "Received WakeUp but Alert is currently running";
+                    result.Success = false;
+                }
+                else
+                {
+                    AlertServiceInitObj alertObj = new AlertServiceInitObj();
+                    alertObj.IsAlertServiceReady = true;
+                    _daprClient.PublishEventAsync<AlertServiceInitObj>("pubsub", "alertServiceReady", alertObj, _daprMetadata);
+                    result.Message += "Received WakeUp so Published event AlertServiceItitObj.IsAlertServiceReady = true";
+                    result.Success = true;
+                }
+
             }
             catch (Exception e)
             {
@@ -271,7 +280,7 @@ namespace NetworkMonitor.Service.Services
         }
         public ResultObj Alert()
         {
-            //_isAlertRunning = true;
+            _awake = true;
             ResultObj result = new ResultObj();
             result.Message = "SERVICE : AlertMessageService.Alert() ";
             AlertServiceInitObj alertObj = new AlertServiceInitObj();
@@ -319,7 +328,7 @@ namespace NetworkMonitor.Service.Services
                 {
                     _logger.LogError("Error : Can not publish event  AlertServiceItitObj.IsAlertServiceReady " + e.Message.ToString().ToString());
                 }
-                //_isAlertRunning = false;
+                _awake = false;
             }
             return result;
         }
@@ -332,7 +341,7 @@ namespace NetworkMonitor.Service.Services
             var publishAlertSentList = new List<MonitorStatusAlert>();
             while (_isAlertRunning)
             {
-                resultStr += " Info : Waiting for Alert to stop running ";
+                resultStr += " Warning : Waiting for Alert to stop running ";
                 new System.Threading.ManualResetEvent(false).WaitOne(1000);
             }
             _isAlertRunning = true;
@@ -452,6 +461,7 @@ namespace NetworkMonitor.Service.Services
         {
             foreach (MonitorStatusAlert alertFlagObj in alertMessage.AlertFlagObjs)
             {
+                alertFlagObj.AlertSent = true;
                 publishAlertSentList.Add(alertFlagObj);
                 _updateAlertSentList.Add(alertFlagObj);
                 //var updateMonitorStatusAlert = _monitorStatusAlerts.FirstOrDefault(w => w.ID == alertFlagObj.ID);
@@ -479,10 +489,7 @@ namespace NetworkMonitor.Service.Services
                     }
                     else
                     {
-                        foreach (MonitorStatusAlert alertFlagObj in alertMessage.AlertFlagObjs)
-                        {
-                            UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList);
-                        }
+                        UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList);
                     }
                 }
                 PublishAlertsRepo.ProcessorAlertSent(_logger, _daprClient, publishAlertSentList, _processorList);
