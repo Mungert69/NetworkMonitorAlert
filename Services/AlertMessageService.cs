@@ -340,7 +340,7 @@ namespace NetworkMonitor.Service.Services
             _isAlertRunning = false;
             foreach (MonitorStatusAlert monitorStatusAlert in monitorStatusAlerts)
             {
-                var noAlertSentStored = _updateAlertSentList.FirstOrDefault(w => w.ID == monitorStatusAlert.ID) == null;
+                bool noAlertSentStored = _updateAlertSentList.FirstOrDefault(w => w.ID == monitorStatusAlert.ID) == null;
                 if (monitorStatusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(monitorStatusAlert);
                 string userId = monitorStatusAlert.UserID;
                 UserInfo userInfo = userInfos.FirstOrDefault(u => u.UserID == userId);
