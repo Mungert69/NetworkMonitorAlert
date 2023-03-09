@@ -1,0 +1,13 @@
+ {
+     "BufferLength": 1397,
+     "Timeout": 10000,
+     "Schedule": "* * * * *",
+     "PingBurstNumber": 1,
+     "PingBurstDelay": 10000,
+     "SaveSchedule": "*/5 * * * *",
+     "AlertSchedule": "* * * * *",
+     "AlertThreshold": 4,
+     "LogStatsThreshold": 200,
+     "HostLimit": 10
+   }
+    

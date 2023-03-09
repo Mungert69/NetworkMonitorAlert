@@ -1,0 +1,32 @@
+[
+    {
+        "Address": "2.2.2.2",
+        "Enabled": true,
+        "EndPointType": "icmp",
+        "ID": 1,
+        "AppID": "1",
+        "Timeout": 0,
+        "UserID": "test",
+        "Hidden": false,
+        "UserInfo": {
+            "UserID": "test",
+            "DateCreated": "2022-11-06T23:29:40.385906Z",
+            "HostLimit": 10,
+            "DisableEmail": false,
+            "Status": null,
+            "Name": "Test User",
+            "Given_name": null,
+            "Family_name": null,
+            "Nickname": null,
+            "Sub": null,
+            "Enabled": true,
+            "AccountType": "Free",
+            "Email": "mungert@gmail.com",
+            "Email_verified": false,
+            "Picture": null,
+            "Updated_at": "0001-01-01T00:00:00Z",
+            "LastLoginDate": "0001-01-01T00:00:00Z",
+            "MonitorIPs": null
+          }
+    }
+]
