@@ -342,7 +342,7 @@ healthchecksdb
 /Deploy
 /Report20210116-1159.diagsession
 appsettings*.json
-http.pfx
+https.pfx
 http-freenetworkmonitor.pfx
 *.sentinel
 *project.razor.json
