@@ -5,7 +5,7 @@
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <PublishProfile>DefaultContainer</PublishProfile>
     <ContainerBaseImage>mcr.microsoft.com/dotnet/nightly/aspnet:7.0-jammy-chiseled</ContainerBaseImage>
-    <ContainerImageName>mungert/networkmonitorservice</ContainerImageName>
+    <ContainerImageName>mungert/networkmonitoralert</ContainerImageName>
     <ContainerImageTag>0.2.0</ContainerImageTag>
 </PropertyGroup>
 
