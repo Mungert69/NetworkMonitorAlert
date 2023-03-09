@@ -1,9 +1,0 @@
-version: "3.8"
-
-services:
-  using-volumes:
-    image: mungert/networkmonitoralert:0.1.6
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-
