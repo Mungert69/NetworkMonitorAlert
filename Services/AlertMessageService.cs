@@ -13,11 +13,12 @@ using System.Linq;
 using System.Web;
 using System.Collections.Generic;
 using Dapr.Client;
-using Microsoft.Extensions.Logging;
+using MetroLog;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Diagnostics;
 using NetworkMonitor.Utils.Helpers;
+using NetworkMonitor.Objects.Factory;
 namespace NetworkMonitor.Service.Services
 {
     public class AlertMessageService : IAlertMessageService
@@ -53,9 +54,10 @@ namespace NetworkMonitor.Service.Services
         public bool IsAlertRunning { get => _isAlertRunning; set => _isAlertRunning = value; }
         public bool Awake { get => _awake; set => _awake = value; }
         public List<MonitorStatusAlert> MonitorStatusAlerts { get => _monitorStatusAlerts; set => _monitorStatusAlerts = value; }
-        public AlertMessageService(ILogger<AlertMessageService> logger, DaprClient daprClient, IConfiguration config, IWebHostEnvironment webHostEnv)
+        public AlertMessageService(INetLoggerFactory loggerFactory, DaprClient daprClient, IConfiguration config, IWebHostEnvironment webHostEnv)
         {
-            _logger = logger;
+            _logger = loggerFactory.GetLogger("AlertMessageService");
+             FileRepo.CheckFileExists("UserInfos",_logger);
             _daprClient = daprClient;
             _daprMetadata.Add("ttlInSeconds", "60");
             _config = config;
@@ -73,8 +75,8 @@ namespace NetworkMonitor.Service.Services
                 SystemParams systemParams = SystemParamsHelper.getSystemParams(_config, _logger);
                 _processorList = new List<ProcessorObj>();
                 _config.GetSection("ProcessorList").Bind(_processorList);
-                _logger.LogDebug("SystemParams: " + JsonUtils.writeJsonObjectToString(systemParams));
-                _logger.LogDebug("PingAlertThreshold: " + _alertThreshold);
+                _logger.Debug("SystemParams: " + JsonUtils.writeJsonObjectToString(systemParams));
+                _logger.Debug("PingAlertThreshold: " + _alertThreshold);
                 _emailEncryptKey = systemParams.EmailEncryptKey;
                 _systemEmail = systemParams.SystemEmail;
                 _systemUser = systemParams.SystemUser;
@@ -86,29 +88,29 @@ namespace NetworkMonitor.Service.Services
                 _thisSystemUrl = systemParams.ThisSystemUrl;
                 _publicIPAddress = systemParams.PublicIPAddress;
                 _sendTrustPilot = systemParams.SendTrustPilot;
-                _logger.LogInformation("Got config");
+                _logger.Info("Got config");
             }
             catch (Exception e)
             {
-                _logger.LogError("Error : Can not get Config" + e.Message.ToString());
+                _logger.Error("Error : Can not get Config" + e.Message.ToString());
             }
             bool isDaprReady = _daprClient.CheckHealthAsync().Result;
             if (isDaprReady)
             {
-                _logger.LogInformation("Dapr Client Status is healthy");
+                _logger.Info("Dapr Client Status is healthy");
                 if (alertObj.TotalReset)
                 {
                     try
                     {
-                        _logger.LogInformation("Resetting Alert UserInfos in statestore");
+                        _logger.Info("Resetting Alert UserInfos in statestore");
                         _userInfos = new List<UserInfo>();
                         FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
                         //_daprClient.SaveStateAsync<List<UserInfo>>("statestore", "UserInfos", _userInfos);
-                        _logger.LogInformation("Reset UserInfos in statestore ");
+                        _logger.Info("Reset UserInfos in statestore ");
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("Error : Can not reset UserInfos in statestre Error was : " + e.Message.ToString());
+                        _logger.Error("Error : Can not reset UserInfos in statestre Error was : " + e.Message.ToString());
                     }
                 }
                 else
@@ -120,11 +122,11 @@ namespace NetworkMonitor.Service.Services
                         {
                             FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
                             //_daprClient.SaveStateAsync<List<UserInfo>>("statestore", "UserInfos", _userInfos);
-                            _logger.LogInformation("Saved UserInfos to statestore ");
+                            _logger.Info("Saved UserInfos to statestore ");
                         }
                         catch (Exception e)
                         {
-                            _logger.LogError("Error : Can not save UserInfos to statestore Error was : " + e.Message.ToString());
+                            _logger.Error("Error : Can not save UserInfos to statestore Error was : " + e.Message.ToString());
                         }
                     }
                     else
@@ -133,37 +135,37 @@ namespace NetworkMonitor.Service.Services
                         {
                             _userInfos = FileRepo.GetStateJsonZ<List<UserInfo>>("UserInfos");
                             //userInfos = _daprClient.GetStateAsync<List<UserInfo>>("statestore", "UserInfos").Result;
-                            _logger.LogInformation("Got UserInfos from statestore ");
+                            _logger.Info("Got UserInfos from statestore ");
                             if (_userInfos == null) _userInfos = new List<UserInfo>();
                         }
                         catch (Exception e)
                         {
-                            _logger.LogError("Error : Can not get UserInfos from statestore Error was : " + e.Message.ToString());
+                            _logger.Error("Error : Can not get UserInfos from statestore Error was : " + e.Message.ToString());
                         }
                     }
                     if (_userInfos.Count() != 0)
                     {
-                        _logger.LogInformation("Got UserInfos " + _userInfos.Count + " from published message ");
+                        _logger.Info("Got UserInfos " + _userInfos.Count + " from published message ");
                     }
                     else
                     {
-                        _logger.LogWarning("Warning got zero UserInfos ");
+                        _logger.Warn("Warning got zero UserInfos ");
                     }
                 }
             }
             else
             {
-                _logger.LogCritical("Dapr Client Status is not healthy");
+                _logger.Fatal("Dapr Client Status is not healthy");
             }
             try
             {
                 alertObj.IsAlertServiceReady = true;
                 _daprClient.PublishEventAsync<AlertServiceInitObj>("pubsub", "alertServiceReady", alertObj, _daprMetadata);
-                _logger.LogInformation("Published event AlertServiceItitObj.IsAlertServiceReady = true");
+                _logger.Info("Published event AlertServiceItitObj.IsAlertServiceReady = true");
             }
             catch (Exception e)
             {
-                _logger.LogError("Error : Can not publish event  AlertServiceItitObj.IsAlertServiceReady Error was : " + e.Message.ToString());
+                _logger.Error("Error : Can not publish event  AlertServiceItitObj.IsAlertServiceReady Error was : " + e.Message.ToString());
             }
         }
         public string DecryptStr(string str)
@@ -238,13 +240,13 @@ namespace NetworkMonitor.Service.Services
                 result.Message = "Email with subject " + alertMessage.Subject + " sent ok";
                 result.Success = true;
                 _spamFilter.UpdateAlertSentList(alertMessage);
-                _logger.LogInformation(result.Message);
+                _logger.Info(result.Message);
             }
             catch (Exception e)
             {
                 result.Message = "Email with subject " + alertMessage.Subject + " failed to send . Error was :" + e.Message.ToString().ToString();
                 result.Success = false;
-                _logger.LogError(result.Message);
+                _logger.Error(result.Message);
             }
             return result;
         }
@@ -287,7 +289,7 @@ namespace NetworkMonitor.Service.Services
             result.Success = false;
             alertObj.IsAlertServiceReady = false;
             _daprClient.PublishEventAsync<AlertServiceInitObj>("pubsub", "alertServiceReady", alertObj, _daprMetadata);
-            _logger.LogInformation("Published event AlertServiceItitObj.IsAlertServiceReady = false");
+            _logger.Info("Published event AlertServiceItitObj.IsAlertServiceReady = false");
             Stopwatch timerInner = new Stopwatch();
             timerInner.Start();
             try
@@ -300,13 +302,13 @@ namespace NetworkMonitor.Service.Services
                     result.Message += "Info : Message sent was to :" + count + " users";
                 }
                 result.Success = true;
-                _logger.LogInformation(result.Message);
+                _logger.Info(result.Message);
             }
             catch (Exception e)
             {
                 result.Message += "Error : AlertMessageService.Alert Execute failed : Error was : " + e.ToString();
                 result.Success = false;
-                _logger.LogError(result.Message);
+                _logger.Error(result.Message);
             }
             finally
             {
@@ -317,16 +319,16 @@ namespace NetworkMonitor.Service.Services
                     int timeTakenInnerInt = (int)timeTakenInner.TotalMilliseconds;
                     if (timeTakenInnerInt < 10000)
                     {
-                        _logger.LogInformation("Sleeping for " + (10000 - timeTakenInnerInt) + " ms to allow message to pass to scheduler");
+                        _logger.Info("Sleeping for " + (10000 - timeTakenInnerInt) + " ms to allow message to pass to scheduler");
                         new System.Threading.ManualResetEvent(false).WaitOne(10000 - timeTakenInnerInt);
                     }
                     alertObj.IsAlertServiceReady = true;
                     _daprClient.PublishEventAsync<AlertServiceInitObj>("pubsub", "alertServiceReady", alertObj, _daprMetadata);
-                    _logger.LogInformation("Published event AlertServiceItitObj.IsAlertServiceReady = true");
+                    _logger.Info("Published event AlertServiceItitObj.IsAlertServiceReady = true");
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError("Error : Can not publish event  AlertServiceItitObj.IsAlertServiceReady " + e.Message.ToString().ToString());
+                    _logger.Error("Error : Can not publish event  AlertServiceItitObj.IsAlertServiceReady " + e.Message.ToString().ToString());
                 }
                 _awake = false;
             }
@@ -391,7 +393,7 @@ namespace NetworkMonitor.Service.Services
             }
             if (publishAlertSentList.Count() != 0)
             {
-                _logger.LogWarning("Warning republishing AlertSent List check coms. ");
+                _logger.Warn("Warning republishing AlertSent List check coms. ");
                 PublishAlertsRepo.ProcessorAlertSent(_logger, _daprClient, publishAlertSentList, _processorList);
             }
             CheckAlerts(updateAlertFlagList);
@@ -424,7 +426,7 @@ namespace NetworkMonitor.Service.Services
                 });
                 if (a.Timeout > maxTimeout) maxTimeout = a.Timeout;
             });
-            _logger.LogInformation(" Checking " + monitorPingInfos.Count() + " Alerts ");
+            _logger.Info(" Checking " + monitorPingInfos.Count() + " Alerts ");
             var connectFactory = new ConnectFactory();
             var netConnects = connectFactory.GetNetConnectList(monitorPingInfos, pingParams);
             var pingConnectTasks = new List<Task>();
@@ -440,7 +442,7 @@ namespace NetworkMonitor.Service.Services
             monitorPingInfos.Where(w => w.MonitorStatus.IsUp).ToList().ForEach(m =>
            {
                updateAlertFlagList.RemoveAll(r => r.ID == m.MonitorIPID);
-               _logger.LogWarning(" Warning : Overturned Alert with MonitorPingID = " + m.MonitorIPID + " . On Processor with AppID " + m.AppID + " . ");
+               _logger.Warn(" Warning : Overturned Alert with MonitorPingID = " + m.MonitorIPID + " . On Processor with AppID " + m.AppID + " . ");
                _alertMessages.ForEach(a =>
                {
                    a.AlertFlagObjs.RemoveAll(r => r.ID == m.MonitorIPID);
@@ -549,11 +551,11 @@ namespace NetworkMonitor.Service.Services
                 {
                     FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
                     //_daprClient.SaveStateAsync<List<UserInfo>>("statestore", "UserInfos", _userInfos);
-                    _logger.LogInformation("Saved UserInfos to file statestore ");
+                    _logger.Info("Saved UserInfos to file statestore ");
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError("Error : Can not save UserInfos to statestore Error was : " + e.Message.ToString());
+                    _logger.Error("Error : Can not save UserInfos to statestore Error was : " + e.Message.ToString());
                 }
                 result.Success = true;
                 result.Message = ("Success : updated UserInfo");

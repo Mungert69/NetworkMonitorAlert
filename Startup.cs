@@ -5,9 +5,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NetworkMonitor.Service.Services;
+using NetworkMonitor.Objects.Factory;
 using Microsoft.AspNetCore.Authorization;
 using System;
-using Microsoft.Extensions.Logging;
+using MetroLog;
+
 
 namespace NetworkMonitor.Service
 {
@@ -36,7 +38,7 @@ namespace NetworkMonitor.Service
             services.AddSingleton<IDataQueueService, DataQueueService>();
             services.AddSingleton<IAlertMessageService, AlertMessageService>();
              services.Configure<HostOptions>(s => s.ShutdownTimeout = TimeSpan.FromMinutes(5));
-
+            services.AddSingleton<INetLoggerFactory,NetLoggerFactory>();
            
 
            
@@ -44,17 +46,9 @@ namespace NetworkMonitor.Service
     options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
 );
 
-
-            services.AddLogging(options =>
-    {
-        options.AddSimpleConsole(c =>
-        {
-            c.SingleLine = true;
-            c.TimestampFormat = "[HH:mm:ss] ";
-            c.UseUtcTimestamp = true;
-            c.ColorBehavior = Microsoft.Extensions.Logging.Console.LoggerColorBehavior.Enabled;
-        });
-    });
+         
+             var logger = LogManagerFactory.DefaultLogManager.GetLogger<Startup>();
+            services.AddSingleton(logger);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

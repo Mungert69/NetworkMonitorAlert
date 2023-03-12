@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using NetworkMonitor.Objects;
 using System.Linq;
-using Microsoft.Extensions.Logging;
+using MetroLog;
 namespace NetworkMonitor.Service.Services
 {
     public class SpamFilter
@@ -41,17 +41,17 @@ namespace NetworkMonitor.Service.Services
             {
                 result.Success = false;
                 result.Message = "You have sent " + maxVerify + " requests to send a verify email. Please check your email. If the email is not working then contact support.";
-                _logger.LogWarning("Warning filter applied for maxVerify for user " + userID);
+                _logger.Warn("Warning filter applied for maxVerify for user " + userID);
                 return result;
             }
             if (userEmailSentList.Count() > 0 && userEmailSentList[0].DateSent + allowedTimeLimitVerify > DateTime.UtcNow)
             {
                 result.Success = false;
                 result.Message = "Please check your email a verfication email was sent less an hour ago. If problem the presists then contact support.";
-                _logger.LogWarning("Warning filter applied for allowedTimeLimitVerify for user " + userID);
+                _logger.Warn("Warning filter applied for allowedTimeLimitVerify for user " + userID);
                 return result;
             }
-            _logger.LogDebug("CheckVerifyLimit passed for user " + userID);
+            _logger.Debug("CheckVerifyLimit passed for user " + userID);
             return result;
         }
     }
