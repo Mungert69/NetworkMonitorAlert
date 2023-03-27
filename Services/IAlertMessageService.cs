@@ -1,12 +1,14 @@
 ﻿using NetworkMonitor.Objects.ServiceMessage;
 using NetworkMonitor.Objects;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace NetworkMonitor.Service.Services
+namespace NetworkMonitor.Alert.Services
 {
     public interface IAlertMessageService
     {
-        public void init(AlertServiceInitObj alertObj);
+        public void InitService(AlertServiceInitObj alertObj);
+          public Task Init();
 
         List<MonitorStatusAlert> MonitorStatusAlerts{get;set;}
         List<ResultObj> ResetAlerts(List<AlertFlagObj> alertFlagObjs);

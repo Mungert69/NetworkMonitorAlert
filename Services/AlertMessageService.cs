@@ -12,18 +12,17 @@ using NetworkMonitor.Utils;
 using System.Linq;
 using System.Web;
 using System.Collections.Generic;
-using Dapr.Client;
 using MetroLog;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Diagnostics;
 using NetworkMonitor.Utils.Helpers;
 using NetworkMonitor.Objects.Factory;
-namespace NetworkMonitor.Service.Services
+using HostInitActions;
+namespace NetworkMonitor.Alert.Services
 {
     public class AlertMessageService : IAlertMessageService
     {
-        private IWebHostEnvironment _env;
         private IConfiguration _config;
         private ILogger _logger;
         private List<UserInfo> _userInfos = new List<UserInfo>();
@@ -46,27 +45,54 @@ namespace NetworkMonitor.Service.Services
         private bool _checkAlerts;
         private SpamFilter _spamFilter;
         List<MonitorStatusAlert> _updateAlertSentList = new List<MonitorStatusAlert>();
-        private DaprClient _daprClient;
+        private IDataQueueService _dataQueueService;
         private List<AlertMessage> _alertMessages = new List<AlertMessage>();
         private List<MonitorStatusAlert> _monitorStatusAlerts = new List<MonitorStatusAlert>();
         private List<ProcessorObj> _processorList = new List<ProcessorObj>();
         private Dictionary<string, string> _daprMetadata = new Dictionary<string, string>();
+        private RabbitListener _rabbitRepo;
+        private CancellationToken _token;
+        public RabbitListener RabbitRepo { get => _rabbitRepo; }
         public bool IsAlertRunning { get => _isAlertRunning; set => _isAlertRunning = value; }
         public bool Awake { get => _awake; set => _awake = value; }
         public List<MonitorStatusAlert> MonitorStatusAlerts { get => _monitorStatusAlerts; set => _monitorStatusAlerts = value; }
-        public AlertMessageService(INetLoggerFactory loggerFactory, DaprClient daprClient, IConfiguration config, IWebHostEnvironment webHostEnv)
+        public AlertMessageService(INetLoggerFactory loggerFactory, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource)
         {
+            _dataQueueService = dataQueueService;
             _logger = loggerFactory.GetLogger("AlertMessageService");
-             FileRepo.CheckFileExists("UserInfos",_logger);
-            _daprClient = daprClient;
+            FileRepo.CheckFileExists("UserInfos", _logger);
             _daprMetadata.Add("ttlInSeconds", "60");
             _config = config;
-            _env = webHostEnv;
-            AlertServiceInitObj alertObj = new AlertServiceInitObj();
+            _token = cancellationTokenSource.Token;
+            _token.Register(() => OnStopping());
             _spamFilter = new SpamFilter(_logger);
-            init(alertObj);
         }
-        public void init(AlertServiceInitObj alertObj)
+        private void OnStopping()
+        {
+            ResultObj result = new ResultObj();
+            result.Message=" SERVICE SHUTDOWN : starting shutdown of AlertMonitorService : ";
+            try
+            {
+                result.Message+=" Saving UserInfos into statestore. ";
+                FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
+                result.Message+=" Saved UserInfos into statestore. ";
+                result.Success = true;
+                _logger.Warn("SERVICE SHUTDOWN : Result : " + result.Message);
+            }
+            catch (Exception e)
+            {
+                _logger.Fatal("Error : Failed to run Save Data before shutdown : Error Was : " + e.Message);
+            }
+        }
+        public Task Init()
+        {
+            return Task.Run(() =>
+              {
+                  AlertServiceInitObj alertObj = new AlertServiceInitObj();
+                  InitService(alertObj);
+              });
+        }
+        public void InitService(AlertServiceInitObj alertObj)
         {
             try
             {
@@ -88,13 +114,21 @@ namespace NetworkMonitor.Service.Services
                 _thisSystemUrl = systemParams.ThisSystemUrl;
                 _publicIPAddress = systemParams.PublicIPAddress;
                 _sendTrustPilot = systemParams.SendTrustPilot;
+                try
+                {
+                    _rabbitRepo = new RabbitListener(_logger, this, _dataQueueService, systemParams.RabbitInstanceName, systemParams.RabbitHostName);
+                }
+                catch (Exception e)
+                {
+                    _logger.Fatal(" Could not setup RabbitListner. Error was : " + e.ToString() + " . ");
+                }
                 _logger.Info("Got config");
             }
             catch (Exception e)
             {
                 _logger.Error("Error : Can not get Config" + e.Message.ToString());
             }
-            bool isDaprReady = _daprClient.CheckHealthAsync().Result;
+            bool isDaprReady = true;
             if (isDaprReady)
             {
                 _logger.Info("Dapr Client Status is healthy");
@@ -160,7 +194,7 @@ namespace NetworkMonitor.Service.Services
             try
             {
                 alertObj.IsAlertServiceReady = true;
-                _daprClient.PublishEventAsync<AlertServiceInitObj>("pubsub", "alertServiceReady", alertObj, _daprMetadata);
+                _rabbitRepo.Publish<AlertServiceInitObj>("alertServiceReady", alertObj);
                 _logger.Info("Published event AlertServiceItitObj.IsAlertServiceReady = true");
             }
             catch (Exception e)
@@ -250,12 +284,10 @@ namespace NetworkMonitor.Service.Services
             }
             return result;
         }
-
         public ResultObj WakeUp()
         {
             ResultObj result = new ResultObj();
             result.Message = "SERVICE : AlertMessageService.WakeUp() ";
-
             try
             {
                 if (_awake)
@@ -267,11 +299,10 @@ namespace NetworkMonitor.Service.Services
                 {
                     AlertServiceInitObj alertObj = new AlertServiceInitObj();
                     alertObj.IsAlertServiceReady = true;
-                    _daprClient.PublishEventAsync<AlertServiceInitObj>("pubsub", "alertServiceReady", alertObj, _daprMetadata);
+                    _rabbitRepo.Publish<AlertServiceInitObj>("alertServiceReady", alertObj);
                     result.Message += "Received WakeUp so Published event AlertServiceItitObj.IsAlertServiceReady = true";
                     result.Success = true;
                 }
-
             }
             catch (Exception e)
             {
@@ -288,7 +319,7 @@ namespace NetworkMonitor.Service.Services
             AlertServiceInitObj alertObj = new AlertServiceInitObj();
             result.Success = false;
             alertObj.IsAlertServiceReady = false;
-            _daprClient.PublishEventAsync<AlertServiceInitObj>("pubsub", "alertServiceReady", alertObj, _daprMetadata);
+            _rabbitRepo.Publish<AlertServiceInitObj>("alertServiceReady", alertObj);
             _logger.Info("Published event AlertServiceItitObj.IsAlertServiceReady = false");
             Stopwatch timerInner = new Stopwatch();
             timerInner.Start();
@@ -323,7 +354,7 @@ namespace NetworkMonitor.Service.Services
                         new System.Threading.ManualResetEvent(false).WaitOne(10000 - timeTakenInnerInt);
                     }
                     alertObj.IsAlertServiceReady = true;
-                    _daprClient.PublishEventAsync<AlertServiceInitObj>("pubsub", "alertServiceReady", alertObj, _daprMetadata);
+                    _rabbitRepo.Publish<AlertServiceInitObj>("alertServiceReady", alertObj);
                     _logger.Info("Published event AlertServiceItitObj.IsAlertServiceReady = true");
                 }
                 catch (Exception e)
@@ -394,13 +425,13 @@ namespace NetworkMonitor.Service.Services
             if (publishAlertSentList.Count() != 0)
             {
                 _logger.Warn("Warning republishing AlertSent List check coms. ");
-                PublishAlertsRepo.ProcessorAlertSent(_logger, _daprClient, publishAlertSentList, _processorList);
+                PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorList);
             }
             CheckAlerts(updateAlertFlagList);
             if (updateAlertFlagList.Count() > 0)
             {
                 _alert = true;
-                PublishAlertsRepo.ProcessorAlertFlag(_logger, _daprClient, updateAlertFlagList, _processorList);
+                PublishAlertsRepo.ProcessorAlertFlag(_logger, _rabbitRepo, updateAlertFlagList, _processorList);
             }
             else _alert = false;
             return resultStr;
@@ -457,7 +488,7 @@ namespace NetworkMonitor.Service.Services
                }
            });
             _alertMessages.RemoveAll(r => r.AlertFlagObjs.Count() == 0);
-            PublishAlertsRepo.ProcessorResetAlerts(_logger, _daprClient, monitorIPDic);
+            PublishAlertsRepo.ProcessorResetAlerts(_logger, _rabbitRepo, monitorIPDic);
         }
         private void UpdateAndPublishAlertSentList(AlertMessage alertMessage, List<MonitorStatusAlert> publishAlertSentList)
         {
@@ -494,7 +525,7 @@ namespace NetworkMonitor.Service.Services
                         UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList);
                     }
                 }
-                PublishAlertsRepo.ProcessorAlertSent(_logger, _daprClient, publishAlertSentList, _processorList);
+                PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorList);
             }
             return count;
         }

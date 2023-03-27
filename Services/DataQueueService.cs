@@ -10,11 +10,11 @@ using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using NetworkMonitorService.Objects.ServiceMessage;
 using System.Threading.Tasks;
-namespace NetworkMonitor.Service.Services
+namespace NetworkMonitor.Alert.Services
 {
     public interface IDataQueueService
     {
-        Task<ResultObj> AddProcessorDataBytesToQueue(byte[] processorDataBytes,List<MonitorStatusAlert> monitorStatusAlerts);
+        Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString,List<MonitorStatusAlert> monitorStatusAlerts);
    
     }
     public class DataQueueService : IDataQueueService
@@ -26,13 +26,13 @@ namespace NetworkMonitor.Service.Services
    
             _logger = logger;
         }
-        public Task<ResultObj> AddProcessorDataBytesToQueue(byte[] processorDataBytes,List<MonitorStatusAlert> monitorStatusAlerts)
+        public Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString,List<MonitorStatusAlert> monitorStatusAlerts)
         {
-            Func<byte[],List<MonitorStatusAlert>, Task<ResultObj>> func = CommitProcessorDataBytes;
-            return taskQueue.EnqueueStatusBytes<ResultObj>(func, processorDataBytes,monitorStatusAlerts);
+            Func<string,List<MonitorStatusAlert>, Task<ResultObj>> func = CommitProcessorDataString;
+            return taskQueue.EnqueueStatusString<ResultObj>(func, processorDataString,monitorStatusAlerts);
         }
       
-        private Task<ResultObj> CommitProcessorDataBytes(byte[] processorDataBytes,List<MonitorStatusAlert> monitorStatusAlerts)
+        private Task<ResultObj> CommitProcessorDataString(string processorDataString,List<MonitorStatusAlert> monitorStatusAlerts)
         {
             return Task<ResultObj>.Run(() =>
             {
@@ -40,7 +40,7 @@ namespace NetworkMonitor.Service.Services
                 var result = new ResultObj();
                 try
                 {              
-                     var processorDataObj =ProcessorDataBuilder.MergeMonitorStatusAlerts(processorDataBytes,monitorStatusAlerts);           
+                     var processorDataObj =ProcessorDataBuilder.MergeMonitorStatusAlerts(processorDataString,monitorStatusAlerts);           
                     result.Success=true;
                     _logger.LogInformation("Finshed CommitProcessorDataBytes at "+DateTime.UtcNow+ " for Processor AppID "+processorDataObj.AppID);
                 }

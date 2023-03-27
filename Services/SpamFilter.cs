@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using NetworkMonitor.Objects;
 using System.Linq;
 using MetroLog;
-namespace NetworkMonitor.Service.Services
+namespace NetworkMonitor.Alert.Services
 {
     public class SpamFilter
     {

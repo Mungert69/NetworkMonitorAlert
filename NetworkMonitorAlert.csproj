@@ -6,10 +6,11 @@
     <PublishProfile>DefaultContainer</PublishProfile>
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:7.0-jammy-amd64</ContainerBaseImage>
     <ContainerImageName>mungert/networkmonitoralert</ContainerImageName>
-    <ContainerImageTag>0.2.0</ContainerImageTag>
+    <ContainerImageTag>0.2.1</ContainerImageTag>
 </PropertyGroup>
 
   <ItemGroup>
+<PackageReference Include="HostInitActions" Version="1.2.0" />
 <PackageReference Include="Microsoft.NET.Build.Containers" Version="0.2.7" />
     <PackageReference Include="MailKit" Version="3.6.0" />
    </ItemGroup>

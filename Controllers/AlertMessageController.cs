@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using NetworkMonitor.Objects;
 using NetworkMonitor.Objects.ServiceMessage;
-using NetworkMonitor.Service.Services;
+using NetworkMonitor.Alert.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +15,7 @@ namespace NetworkMonitor.Service.Controllers
     [Route("[controller]")]
     public class AlertMessageController : ControllerBase
     {
+        /*
         private readonly ILogger<AlertMessageController> _logger;
         private IAlertMessageService _alertMessageService;
         private IDataQueueService _dataQueueService;
@@ -33,9 +34,9 @@ namespace NetworkMonitor.Service.Controllers
             result.Message = "MessageAPI : WakeUp : ";
             try
             {
-                /*_alertMessageService.Awake=true;
-                result.Message+="Success : Set Awake to true in AlertMessageService.";
-                result.Success=true;*/
+                //_alertMessageService.Awake=true;
+                //result.Message+="Success : Set Awake to true in AlertMessageService.";
+                //result.Success=true;
                 result=_alertMessageService.WakeUp();
                 _logger.LogWarning(result.Message);
             }
@@ -192,5 +193,7 @@ namespace NetworkMonitor.Service.Controllers
             }
             return result;
         }
+        */
     }
+
 }

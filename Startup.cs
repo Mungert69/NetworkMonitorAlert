@@ -4,19 +4,23 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using NetworkMonitor.Service.Services;
+using NetworkMonitor.Alert.Services;
 using NetworkMonitor.Objects.Factory;
 using Microsoft.AspNetCore.Authorization;
 using System;
+using System.Threading;
 using MetroLog;
+using HostInitActions;
 
 
 namespace NetworkMonitor.Service
 {
     public class Startup
     {
+          private readonly CancellationTokenSource _cancellationTokenSource;
         public Startup(IConfiguration configuration)
         {
+             _cancellationTokenSource = new CancellationTokenSource();
             Configuration = configuration;
         }
 
@@ -39,6 +43,7 @@ namespace NetworkMonitor.Service
             services.AddSingleton<IAlertMessageService, AlertMessageService>();
              services.Configure<HostOptions>(s => s.ShutdownTimeout = TimeSpan.FromMinutes(5));
             services.AddSingleton<INetLoggerFactory,NetLoggerFactory>();
+             services.AddSingleton(_cancellationTokenSource);
            
 
            
@@ -49,6 +54,11 @@ namespace NetworkMonitor.Service
          
              var logger = LogManagerFactory.DefaultLogManager.GetLogger<Startup>();
             services.AddSingleton(logger);
+             services.AddAsyncServiceInitialization()
+        .AddInitAction<IAlertMessageService>(async (alertMessageService) =>
+        {
+            await alertMessageService.Init();
+        });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
