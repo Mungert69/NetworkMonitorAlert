@@ -49,7 +49,6 @@ namespace NetworkMonitor.Alert.Services
         private List<AlertMessage> _alertMessages = new List<AlertMessage>();
         private List<MonitorStatusAlert> _monitorStatusAlerts = new List<MonitorStatusAlert>();
         private List<ProcessorObj> _processorList = new List<ProcessorObj>();
-        private Dictionary<string, string> _daprMetadata = new Dictionary<string, string>();
         private RabbitListener _rabbitRepo;
         private CancellationToken _token;
         public RabbitListener RabbitRepo { get => _rabbitRepo; }
@@ -61,7 +60,6 @@ namespace NetworkMonitor.Alert.Services
             _dataQueueService = dataQueueService;
             _logger = loggerFactory.GetLogger("AlertMessageService");
             FileRepo.CheckFileExists("UserInfos", _logger);
-            _daprMetadata.Add("ttlInSeconds", "60");
             _config = config;
             _token = cancellationTokenSource.Token;
             _token.Register(() => OnStopping());
@@ -70,12 +68,12 @@ namespace NetworkMonitor.Alert.Services
         private void OnStopping()
         {
             ResultObj result = new ResultObj();
-            result.Message=" SERVICE SHUTDOWN : starting shutdown of AlertMonitorService : ";
+            result.Message = " SERVICE SHUTDOWN : starting shutdown of AlertMonitorService : ";
             try
             {
-                result.Message+=" Saving UserInfos into statestore. ";
+                result.Message += " Saving UserInfos into statestore. ";
                 FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
-                result.Message+=" Saved UserInfos into statestore. ";
+                result.Message += " Saved UserInfos into statestore. ";
                 result.Success = true;
                 _logger.Warn("SERVICE SHUTDOWN : Result : " + result.Message);
             }
@@ -128,69 +126,59 @@ namespace NetworkMonitor.Alert.Services
             {
                 _logger.Error("Error : Can not get Config" + e.Message.ToString());
             }
-            bool isDaprReady = true;
-            if (isDaprReady)
+
+            if (alertObj.TotalReset)
             {
-                _logger.Info("Dapr Client Status is healthy");
-                if (alertObj.TotalReset)
+                try
                 {
-                    try
-                    {
-                        _logger.Info("Resetting Alert UserInfos in statestore");
-                        _userInfos = new List<UserInfo>();
-                        FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
-                        //_daprClient.SaveStateAsync<List<UserInfo>>("statestore", "UserInfos", _userInfos);
-                        _logger.Info("Reset UserInfos in statestore ");
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.Error("Error : Can not reset UserInfos in statestre Error was : " + e.Message.ToString());
-                    }
+                    _logger.Info("Resetting Alert UserInfos in statestore");
+                    _userInfos = new List<UserInfo>();
+                    FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
+                    _logger.Info("Reset UserInfos in statestore ");
                 }
-                else
+                catch (Exception e)
                 {
-                    if (alertObj.UpdateUserInfos)
-                    {
-                        _userInfos = alertObj.UserInfos;
-                        try
-                        {
-                            FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
-                            //_daprClient.SaveStateAsync<List<UserInfo>>("statestore", "UserInfos", _userInfos);
-                            _logger.Info("Saved UserInfos to statestore ");
-                        }
-                        catch (Exception e)
-                        {
-                            _logger.Error("Error : Can not save UserInfos to statestore Error was : " + e.Message.ToString());
-                        }
-                    }
-                    else
-                    {
-                        try
-                        {
-                            _userInfos = FileRepo.GetStateJsonZ<List<UserInfo>>("UserInfos");
-                            //userInfos = _daprClient.GetStateAsync<List<UserInfo>>("statestore", "UserInfos").Result;
-                            _logger.Info("Got UserInfos from statestore ");
-                            if (_userInfos == null) _userInfos = new List<UserInfo>();
-                        }
-                        catch (Exception e)
-                        {
-                            _logger.Error("Error : Can not get UserInfos from statestore Error was : " + e.Message.ToString());
-                        }
-                    }
-                    if (_userInfos.Count() != 0)
-                    {
-                        _logger.Info("Got UserInfos " + _userInfos.Count + " from published message ");
-                    }
-                    else
-                    {
-                        _logger.Warn("Warning got zero UserInfos ");
-                    }
+                    _logger.Error("Error : Can not reset UserInfos in statestre Error was : " + e.Message.ToString());
                 }
             }
             else
             {
-                _logger.Fatal("Dapr Client Status is not healthy");
+                if (alertObj.UpdateUserInfos)
+                {
+                    _userInfos = alertObj.UserInfos;
+                    try
+                    {
+                        FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
+                         _logger.Info("Saved UserInfos to statestore ");
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.Error("Error : Can not save UserInfos to statestore Error was : " + e.Message.ToString());
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        _userInfos = FileRepo.GetStateJsonZ<List<UserInfo>>("UserInfos");
+                        _logger.Info("Got UserInfos from statestore ");
+                        if (_userInfos == null) _userInfos = new List<UserInfo>();
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.Error("Error : Can not get UserInfos from statestore Error was : " + e.Message.ToString());
+                    }
+                }
+                if (_userInfos.Count() != 0)
+                {
+                    _logger.Info("Got UserInfos " + _userInfos.Count + " from published message ");
+                }
+                else
+                {
+                    _logger.Warn("Warning got zero UserInfos ");
+                }
             }
+
             try
             {
                 alertObj.IsAlertServiceReady = true;
@@ -581,7 +569,6 @@ namespace NetworkMonitor.Alert.Services
                 try
                 {
                     FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
-                    //_daprClient.SaveStateAsync<List<UserInfo>>("statestore", "UserInfos", _userInfos);
                     _logger.Info("Saved UserInfos to file statestore ");
                 }
                 catch (Exception e)

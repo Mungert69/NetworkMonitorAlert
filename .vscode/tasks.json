@@ -36,21 +36,6 @@
                 "${workspaceFolder}/NetworkMonitorAlert.csproj"
             ],
             "problemMatcher": "$msCompile"
-        },
-        {
-            "appId": "monitoralert",
-            "appPort": 2062,
-            "httpPort": 3662,
-            "grpcPort": 60067,
-            "label": "dapr-debug",
-            "type": "dapr",
-            "dependsOn": "build",
-            "componentsPath": "./components"
-        },
-        {
-            "appId": "monitoralert",
-            "label": "daprd-down",
-            "type": "daprd-down"
         }
     ]
 }

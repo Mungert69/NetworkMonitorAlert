@@ -47,7 +47,7 @@ namespace NetworkMonitor.Service
            
 
            
-            services.AddControllers().AddDapr().AddNewtonsoftJson(options =>
+            services.AddControllers().AddNewtonsoftJson(options =>
     options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
 );
 

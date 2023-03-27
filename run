@@ -1,1 +1,1 @@
-dapr run --app-id monitoralert -d ./components --app-port 2062  --dapr-http-port 3562 --dapr-grpc-port 60062 --dapr-http-max-request-size 16 dotnet run
+ dotnet run
