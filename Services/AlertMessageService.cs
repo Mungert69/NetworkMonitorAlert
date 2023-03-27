@@ -75,7 +75,8 @@ namespace NetworkMonitor.Alert.Services
                 FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
                 result.Message += " Saved UserInfos into statestore. ";
                 result.Success = true;
-                _logger.Warn("SERVICE SHUTDOWN : Result : " + result.Message);
+               _logger.Info(result.Message);
+                _logger.Warn("SERVICE SHUTDOWN : Complete : ");
             }
             catch (Exception e)
             {
