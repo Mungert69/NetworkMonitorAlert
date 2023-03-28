@@ -115,7 +115,7 @@ namespace NetworkMonitor.Alert.Services
                 _sendTrustPilot = systemParams.SendTrustPilot;
                 try
                 {
-                    _rabbitRepo = new RabbitListener(_logger, this, _dataQueueService, systemParams.RabbitInstanceName, systemParams.RabbitHostName);
+                    _rabbitRepo = new RabbitListener(_logger, systemParams.ThisSystemUrl,this, _dataQueueService);
                 }
                 catch (Exception e)
                 {
