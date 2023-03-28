@@ -164,7 +164,7 @@ namespace NetworkMonitor.Objects.Repository
                     };
                         break;
                     case "alertMessageResetAlerts":
-                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
                         rabbitMQObj.Consumer.Received += (model, ea) =>
                     {
                         result = AlertMessageResetAlerts(ConvertToList<List<AlertFlagObj>>(model, ea));
@@ -196,7 +196,7 @@ namespace NetworkMonitor.Objects.Repository
                     };
                         break;
                     case "alertUpdateMonitorStatusAlerts":
-                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
                         rabbitMQObj.Consumer.Received += (model, ea) =>
                     {
                         result = AlertUpdateMonitorStatusAlerts(ConvertToString(model, ea));
