@@ -25,6 +25,7 @@ namespace NetworkMonitor.Objects.Repository
         {
             _alertMessageService = alertMessageService;
             _dataQueueService = dataQueueService;
+	    Setup();
            }
         protected override void InitRabbitMQObjs()
         {
