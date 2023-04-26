@@ -75,7 +75,7 @@ namespace NetworkMonitor.Alert.Services
                 FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
                 result.Message += " Saved UserInfos into statestore. ";
                 result.Success = true;
-               _logger.Info(result.Message);
+                _logger.Info(result.Message);
                 _logger.Warn("SERVICE SHUTDOWN : Complete : ");
             }
             catch (Exception e)
@@ -115,7 +115,7 @@ namespace NetworkMonitor.Alert.Services
                 _sendTrustPilot = systemParams.SendTrustPilot;
                 try
                 {
-                    _rabbitRepo = new RabbitListener(_logger, systemParams.ThisSystemUrl,this, _dataQueueService);
+                    _rabbitRepo = new RabbitListener(_logger, systemParams.ThisSystemUrl, this, _dataQueueService);
                 }
                 catch (Exception e)
                 {
@@ -150,7 +150,7 @@ namespace NetworkMonitor.Alert.Services
                     try
                     {
                         FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
-                         _logger.Info("Saved UserInfos to statestore ");
+                        _logger.Info("Saved UserInfos to statestore ");
                     }
                     catch (Exception e)
                     {
@@ -432,7 +432,9 @@ namespace NetworkMonitor.Alert.Services
             var pingParams = new PingParams() { IsAdmin = false };
             var monitorPingInfos = new List<MonitorPingInfo>();
             int maxTimeout = 0;
-            updateAlertFlagList.ForEach(a =>
+            // exclude MonitorPingInfos that have EndPointType set to string values in ExcludeEndPointTypList
+            var excludeEndPoints = new ExcludeEndPointTypeList();
+            updateAlertFlagList.Where(w => !excludeEndPoints.Contains(w.EndPointType)).ToList().ForEach(a =>
             {
                 monitorPingInfos.Add(new MonitorPingInfo()
                 {
@@ -447,13 +449,13 @@ namespace NetworkMonitor.Alert.Services
                 if (a.Timeout > maxTimeout) maxTimeout = a.Timeout;
             });
             _logger.Info(" Checking " + monitorPingInfos.Count() + " Alerts ");
-            var connectFactory = new ConnectFactory();
+            var connectFactory = new ConnectFactory(_config);
             var netConnects = connectFactory.GetNetConnectList(monitorPingInfos, pingParams);
             var pingConnectTasks = new List<Task>();
             netConnects.Where(w => w.MonitorPingInfo.Enabled == true).ToList().ForEach(
                 netConnect =>
                 {
-                    pingConnectTasks.Add(netConnect.connect());
+                    pingConnectTasks.Add(netConnect.Connect());
                 }
             );
             Task.WhenAll(pingConnectTasks.ToArray()).Wait();
