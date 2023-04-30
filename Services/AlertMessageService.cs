@@ -450,7 +450,9 @@ namespace NetworkMonitor.Alert.Services
             });
             _logger.Info(" Checking " + monitorPingInfos.Count() + " Alerts ");
             var connectFactory = new ConnectFactory(_config);
-            var netConnects = connectFactory.GetNetConnectList(monitorPingInfos, pingParams);
+            var netConnectCollection = new NetConnectCollection(_logger,_config,connectFactory);
+            netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams,true);
+            var netConnects = netConnectCollection.NetConnects.Where(w => w.IsLongRunning == false).ToList();
             var pingConnectTasks = new List<Task>();
             netConnects.Where(w => w.MonitorPingInfo.Enabled == true).ToList().ForEach(
                 netConnect =>
