@@ -17,12 +17,6 @@ namespace NetworkMonitor.Service
         {
             bool isDevelopmentMode = false;
             string appFile = "appsettings.json";
-            for (int i = 0; i < args.Length; i++) // Loop through array
-            {
-                Console.WriteLine("ARGS are : " + args[i]);
-                isDevelopmentMode = true;
-                appFile = "appsettings.Development.json";
-            }
             IConfigurationRoot config = new ConfigurationBuilder()
         .AddJsonFile(appFile, optional: false)
         .Build();
