@@ -150,7 +150,7 @@ namespace NetworkMonitor.Alert.Services
                     try
                     {
                         FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
-                        _logger.Info("Saved UserInfos to statestore ");
+                        _logger.Info("Saved "+_userInfos.Count()+" UserInfos to statestore ");
                     }
                     catch (Exception e)
                     {
@@ -162,7 +162,7 @@ namespace NetworkMonitor.Alert.Services
                     try
                     {
                         _userInfos = FileRepo.GetStateJsonZ<List<UserInfo>>("UserInfos");
-                        _logger.Info("Got UserInfos from statestore ");
+                        _logger.Info("Got "+_userInfos.Count()+"  UserInfos from statestore ");
                         if (_userInfos == null) _userInfos = new List<UserInfo>();
                     }
                     catch (Exception e)
