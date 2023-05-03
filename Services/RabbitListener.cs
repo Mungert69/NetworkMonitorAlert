@@ -21,12 +21,12 @@ namespace NetworkMonitor.Objects.Repository
     {
         private IAlertMessageService _alertMessageService;
         private IDataQueueService _dataQueueService;
-        public RabbitListener(ILogger logger,SystemUrl systemUrl,IAlertMessageService alertMessageService, IDataQueueService dataQueueService): base(logger, systemUrl)
+        public RabbitListener(ILogger logger, SystemUrl systemUrl, IAlertMessageService alertMessageService, IDataQueueService dataQueueService) : base(logger, systemUrl)
         {
             _alertMessageService = alertMessageService;
             _dataQueueService = dataQueueService;
-	    Setup();
-           }
+            Setup();
+        }
         protected override void InitRabbitMQObjs()
         {
             _rabbitMQObjs.Add(new RabbitMQObj()
@@ -68,7 +68,7 @@ namespace NetworkMonitor.Objects.Repository
                 FuncName = "alertUpdateMonitorStatusAlerts",
                 MessageTimeout = 60000
             });
-           }
+        }
         protected override ResultObj DeclareConsumers()
         {
             var result = new ResultObj();
@@ -83,14 +83,30 @@ namespace NetworkMonitor.Objects.Repository
                         rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
                         rabbitMQObj.Consumer.Received += (model, ea) =>
                     {
-                        result = WakeUp();
-                        rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        try
+                        {
+                            result = WakeUp();
+                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error(" Error : RabbitListener.DeclareConsumers.serviceWakeUp " + ex.Message);
+                        }
                     };
                         break;
                     case "alertMessageInit":
                         rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
                         rabbitMQObj.Consumer.Received += (model, ea) =>
                     {
+                        try
+                        {
+                            result = AlertMessageInit(ConvertToObject<AlertServiceInitObj>(model, ea));
+                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error(" Error : RabbitListener.DeclareConsumers.alertMessageinit " + ex.Message);
+                        }
                         result = AlertMessageInit(ConvertToObject<AlertServiceInitObj>(model, ea));
                         rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
                     };
@@ -99,44 +115,77 @@ namespace NetworkMonitor.Objects.Repository
                         rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
                         rabbitMQObj.Consumer.Received += (model, ea) =>
                     {
-                        result = AlertMessageResetAlerts(ConvertToList<List<AlertFlagObj>>(model, ea));
-                        rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        try
+                        {
+                            result = AlertMessageResetAlerts(ConvertToList<List<AlertFlagObj>>(model, ea));
+                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error(" Error : RabbitListener.DeclareConsumers.alertMessageResetAlerts " + ex.Message);
+                        }
                     };
                         break;
                     case "alertMessage":
                         rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
                         rabbitMQObj.Consumer.Received += (model, ea) =>
                     {
-                        result = AlertMessage(ConvertToObject<AlertMessage>(model, ea));
-                        rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        try
+                        {
+                            result = AlertMessage(ConvertToObject<AlertMessage>(model, ea));
+                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error(" Error : RabbitListener.DeclareConsumers.alertMessage " + ex.Message);
+                        }
                     };
                         break;
                     case "updateUserInfoAlertMessage":
                         rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
                         rabbitMQObj.Consumer.Received += (model, ea) =>
                     {
-                        result = UpdateUserInfoAlertMessage(ConvertToObject<UserInfo>(model, ea));
-                        rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        try
+                        {
+                            result = UpdateUserInfoAlertMessage(ConvertToObject<UserInfo>(model, ea));
+                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error(" Error : RabbitListener.DeclareConsumers.updateUserInfoAlertMessage " + ex.Message);
+                        }
                     };
                         break;
                     case "monitorAlert":
                         rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
                         rabbitMQObj.Consumer.Received += (model, ea) =>
                     {
-                        result = MonitorAlert();
-                        rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        try
+                        {
+                            result = MonitorAlert();
+                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error(" Error : RabbitListener.DeclareConsumers.monitorAlert " + ex.Message);
+                        }
                     };
                         break;
                     case "alertUpdateMonitorStatusAlerts":
                         rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
                         rabbitMQObj.Consumer.Received += (model, ea) =>
                     {
-                        result = AlertUpdateMonitorStatusAlerts(ConvertToString(model, ea));
-                        rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        try
+                        {
+                            result = AlertUpdateMonitorStatusAlerts(ConvertToString(model, ea));
+                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error(" Error : RabbitListener.DeclareConsumers.alertUpdateMonitorStatusAlerts " + ex.Message);
+                        }
                     };
                         break;
-
-
                 }
             });
                 result.Success = true;
@@ -296,7 +345,6 @@ namespace NetworkMonitor.Objects.Repository
             }
             catch (Exception e)
             {
-
                 result.Success = false;
                 result.Message += "Error : Failed to set AlertMonitorStatusAlerts : Error was : " + e.Message + " ";
                 _logger.Error("Error : Failed to set AlertMonitorStatusAlerts : Error was : " + e.Message + " ");

@@ -452,7 +452,7 @@ namespace NetworkMonitor.Alert.Services
             var connectFactory = new ConnectFactory(_config);
             var netConnectCollection = new NetConnectCollection(_logger,_config,connectFactory);
             netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams,true);
-            var netConnects = netConnectCollection.NetConnects.Where(w => w.IsLongRunning == false).ToList();
+            var netConnects = netConnectCollection.GetNonLongRunningNetConnects().ToList();
             var pingConnectTasks = new List<Task>();
             netConnects.Where(w => w.MonitorPingInfo.Enabled == true).ToList().ForEach(
                 netConnect =>
