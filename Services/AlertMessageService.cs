@@ -451,10 +451,11 @@ namespace NetworkMonitor.Alert.Services
             _logger.Info(" Checking " + monitorPingInfos.Count() + " Alerts ");
             var connectFactory = new ConnectFactory(_config);
             var netConnectCollection = new NetConnectCollection(_logger,_config,connectFactory);
-            netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams,true);
+            SemaphoreSlim semaphore = new SemaphoreSlim(1);
+            netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams,true,semaphore);
             var netConnects = netConnectCollection.GetNonLongRunningNetConnects().ToList();
             var pingConnectTasks = new List<Task>();
-            netConnects.Where(w => w.MonitorPingInfo.Enabled == true).ToList().ForEach(
+            netConnects.Where(w => w.MpiStatic.Enabled == true).ToList().ForEach(
                 netConnect =>
                 {
                     pingConnectTasks.Add(netConnect.Connect());
