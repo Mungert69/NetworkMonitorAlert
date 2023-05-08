@@ -447,7 +447,7 @@ namespace NetworkMonitor.Alert.Services
                 if (a.Timeout > maxTimeout) maxTimeout = a.Timeout;
             });
             _logger.Info(" Checking " + monitorPingInfos.Count() + " Alerts ");
-            var connectFactory = new ConnectFactory(_config);
+            var connectFactory = new ConnectFactory(_config,false);
             var netConnectCollection = new NetConnectCollection(_logger,_config,connectFactory);
             SemaphoreSlim semaphore = new SemaphoreSlim(1);
             netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams,true,semaphore);
