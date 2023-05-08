@@ -191,13 +191,11 @@ namespace NetworkMonitor.Alert.Services
                 _logger.Error("Error : Can not publish event  AlertServiceItitObj.IsAlertServiceReady Error was : " + e.Message.ToString());
             }
         }
-        public string DecryptStr(string str)
-        {
-            return HttpUtility.UrlDecode(AesOperation.DecryptString(_emailEncryptKey, str));
-        }
+       
         public string EncryptStr(string str)
         {
-            return HttpUtility.UrlEncode(AesOperation.EncryptString(_emailEncryptKey, str));
+            str=AesOperation.EncryptString(_emailEncryptKey, str);
+            return HttpUtility.UrlEncode(str);
         }
         public ResultObj Send(AlertMessage alertMessage)
         {
