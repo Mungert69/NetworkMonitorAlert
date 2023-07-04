@@ -450,7 +450,7 @@ namespace NetworkMonitor.Alert.Services
             var connectFactory = new ConnectFactory(_config,false);
             var netConnectCollection = new NetConnectCollection(_logger,_config,connectFactory);
             SemaphoreSlim semaphore = new SemaphoreSlim(1);
-            netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams,true,semaphore);
+            netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams,true,false,semaphore);
             var netConnects = netConnectCollection.GetNonLongRunningNetConnects().ToList();
             var pingConnectTasks = new List<Task>();
             netConnects.Where(w => w.MpiStatic.Enabled == true).ToList().ForEach(
