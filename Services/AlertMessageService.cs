@@ -166,7 +166,6 @@ namespace NetworkMonitor.Alert.Services
                         else
                         {
                             _logger.Info("Got " + _userInfos.Count() + "  UserInfos from statestore ");
-
                         }
                     }
                     catch (Exception e)
@@ -376,7 +375,6 @@ namespace NetworkMonitor.Alert.Services
                 string userId = monitorStatusAlert.UserID;
                 UserInfo userInfo = userInfos.FirstOrDefault(u => u.UserID == userId);
                 if (userInfo == null) userInfo = new UserInfo();
-
                 if (monitorStatusAlert.AddUserEmail != null && monitorStatusAlert.AddUserEmail != "delete")
                 {
                     // Validate email format
@@ -384,7 +382,6 @@ namespace NetworkMonitor.Alert.Services
                     if (emailRegex.IsMatch(monitorStatusAlert.AddUserEmail))
                     {
                         userInfo.Email = monitorStatusAlert.AddUserEmail;
-                       
                     }
                     else
                     {
@@ -393,13 +390,11 @@ namespace NetworkMonitor.Alert.Services
                         _logger.Warn(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
                     }
                 }
-                 if (userId == "default")
-                        {
-                            userInfo.Name = userInfo.Email.Split('@')[0];
-                            userId = userInfo.Email;
-                        }
-
-
+                if (userId == "default")
+                {
+                    userInfo.Name = userInfo.Email.Split('@')[0];
+                    userId = userInfo.Email;
+                }
                 monitorStatusAlert.UserName = userInfo.Name;
                 if (monitorStatusAlert.DownCount > _alertThreshold && monitorStatusAlert.AlertSent == false && noAlertSentStored)
                 {
