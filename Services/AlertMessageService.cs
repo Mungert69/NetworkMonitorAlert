@@ -534,6 +534,7 @@ namespace NetworkMonitor.Alert.Services
                         alertMessage.VerifyLink = false;
                         if (Send(alertMessage).Success)
                         {
+                            _logger.Info(" Success : Sent alert message to "+alertMessage.EmailTo);
                             UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList);
                         }
                         count++;
