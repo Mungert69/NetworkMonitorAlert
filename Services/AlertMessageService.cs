@@ -373,8 +373,7 @@ namespace NetworkMonitor.Alert.Services
                 bool noAlertSentStored = _updateAlertSentList.FirstOrDefault(w => w.ID == monitorStatusAlert.ID) == null;
                 if (monitorStatusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(monitorStatusAlert);
                 string userId = monitorStatusAlert.UserID;
-                UserInfo userInfo = userInfos.FirstOrDefault(u => u.UserID == userId);
-                if (userInfo == null) userInfo = new UserInfo();
+                UserInfo userInfo = new UserInfo(userInfos.FirstOrDefault(u => u.UserID == userId));
                 if (monitorStatusAlert.AddUserEmail != null && monitorStatusAlert.AddUserEmail != "delete")
                 {
                     // Validate email format
