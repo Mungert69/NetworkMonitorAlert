@@ -374,6 +374,7 @@ namespace NetworkMonitor.Alert.Services
                 if (monitorStatusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(monitorStatusAlert);
                 string userId = monitorStatusAlert.UserID;
                 UserInfo userInfo = new UserInfo(userInfos.FirstOrDefault(u => u.UserID == userId));
+
                 if (monitorStatusAlert.AddUserEmail != null && monitorStatusAlert.AddUserEmail != "delete")
                 {
                     // Validate email format
@@ -386,15 +387,16 @@ namespace NetworkMonitor.Alert.Services
                     }
                     else
                     {
-                        userInfo.Email = "support@mahadeva.co.uk";
+                        userInfo.DisableEmail=true;
                         // Handle invalid email format
                         _logger.Warn(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
                     }
                 }
+                if (monitorStatusAlert.AddUserEmail == "delete") userInfo.DisableEmail=true;
                 if (userId == "default")
                 {
                     userInfo.Name = userInfo.Email.Split('@')[0];
-                    userId = userInfo.Email;
+                    userId = userInfo.Email;           
                 }
                 monitorStatusAlert.UserName = userInfo.Name;
                 if (monitorStatusAlert.DownCount > _alertThreshold && monitorStatusAlert.AlertSent == false && noAlertSentStored)
