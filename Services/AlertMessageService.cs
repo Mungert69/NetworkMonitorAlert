@@ -161,21 +161,24 @@ namespace NetworkMonitor.Alert.Services
                     try
                     {
                         _userInfos = FileRepo.GetStateJsonZ<List<UserInfo>>("UserInfos");
-                        _logger.Info("Got " + _userInfos.Count() + "  UserInfos from statestore ");
-                        if (_userInfos == null) _userInfos = new List<UserInfo>();
+                           if (_userInfos == null) _userInfos = new List<UserInfo>();
+                           else {
+                              _logger.Info("Got " + _userInfos.Count() + "  UserInfos from statestore ");
+                   
+                           }
                     }
                     catch (Exception e)
                     {
                         _logger.Error("Error : Can not get UserInfos from statestore Error was : " + e.Message.ToString());
                     }
                 }
-                if (_userInfos.Count() != 0)
+                if (_userInfos != null && _userInfos.Count() != 0)
                 {
                     _logger.Info("Got UserInfos " + _userInfos.Count + " from published message ");
                 }
                 else
                 {
-                    _logger.Warn("Warning got zero UserInfos ");
+                    _logger.Warn("Warning got no UserInfos from state file.");
                 }
             }
             try
@@ -370,6 +373,7 @@ namespace NetworkMonitor.Alert.Services
                 if (monitorStatusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(monitorStatusAlert);
                 string userId = monitorStatusAlert.UserID;
                 UserInfo userInfo = userInfos.FirstOrDefault(u => u.UserID == userId);
+                if (userInfo==null) userInfo=new UserInfo();
                 if (monitorStatusAlert.AddUserEmail != null)
                 {
                     userInfo.Email = monitorStatusAlert.AddUserEmail;
