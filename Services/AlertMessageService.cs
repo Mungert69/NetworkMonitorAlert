@@ -378,7 +378,7 @@ namespace NetworkMonitor.Alert.Services
                 if (monitorStatusAlert.AddUserEmail != null && monitorStatusAlert.AddUserEmail != "delete")
                 {
                     // Validate email format
-                    var emailRegex = new Regex(@"^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$");
+                    var emailRegex = new Regex(@"^[\w-+]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$");
                     if (emailRegex.IsMatch(monitorStatusAlert.AddUserEmail))
                     {
                         userInfo.Email = monitorStatusAlert.AddUserEmail;
