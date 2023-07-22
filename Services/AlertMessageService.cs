@@ -6,6 +6,7 @@ using NetworkMonitor.Objects.ServiceMessage;
 using NetworkMonitor.Objects.Repository;
 using NetworkMonitor.Connection;
 using System;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NetworkMonitor.Utils;
@@ -161,11 +162,12 @@ namespace NetworkMonitor.Alert.Services
                     try
                     {
                         _userInfos = FileRepo.GetStateJsonZ<List<UserInfo>>("UserInfos");
-                           if (_userInfos == null) _userInfos = new List<UserInfo>();
-                           else {
-                              _logger.Info("Got " + _userInfos.Count() + "  UserInfos from statestore ");
-                   
-                           }
+                        if (_userInfos == null) _userInfos = new List<UserInfo>();
+                        else
+                        {
+                            _logger.Info("Got " + _userInfos.Count() + "  UserInfos from statestore ");
+
+                        }
                     }
                     catch (Exception e)
                     {
@@ -373,16 +375,29 @@ namespace NetworkMonitor.Alert.Services
                 if (monitorStatusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(monitorStatusAlert);
                 string userId = monitorStatusAlert.UserID;
                 UserInfo userInfo = userInfos.FirstOrDefault(u => u.UserID == userId);
-                if (userInfo==null) userInfo=new UserInfo();
-                if (monitorStatusAlert.AddUserEmail != null)
+                if (userInfo == null) userInfo = new UserInfo();
+
+                if (monitorStatusAlert.AddUserEmail != null && monitorStatusAlert.AddUserEmail != "delete")
                 {
-                    userInfo.Email = monitorStatusAlert.AddUserEmail;
-                    if (userId == "default")
+                    // Validate email format
+                    var emailRegex = new Regex(@"^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$");
+                    if (emailRegex.IsMatch(monitorStatusAlert.AddUserEmail))
                     {
-                        userInfo.Name = userInfo.Email.Split('@')[0];
-                        userId = userInfo.Email;
+                        userInfo.Email = monitorStatusAlert.AddUserEmail;
+                        if (userId == "default")
+                        {
+                            userInfo.Name = userInfo.Email.Split('@')[0];
+                            userId = userInfo.Email;
+                        }
+                    }
+                    else
+                    {
+                        // Handle invalid email format
+                        _logger.Warn(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
                     }
                 }
+
+
                 monitorStatusAlert.UserName = userInfo.Name;
                 if (monitorStatusAlert.DownCount > _alertThreshold && monitorStatusAlert.AlertSent == false && noAlertSentStored)
                 {
