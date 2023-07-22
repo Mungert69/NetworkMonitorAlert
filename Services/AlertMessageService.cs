@@ -381,6 +381,8 @@ namespace NetworkMonitor.Alert.Services
                     var emailRegex = new Regex(@"^[\w-+]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$");
                     if (emailRegex.IsMatch(monitorStatusAlert.AddUserEmail))
                     {
+
+                        _logger.Info(" Success : Rewriting email address from " + userInfo.Email + " to " + monitorStatusAlert.AddUserEmail);
                         userInfo.Email = monitorStatusAlert.AddUserEmail;
                     }
                     else
