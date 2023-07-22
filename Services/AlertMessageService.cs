@@ -127,7 +127,6 @@ namespace NetworkMonitor.Alert.Services
             {
                 _logger.Error("Error : Can not get Config" + e.Message.ToString());
             }
-
             if (alertObj.TotalReset)
             {
                 try
@@ -150,7 +149,7 @@ namespace NetworkMonitor.Alert.Services
                     try
                     {
                         FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
-                        _logger.Info("Saved "+_userInfos.Count()+" UserInfos to statestore ");
+                        _logger.Info("Saved " + _userInfos.Count() + " UserInfos to statestore ");
                     }
                     catch (Exception e)
                     {
@@ -162,7 +161,7 @@ namespace NetworkMonitor.Alert.Services
                     try
                     {
                         _userInfos = FileRepo.GetStateJsonZ<List<UserInfo>>("UserInfos");
-                        _logger.Info("Got "+_userInfos.Count()+"  UserInfos from statestore ");
+                        _logger.Info("Got " + _userInfos.Count() + "  UserInfos from statestore ");
                         if (_userInfos == null) _userInfos = new List<UserInfo>();
                     }
                     catch (Exception e)
@@ -179,7 +178,6 @@ namespace NetworkMonitor.Alert.Services
                     _logger.Warn("Warning got zero UserInfos ");
                 }
             }
-
             try
             {
                 alertObj.IsAlertServiceReady = true;
@@ -191,10 +189,9 @@ namespace NetworkMonitor.Alert.Services
                 _logger.Error("Error : Can not publish event  AlertServiceItitObj.IsAlertServiceReady Error was : " + e.Message.ToString());
             }
         }
-       
         public string EncryptStr(string str)
         {
-            str=AesOperation.EncryptString(_emailEncryptKey, str);
+            str = AesOperation.EncryptString(_emailEncryptKey, str);
             return HttpUtility.UrlEncode(str);
         }
         public ResultObj Send(AlertMessage alertMessage)
@@ -373,6 +370,16 @@ namespace NetworkMonitor.Alert.Services
                 if (monitorStatusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(monitorStatusAlert);
                 string userId = monitorStatusAlert.UserID;
                 UserInfo userInfo = userInfos.FirstOrDefault(u => u.UserID == userId);
+                if (monitorStatusAlert.AddUserEmail != null)
+                {
+                    userInfo.Email = monitorStatusAlert.AddUserEmail;
+                    if (userId == "default")
+                    {
+                        userInfo.Name = userInfo.Email.Split('@')[0];
+                        userId = userInfo.Email;
+                    }
+                }
+                monitorStatusAlert.UserName = userInfo.Name;
                 if (monitorStatusAlert.DownCount > _alertThreshold && monitorStatusAlert.AlertSent == false && noAlertSentStored)
                 {
                     // Its not the first messge for this user so we need to add a new line
@@ -447,10 +454,10 @@ namespace NetworkMonitor.Alert.Services
                 if (a.Timeout > maxTimeout) maxTimeout = a.Timeout;
             });
             _logger.Info(" Checking " + monitorPingInfos.Count() + " Alerts ");
-            var connectFactory = new ConnectFactory(_config,_logger,false);
-            var netConnectCollection = new NetConnectCollection(_logger,_config,connectFactory);
+            var connectFactory = new ConnectFactory(_config, _logger, false);
+            var netConnectCollection = new NetConnectCollection(_logger, _config, connectFactory);
             SemaphoreSlim semaphore = new SemaphoreSlim(1);
-            netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams,true,false,semaphore).Wait();
+            netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams, true, false, semaphore).Wait();
             var netConnects = netConnectCollection.GetNonLongRunningNetConnects().ToList();
             var pingConnectTasks = new List<Task>();
             netConnects.Where(w => w.MpiStatic.Enabled == true).ToList().ForEach(
