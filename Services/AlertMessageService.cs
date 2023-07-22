@@ -384,18 +384,20 @@ namespace NetworkMonitor.Alert.Services
                     if (emailRegex.IsMatch(monitorStatusAlert.AddUserEmail))
                     {
                         userInfo.Email = monitorStatusAlert.AddUserEmail;
-                        if (userId == "default")
-                        {
-                            userInfo.Name = userInfo.Email.Split('@')[0];
-                            userId = userInfo.Email;
-                        }
+                       
                     }
                     else
                     {
+                        userInfo.Email = "support@mahadeva.co.uk";
                         // Handle invalid email format
                         _logger.Warn(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
                     }
                 }
+                 if (userId == "default")
+                        {
+                            userInfo.Name = userInfo.Email.Split('@')[0];
+                            userId = userInfo.Email;
+                        }
 
 
                 monitorStatusAlert.UserName = userInfo.Name;
