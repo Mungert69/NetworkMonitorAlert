@@ -201,11 +201,7 @@ namespace NetworkMonitor.Alert.Services
         public ResultObj Send(AlertMessage alertMessage)
         {
             ResultObj result = new ResultObj();
-            result = _spamFilter.IsVerifyLimit(alertMessage.UserInfo.UserID);
-            if (!result.Success)
-            {
-                return result;
-            }
+
             string enryptEmailAddressStr = EncryptStr(alertMessage.UserInfo.Email);
             string enryptUserID = EncryptStr(alertMessage.UserInfo.UserID);
             string subscribeUrl = _thisSystemUrl.ExternalUrl + "/email/unsubscribe?email=" + enryptEmailAddressStr + "&userid=" + enryptUserID;
@@ -213,6 +209,11 @@ namespace NetworkMonitor.Alert.Services
             string unsubscribeUrl = subscribeUrl + "&subscribe=false";
             if (alertMessage.VerifyLink)
             {
+                result = _spamFilter.IsVerifyLimit(alertMessage.UserInfo.UserID);
+                if (!result.Success)
+                {
+                    return result;
+                }
                 string verifyUrl = _thisSystemUrl.ExternalUrl + "/email/verifyemail?email=" + enryptEmailAddressStr + "&userid=" + enryptUserID;
                 alertMessage.Message += "\n\nPlease click on this link to verify your email " + verifyUrl;
             }
@@ -384,20 +385,21 @@ namespace NetworkMonitor.Alert.Services
 
                         _logger.Info(" Success : Rewriting email address from " + userInfo.Email + " to " + monitorStatusAlert.AddUserEmail);
                         userInfo.Email = monitorStatusAlert.AddUserEmail;
-                        userInfo.DisableEmail=monitorStatusAlert.IsEmailVerified;
+                        userInfo.DisableEmail = monitorStatusAlert.IsEmailVerified;
                     }
                     else
                     {
-                        userInfo.DisableEmail=true;
+                        userInfo.DisableEmail = true;
                         // Handle invalid email format
                         _logger.Warn(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
                     }
                 }
-                if (monitorStatusAlert.AddUserEmail == "delete") userInfo.DisableEmail=true;
+                if (monitorStatusAlert.AddUserEmail == "delete") userInfo.DisableEmail = true;
                 if (userId == "default")
                 {
                     userInfo.Name = userInfo.Email.Split('@')[0];
-                    userId = userInfo.Email;           
+                    userId = userInfo.Email;
+                    userInfo.UserID=userId;
                 }
                 monitorStatusAlert.UserName = userInfo.Name;
                 if (monitorStatusAlert.DownCount > _alertThreshold && monitorStatusAlert.AlertSent == false && noAlertSentStored)
@@ -535,7 +537,7 @@ namespace NetworkMonitor.Alert.Services
                         alertMessage.VerifyLink = false;
                         if (Send(alertMessage).Success)
                         {
-                            _logger.Info(" Success : Sent alert message to "+alertMessage.EmailTo);
+                            _logger.Info(" Success : Sent alert message to " + alertMessage.EmailTo);
                             UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList);
                         }
                         count++;
