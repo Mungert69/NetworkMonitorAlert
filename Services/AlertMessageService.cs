@@ -385,7 +385,7 @@ namespace NetworkMonitor.Alert.Services
 
                         _logger.Info(" Success : Rewriting email address from " + userInfo.Email + " to " + monitorStatusAlert.AddUserEmail);
                         userInfo.Email = monitorStatusAlert.AddUserEmail;
-                        userInfo.DisableEmail = monitorStatusAlert.IsEmailVerified;
+                        userInfo.DisableEmail = !monitorStatusAlert.IsEmailVerified;
                     }
                     else
                     {
