@@ -201,6 +201,11 @@ namespace NetworkMonitor.Alert.Services
         public ResultObj Send(AlertMessage alertMessage)
         {
             ResultObj result = new ResultObj();
+            if (alertMessage.UserInfo==null || alertMessage.UserInfo.UserID==null){
+                result.Message=" Error : Missing UserInfo ";
+                result.Success=false;
+                return result;
+            }
 
             string enryptEmailAddressStr = EncryptStr(alertMessage.UserInfo.Email);
             string enryptUserID = EncryptStr(alertMessage.UserInfo.UserID);
