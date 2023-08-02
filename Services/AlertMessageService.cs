@@ -388,7 +388,7 @@ namespace NetworkMonitor.Alert.Services
                     if (emailRegex.IsMatch(monitorStatusAlert.AddUserEmail))
                     {
 
-                        _logger.Info(" Success : Rewriting email address from " + userInfo.Email + " to " + monitorStatusAlert.AddUserEmail);
+                        //_logger.Info(" Success : Rewriting email address from " + userInfo.Email + " to " + monitorStatusAlert.AddUserEmail);
                         userInfo.Email = monitorStatusAlert.AddUserEmail;
                         userInfo.DisableEmail = !monitorStatusAlert.IsEmailVerified;
                     }
