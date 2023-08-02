@@ -540,11 +540,13 @@ namespace NetworkMonitor.Alert.Services
                     if (!alertMessage.dontSend)
                     {
                         alertMessage.VerifyLink = false;
-                        if (Send(alertMessage).Success)
+                        var result=Send(alertMessage);
+                        if (result.Success)
                         {
                             _logger.Info(" Success : Sent alert message to " + alertMessage.EmailTo);
                             UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList);
                         }
+                        _logger.Info(result.Message);
                         count++;
                     }
                     else
