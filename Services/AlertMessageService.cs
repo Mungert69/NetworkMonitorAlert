@@ -496,7 +496,7 @@ namespace NetworkMonitor.Alert.Services
             Task.WhenAll(pingConnectTasks.ToArray()).Wait();
             //new System.Threading.ManualResetEvent(false).WaitOne(maxTimeout);
             var monitorIPDic = new Dictionary<string, List<int>>();
-            monitorPingInfos.Where(w => w.MonitorStatus.IsUp).ToList().ForEach(m =>
+            monitorPingInfos.Where(w => w.MonitorStatus.IsUp==true).ToList().ForEach(m =>
            {
                updateAlertFlagList.RemoveAll(r => r.ID == m.MonitorIPID);
                _logger.Warn(" Warning : Overturned Alert with MonitorPingID = " + m.MonitorIPID + " . On Processor with AppID " + m.AppID + " . ");
