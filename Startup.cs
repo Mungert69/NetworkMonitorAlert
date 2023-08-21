@@ -17,10 +17,10 @@ namespace NetworkMonitor.Service
 {
     public class Startup
     {
-          private readonly CancellationTokenSource _cancellationTokenSource;
+        private readonly CancellationTokenSource _cancellationTokenSource;
         public Startup(IConfiguration configuration)
         {
-             _cancellationTokenSource = new CancellationTokenSource();
+            _cancellationTokenSource = new CancellationTokenSource();
             Configuration = configuration;
         }
 
@@ -32,59 +32,22 @@ namespace NetworkMonitor.Service
         public void ConfigureServices(IServiceCollection services)
         {
             _services = services;
-            services.AddCors(options =>
-            {
-                options.AddPolicy("AllowAnyOrigin",
-                    builder => builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
-            });
-            string connectionString = Configuration.GetConnectionString("DefaultConnection");
-           
             services.AddSingleton<IDataQueueService, DataQueueService>();
             services.AddSingleton<IAlertMessageService, AlertMessageService>();
-             services.Configure<HostOptions>(s => s.ShutdownTimeout = TimeSpan.FromMinutes(5));
-            services.AddSingleton<INetLoggerFactory,NetLoggerFactory>();
-             services.AddSingleton(_cancellationTokenSource);
-           
+            services.Configure<HostOptions>(s => s.ShutdownTimeout = TimeSpan.FromMinutes(5));
+            services.AddSingleton<INetLoggerFactory, NetLoggerFactory>();
+            services.AddSingleton(_cancellationTokenSource);
 
-           
-            services.AddControllers().AddNewtonsoftJson(options =>
-    options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
-);
 
-         
-             var logger = LogManagerFactory.DefaultLogManager.GetLogger<Startup>();
+            var logger = LogManagerFactory.DefaultLogManager.GetLogger<Startup>();
             services.AddSingleton(logger);
-             services.AddAsyncServiceInitialization()
-        .AddInitAction<IAlertMessageService>(async (alertMessageService) =>
-        {
-            await alertMessageService.Init();
-        });
+            services.AddAsyncServiceInitialization()
+               .AddInitAction<IAlertMessageService>(async (alertMessageService) =>
+                    {
+                        await alertMessageService.Init();
+                    });
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime applicationLifetime)
-        {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-            else
-            {
-
-                app.UseHttpsRedirection();
-
-            }
-            app.UseCors("AllowAnyOrigin");
-            app.UseRouting();
-            app.UseStaticFiles();
-            app.UseAuthentication();
-            app.UseAuthorization();
-            app.UseCloudEvents();
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapSubscribeHandler();
-                endpoints.MapControllers();
-            });
-        }
+      
     }
 }
