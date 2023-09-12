@@ -492,7 +492,7 @@ namespace NetworkMonitor.Alert.Services
             netConnects.Where(w => w.MpiStatic.Enabled == true).ToList().ForEach(
                 netConnect =>
                 {
-                    pingConnectTasks.Add(netConnect.Connect());
+                    pingConnectTasks.Add(netConnect.Connect().AsTask());
                 }
             );
             Task.WhenAll(pingConnectTasks.ToArray()).Wait();
