@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NetworkMonitor.Alert.Services;
 using NetworkMonitor.Objects.Factory;
+using NetworkMonitor.Objects.Repository;
 using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Threading;
@@ -41,6 +42,7 @@ namespace NetworkMonitor.Service
 
             var logger = LogManagerFactory.DefaultLogManager.GetLogger<Startup>();
             services.AddSingleton(logger);
+            services.AddSingleton<IFileRepo, FileRepo>();
             services.AddAsyncServiceInitialization()
                .AddInitAction<IAlertMessageService>(async (alertMessageService) =>
                     {

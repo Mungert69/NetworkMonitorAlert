@@ -51,16 +51,18 @@ namespace NetworkMonitor.Alert.Services
         private List<MonitorStatusAlert> _monitorStatusAlerts = new List<MonitorStatusAlert>();
         private List<ProcessorObj> _processorList = new List<ProcessorObj>();
         private RabbitListener _rabbitRepo;
+        private IFileRepo _fileRepo;
         private CancellationToken _token;
         public RabbitListener RabbitRepo { get => _rabbitRepo; }
         public bool IsAlertRunning { get => _isAlertRunning; set => _isAlertRunning = value; }
         public bool Awake { get => _awake; set => _awake = value; }
         public List<MonitorStatusAlert> MonitorStatusAlerts { get => _monitorStatusAlerts; set => _monitorStatusAlerts = value; }
-        public AlertMessageService(INetLoggerFactory loggerFactory, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource)
+        public AlertMessageService(INetLoggerFactory loggerFactory, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo)
         {
             _dataQueueService = dataQueueService;
+            _fileRepo=fileRepo;
             _logger = loggerFactory.GetLogger("AlertMessageService");
-            FileRepo.CheckFileExists("UserInfos", _logger);
+            _fileRepo.CheckFileExists("UserInfos", _logger);
             _config = config;
             _token = cancellationTokenSource.Token;
             _token.Register(() => OnStopping());
@@ -73,7 +75,7 @@ namespace NetworkMonitor.Alert.Services
             try
             {
                 result.Message += " Saving UserInfos into statestore. ";
-                FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
+                _fileRepo.SaveStateJsonZAsync<List<UserInfo>>("UserInfos", _userInfos);
                 result.Message += " Saved UserInfos into statestore. ";
                 result.Success = true;
                 _logger.Info(result.Message);
@@ -134,7 +136,7 @@ namespace NetworkMonitor.Alert.Services
                 {
                     _logger.Info("Resetting Alert UserInfos in statestore");
                     _userInfos = new List<UserInfo>();
-                    FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
+                    _fileRepo.SaveStateJsonZAsync<List<UserInfo>>("UserInfos", _userInfos);
                     _logger.Info("Reset UserInfos in statestore ");
                 }
                 catch (Exception e)
@@ -149,7 +151,7 @@ namespace NetworkMonitor.Alert.Services
                     _userInfos = alertObj.UserInfos;
                     try
                     {
-                        FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
+                        _fileRepo.SaveStateJsonZAsync<List<UserInfo>>("UserInfos", _userInfos);
                         _logger.Info("Saved " + _userInfos.Count() + " UserInfos to statestore ");
                     }
                     catch (Exception e)
@@ -161,7 +163,7 @@ namespace NetworkMonitor.Alert.Services
                 {
                     try
                     {
-                        _userInfos = FileRepo.GetStateJsonZ<List<UserInfo>>("UserInfos");
+                        _userInfos = _fileRepo.GetStateJsonZAsync<List<UserInfo>>("UserInfos").Result;
                         if (_userInfos == null) _userInfos = new List<UserInfo>();
                         else
                         {
@@ -596,7 +598,7 @@ namespace NetworkMonitor.Alert.Services
             });
             return results;
         }
-        public ResultObj UpdateUserInfo(UserInfo userInfo)
+        public async Task<ResultObj> UpdateUserInfo(UserInfo userInfo)
         {
             var result = new ResultObj();
             try
@@ -609,7 +611,7 @@ namespace NetworkMonitor.Alert.Services
                 _userInfos.Add(userInfo);
                 try
                 {
-                    FileRepo.SaveStateJsonZ<List<UserInfo>>("UserInfos", _userInfos);
+                    await _fileRepo.SaveStateJsonZAsync<List<UserInfo>>("UserInfos", _userInfos);
                     _logger.Info("Saved UserInfos to file statestore ");
                 }
                 catch (Exception e)

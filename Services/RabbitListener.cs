@@ -143,11 +143,11 @@ namespace NetworkMonitor.Objects.Repository
                         break;
                     case "updateUserInfoAlertMessage":
                         rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
-                        rabbitMQObj.Consumer.Received += (model, ea) =>
+                        rabbitMQObj.Consumer.Received += async (model, ea) =>
                     {
                         try
                         {
-                            result = UpdateUserInfoAlertMessage(ConvertToObject<UserInfo>(model, ea));
+                            result = await UpdateUserInfoAlertMessage(ConvertToObject<UserInfo>(model, ea));
                             rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
                         }
                         catch (Exception ex)
@@ -284,14 +284,14 @@ namespace NetworkMonitor.Objects.Repository
             }
             return result;
         }
-        public ResultObj UpdateUserInfoAlertMessage(UserInfo userInfo)
+        public async Task<ResultObj> UpdateUserInfoAlertMessage(UserInfo userInfo)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : UpdateUserInfoAlertMessage : ";
             try
             {
-                result = _alertMessageService.UpdateUserInfo(userInfo);
+                result = await _alertMessageService.UpdateUserInfo(userInfo);
                 _logger.Info(result.Message);
             }
             catch (Exception e)

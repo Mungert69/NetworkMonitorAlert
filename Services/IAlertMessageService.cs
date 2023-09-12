@@ -14,7 +14,7 @@ namespace NetworkMonitor.Alert.Services
         List<ResultObj> ResetAlerts(List<AlertFlagObj> alertFlagObjs);
 
                 //ResultObj QueueRemoveFromAlertSentList(AlertFlagObj alertFlagObj);
-        ResultObj UpdateUserInfo(UserInfo userInfo);
+        Task<ResultObj> UpdateUserInfo(UserInfo userInfo);
         ResultObj WakeUp();
 
         bool IsAlertRunning{get;set;}
