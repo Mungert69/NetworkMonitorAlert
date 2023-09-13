@@ -11,8 +11,7 @@
 
   <ItemGroup>
 <PackageReference Include="HostInitActions" Version="1.2.0" />
-<PackageReference Include="Microsoft.NET.Build.Containers" Version="0.2.7" />
-    <PackageReference Include="MailKit" Version="3.6.0" />
+    <PackageReference Include="MailKit" Version="4.2.0" />
    </ItemGroup>
 
     <ItemGroup>
