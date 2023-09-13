@@ -463,7 +463,7 @@ namespace NetworkMonitor.Alert.Services
         {
             if (updateAlertFlagList == null || updateAlertFlagList.Count() == 0) return;
             if (!_checkAlerts) return;
-            var pingParams = new PingParams() { IsAdmin = false };
+            var pingParams = new PingParams() ;
             var monitorPingInfos = new List<MonitorPingInfo>();
             int maxTimeout = 0;
             // exclude MonitorPingInfos that have EndPointType set to string values in ExcludeEndPointTypList
