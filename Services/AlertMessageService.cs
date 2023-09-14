@@ -60,7 +60,7 @@ namespace NetworkMonitor.Alert.Services
         public AlertMessageService(INetLoggerFactory loggerFactory, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo)
         {
             _dataQueueService = dataQueueService;
-            _fileRepo=fileRepo;
+            _fileRepo = fileRepo;
             _logger = loggerFactory.GetLogger("AlertMessageService");
             _fileRepo.CheckFileExists("UserInfos", _logger);
             _config = config;
@@ -203,9 +203,10 @@ namespace NetworkMonitor.Alert.Services
         public ResultObj Send(AlertMessage alertMessage)
         {
             ResultObj result = new ResultObj();
-            if (alertMessage.UserInfo==null || alertMessage.UserInfo.UserID==null){
-                result.Message=" Error : Missing UserInfo ";
-                result.Success=false;
+            if (alertMessage.UserInfo == null || alertMessage.UserInfo.UserID == null)
+            {
+                result.Message = " Error : Missing UserInfo ";
+                result.Success = false;
                 return result;
             }
 
@@ -361,6 +362,33 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
+
+        private void VerifyEmail(UserInfo userInfo, MonitorStatusAlert monitorStatusAlert)
+        {
+            // Validate email format
+            if (monitorStatusAlert.AddUserEmail != null)
+            {
+
+
+                var emailRegex = new Regex(@"^[\w-+]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$");
+                if (emailRegex.IsMatch(monitorStatusAlert.AddUserEmail))
+                {
+
+                    //_logger.Info(" Success : Rewriting email address from " + userInfo.Email + " to " + monitorStatusAlert.AddUserEmail);
+                    userInfo.Email = monitorStatusAlert.AddUserEmail;
+                    userInfo.DisableEmail = !monitorStatusAlert.IsEmailVerified;
+                }
+                else
+                {
+                    userInfo.DisableEmail = true;
+                    // Handle invalid email format
+                    _logger.Warn(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
+                }
+            }
+            else {
+                userInfo.DisableEmail=userInfo.Email_verified;
+            }
+        }
         public String InitAlerts(List<UserInfo> userInfos)
         {
             string resultStr = " InitAlerts : ";
@@ -383,31 +411,22 @@ namespace NetworkMonitor.Alert.Services
                 string userId = monitorStatusAlert.UserID;
                 UserInfo userInfo = new UserInfo(userInfos.FirstOrDefault(u => u.UserID == userId));
 
-                if (monitorStatusAlert.AddUserEmail != null && monitorStatusAlert.AddUserEmail != "delete")
+                if (userInfo.UserID == "default")
                 {
-                    // Validate email format
-                    var emailRegex = new Regex(@"^[\w-+]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$");
-                    if (emailRegex.IsMatch(monitorStatusAlert.AddUserEmail))
-                    {
-
-                        //_logger.Info(" Success : Rewriting email address from " + userInfo.Email + " to " + monitorStatusAlert.AddUserEmail);
-                        userInfo.Email = monitorStatusAlert.AddUserEmail;
-                        userInfo.DisableEmail = !monitorStatusAlert.IsEmailVerified;
-                    }
-                    else
-                    {
-                        userInfo.DisableEmail = true;
-                        // Handle invalid email format
-                        _logger.Warn(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
-                    }
-                }
-                if (monitorStatusAlert.AddUserEmail == "delete") userInfo.DisableEmail = true;
-                if (userId == "default")
-                {
+                    VerifyEmail(userInfo,monitorStatusAlert);
                     userInfo.Name = userInfo.Email.Split('@')[0];
                     userId = userInfo.Email;
-                    userInfo.UserID=userId;
+                    userInfo.UserID = userId;
                 }
+                else
+                {
+                    if (!userInfo.DisableEmail) {
+                        VerifyEmail(userInfo,monitorStatusAlert);
+                        }
+                }
+
+                if (monitorStatusAlert.AddUserEmail == "delete") userInfo.DisableEmail = true;
+               
                 monitorStatusAlert.UserName = userInfo.Name;
                 if (monitorStatusAlert.DownCount > _alertThreshold && monitorStatusAlert.AlertSent == false && noAlertSentStored)
                 {
@@ -463,7 +482,7 @@ namespace NetworkMonitor.Alert.Services
         {
             if (updateAlertFlagList == null || updateAlertFlagList.Count() == 0) return;
             if (!_checkAlerts) return;
-            var pingParams = new PingParams() ;
+            var pingParams = new PingParams();
             var monitorPingInfos = new List<MonitorPingInfo>();
             int maxTimeout = 0;
             // exclude MonitorPingInfos that have EndPointType set to string values in ExcludeEndPointTypList
@@ -498,7 +517,7 @@ namespace NetworkMonitor.Alert.Services
             Task.WhenAll(pingConnectTasks.ToArray()).Wait();
             //new System.Threading.ManualResetEvent(false).WaitOne(maxTimeout);
             var monitorIPDic = new Dictionary<string, List<int>>();
-            monitorPingInfos.Where(w => w.MonitorStatus.IsUp==true).ToList().ForEach(m =>
+            monitorPingInfos.Where(w => w.MonitorStatus.IsUp == true).ToList().ForEach(m =>
            {
                updateAlertFlagList.RemoveAll(r => r.ID == m.MonitorIPID);
                _logger.Warn(" Warning : Overturned Alert with MonitorPingID = " + m.MonitorIPID + " . On Processor with AppID " + m.AppID + " . ");
@@ -542,7 +561,7 @@ namespace NetworkMonitor.Alert.Services
                     if (!alertMessage.dontSend)
                     {
                         alertMessage.VerifyLink = false;
-                        var result=Send(alertMessage);
+                        var result = Send(alertMessage);
                         if (result.Success)
                         {
                             _logger.Info(" Success : Sent alert message to " + alertMessage.EmailTo);
