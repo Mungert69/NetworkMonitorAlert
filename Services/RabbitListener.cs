@@ -341,7 +341,7 @@ namespace NetworkMonitor.Objects.Repository
                 result.Success = true;
                 result.Data = null;
                 _logger.Info(result.Message);
-                _logger.Debug("AlertMonitorStatusAlerts : " + JsonUtils.writeJsonObjectToString(_alertMessageService.MonitorStatusAlerts));
+                _logger.Debug("AlertMonitorStatusAlerts : " + JsonUtils.writeJsonObjectToString(_alertMessageService.MonitorStatusAlerts.ToList()));
             }
             catch (Exception e)
             {
