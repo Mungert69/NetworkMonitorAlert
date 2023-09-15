@@ -386,7 +386,7 @@ namespace NetworkMonitor.Alert.Services
                 }
             }
             else {
-                userInfo.DisableEmail=userInfo.Email_verified;
+                userInfo.DisableEmail=!userInfo.Email_verified;
             }
         }
         public String InitAlerts(List<UserInfo> userInfos)
