@@ -30,7 +30,7 @@ namespace NetworkMonitor.Objects.Repository
         ResultObj AlertUpdateMonitorStatusAlerts(string monitorStatusAlertString);
     }
 
-    public class RabbitListener : RabbitListenerBase
+    public class RabbitListener : RabbitListenerBase, IRabbitListener
     {
         private IAlertMessageService _alertMessageService;
         private IDataQueueService _dataQueueService;

@@ -19,6 +19,7 @@ using System.Threading;
 using System.Diagnostics;
 using NetworkMonitor.Utils.Helpers;
 using NetworkMonitor.Objects.Factory;
+using NetworkMonitor.Objects.Repository;
 using HostInitActions;
 namespace NetworkMonitor.Alert.Services
 {
@@ -58,7 +59,7 @@ namespace NetworkMonitor.Alert.Services
         public bool IsAlertRunning { get => _isAlertRunning; set => _isAlertRunning = value; }
         public bool Awake { get => _awake; set => _awake = value; }
         public List<MonitorStatusAlert> MonitorStatusAlerts { get => _monitorStatusAlerts; set => _monitorStatusAlerts = value; }
-        public AlertMessageService(INetLoggerFactory loggerFactory, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo,, IRabbitRepo rabbitRepo, SystemParamsHelper systemParamsHelper)
+        public AlertMessageService(INetLoggerFactory loggerFactory, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo, IRabbitRepo rabbitRepo, SystemParamsHelper systemParamsHelper)
         {
             _dataQueueService = dataQueueService;
             _fileRepo = fileRepo;
@@ -119,14 +120,7 @@ namespace NetworkMonitor.Alert.Services
                 _thisSystemUrl = systemParams.ThisSystemUrl;
                 _publicIPAddress = systemParams.PublicIPAddress;
                 _sendTrustPilot = systemParams.SendTrustPilot;
-                try
-                {
-                    _rabbitRepo = new RabbitListener(_logger, systemParams.ThisSystemUrl, this, _dataQueueService);
-                }
-                catch (Exception e)
-                {
-                    _logger.Fatal(" Could not setup RabbitListner. Error was : " + e.ToString() + " . ");
-                }
+              
                 _logger.Info("Got config");
             }
             catch (Exception e)
