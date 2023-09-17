@@ -50,22 +50,25 @@ namespace NetworkMonitor.Alert.Services
         private List<AlertMessage> _alertMessages = new List<AlertMessage>();
         private List<MonitorStatusAlert> _monitorStatusAlerts = new List<MonitorStatusAlert>();
         private List<ProcessorObj> _processorList = new List<ProcessorObj>();
-        private RabbitListener _rabbitRepo;
+        private IRabbitRepo _rabbitRepo;
         private IFileRepo _fileRepo;
+        private SystemParamsHelper _systemParamsHelper;
         private CancellationToken _token;
-        public RabbitListener RabbitRepo { get => _rabbitRepo; }
+        public IRabbitRepo RabbitRepo { get => _rabbitRepo; }
         public bool IsAlertRunning { get => _isAlertRunning; set => _isAlertRunning = value; }
         public bool Awake { get => _awake; set => _awake = value; }
         public List<MonitorStatusAlert> MonitorStatusAlerts { get => _monitorStatusAlerts; set => _monitorStatusAlerts = value; }
-        public AlertMessageService(INetLoggerFactory loggerFactory, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo)
+        public AlertMessageService(INetLoggerFactory loggerFactory, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo,, IRabbitRepo rabbitRepo, SystemParamsHelper systemParamsHelper)
         {
             _dataQueueService = dataQueueService;
             _fileRepo = fileRepo;
+            _rabbitRepo=rabbitRepo;
             _logger = loggerFactory.GetLogger("AlertMessageService");
             _fileRepo.CheckFileExists("UserInfos", _logger);
             _config = config;
             _token = cancellationTokenSource.Token;
             _token.Register(() => OnStopping());
+            _systemParamsHelper = systemParamsHelper;
             _spamFilter = new SpamFilter(_logger);
         }
         private void OnStopping()
@@ -100,7 +103,7 @@ namespace NetworkMonitor.Alert.Services
             {
                 _alertThreshold = _config.GetValue<int>("PingAlertThreshold");
                 _checkAlerts = _config.GetValue<bool>("CheckAlerts");
-                SystemParams systemParams = SystemParamsHelper.getSystemParams(_config, _logger);
+                SystemParams systemParams= _systemParamsHelper.GetSystemParams();
                 _processorList = new List<ProcessorObj>();
                 _config.GetSection("ProcessorList").Bind(_processorList);
                 _logger.Debug("SystemParams: " + JsonUtils.writeJsonObjectToString(systemParams));

@@ -9,7 +9,7 @@ namespace NetworkMonitor.Objects.Repository
 {
     public class PublishAlertsRepo
     {
-        public static void ProcessorAlertSent(ILogger logger, RabbitListener rabbitRepo, List<MonitorStatusAlert> publishAlertSentList, List<ProcessorObj> processorList)
+        public static void ProcessorAlertSent(ILogger logger, IRabbitRepo rabbitRepo, List<MonitorStatusAlert> publishAlertSentList, List<ProcessorObj> processorList)
         {
             try
             {
@@ -28,7 +28,7 @@ namespace NetworkMonitor.Objects.Repository
                 logger.Fatal("Error : Unable to send processorAlertSent message. Error was :  " + e.Message.ToString());
             }
         }
-        public static void ProcessorAlertFlag(ILogger logger,  RabbitListener rabbitRepo, List<MonitorStatusAlert> publishAlertFlagList, List<ProcessorObj> processorList)
+        public static void ProcessorAlertFlag(ILogger logger,  IRabbitRepo rabbitRepo, List<MonitorStatusAlert> publishAlertFlagList, List<ProcessorObj> processorList)
         {
             foreach (var processorObj in processorList)
             {
@@ -41,7 +41,7 @@ namespace NetworkMonitor.Objects.Repository
                 publishAlertFlagList.Where(w => w.AppID == processorObj.AppID).ToList().ForEach(f => f.AlertFlag=true);
             }
         }
-        public static void ProcessorResetAlerts(ILogger logger,  RabbitListener rabbitRepo, Dictionary<string, List<int>> monitorIPDic)
+        public static void ProcessorResetAlerts(ILogger logger,  IRabbitRepo rabbitRepo, Dictionary<string, List<int>> monitorIPDic)
         {
             try
             {

@@ -14,18 +14,41 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using NetworkMonitor.Utils;
+using NetworkMonitor.Utils.Helpers;
+using NetworkMonitor.Objects.Factory;
 using MetroLog;
 namespace NetworkMonitor.Objects.Repository
 {
+    public interface IRabbitListener
+    {
+        ResultObj WakeUp();
+        ResultObj AlertMessageInit(AlertServiceInitObj initObj);
+        ResultObj AlertMessageResetAlerts(List<AlertFlagObj> alertFlagObjs);
+        ResultObj AlertMessage(AlertMessage alertMessage);
+        Task<ResultObj> UpdateUserInfoAlertMessage(UserInfo userInfo);
+        ResultObj MonitorAlert();
+        ResultObj AlertUpdateMonitorStatusAlerts(string monitorStatusAlertString);
+    }
+
     public class RabbitListener : RabbitListenerBase
     {
         private IAlertMessageService _alertMessageService;
         private IDataQueueService _dataQueueService;
-        public RabbitListener(ILogger logger, SystemUrl systemUrl, IAlertMessageService alertMessageService, IDataQueueService dataQueueService) : base(logger, systemUrl)
+        public RabbitListener(ILogger logger, SystemUrl systemUrl, IAlertMessageService alertMessageService, IDataQueueService dataQueueService, INetLoggerFactory loggerFactory, SystemParamsHelper systemParamsHelper) : base(DeriveLogger(loggerFactory), DeriveSystemUrl(systemParamsHelper))
         {
             _alertMessageService = alertMessageService;
             _dataQueueService = dataQueueService;
             Setup();
+        }
+
+              private static ILogger DeriveLogger(INetLoggerFactory loggerFactory)
+        {
+            return loggerFactory.GetLogger("RabbitListener"); 
+        }
+
+        private static SystemUrl DeriveSystemUrl(SystemParamsHelper systemParamsHelper)
+        {
+            return systemParamsHelper.GetSystemParams().ThisSystemUrl;
         }
         protected override void InitRabbitMQObjs()
         {

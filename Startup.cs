@@ -7,9 +7,11 @@ using Microsoft.Extensions.Hosting;
 using NetworkMonitor.Alert.Services;
 using NetworkMonitor.Objects.Factory;
 using NetworkMonitor.Objects.Repository;
+using NetworkMonitor.Utils.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using MetroLog;
 using HostInitActions;
 
@@ -38,6 +40,9 @@ namespace NetworkMonitor.Service
             services.Configure<HostOptions>(s => s.ShutdownTimeout = TimeSpan.FromMinutes(5));
             services.AddSingleton<INetLoggerFactory, NetLoggerFactory>();
             services.AddSingleton(_cancellationTokenSource);
+            services.AddSingleton<IRabbitRepo, RabbitRepo>();
+            services.AddSingleton<IRabbitListener, RabbitListener>();
+            services.AddSingleton<SystemParamsHelper>();
 
 
             var logger = LogManagerFactory.DefaultLogManager.GetLogger<Startup>();
@@ -47,6 +52,10 @@ namespace NetworkMonitor.Service
                .AddInitAction<IAlertMessageService>(async (alertMessageService) =>
                     {
                         await alertMessageService.Init();
+                    })
+                    .AddInitAction<IRabbitListener>((rabbitListener) =>
+                    {
+                        return Task.CompletedTask; 
                     });
         }
 
