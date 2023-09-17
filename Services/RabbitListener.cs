@@ -34,7 +34,7 @@ namespace NetworkMonitor.Objects.Repository
     {
         private IAlertMessageService _alertMessageService;
         private IDataQueueService _dataQueueService;
-        public RabbitListener(ILogger logger, SystemUrl systemUrl, IAlertMessageService alertMessageService, IDataQueueService dataQueueService, INetLoggerFactory loggerFactory, SystemParamsHelper systemParamsHelper) : base(DeriveLogger(loggerFactory), DeriveSystemUrl(systemParamsHelper))
+        public RabbitListener(IAlertMessageService alertMessageService, IDataQueueService dataQueueService, INetLoggerFactory loggerFactory, SystemParamsHelper systemParamsHelper) : base(DeriveLogger(loggerFactory), DeriveSystemUrl(systemParamsHelper))
         {
             _alertMessageService = alertMessageService;
             _dataQueueService = dataQueueService;
