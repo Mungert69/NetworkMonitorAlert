@@ -53,13 +53,13 @@ namespace NetworkMonitor.Alert.Services
         private List<ProcessorObj> _processorList = new List<ProcessorObj>();
         private IRabbitRepo _rabbitRepo;
         private IFileRepo _fileRepo;
-        private SystemParamsHelper _systemParamsHelper;
+        private ISystemParamsHelper _systemParamsHelper;
         private CancellationToken _token;
         public IRabbitRepo RabbitRepo { get => _rabbitRepo; }
         public bool IsAlertRunning { get => _isAlertRunning; set => _isAlertRunning = value; }
         public bool Awake { get => _awake; set => _awake = value; }
         public List<MonitorStatusAlert> MonitorStatusAlerts { get => _monitorStatusAlerts; set => _monitorStatusAlerts = value; }
-        public AlertMessageService(INetLoggerFactory loggerFactory, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo, IRabbitRepo rabbitRepo, SystemParamsHelper systemParamsHelper)
+        public AlertMessageService(INetLoggerFactory loggerFactory, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo, IRabbitRepo rabbitRepo, ISystemParamsHelper systemParamsHelper)
         {
             _dataQueueService = dataQueueService;
             _fileRepo = fileRepo;
