@@ -42,8 +42,7 @@ namespace NetworkMonitor.Service
             services.AddSingleton(_cancellationTokenSource);
             services.AddSingleton<IRabbitRepo, RabbitRepo>();
             services.AddSingleton<IRabbitListener, RabbitListener>();
-            services.AddSingleton<SystemParamsHelper>();
-
+            services.AddSingleton<ISystemParamsHelper, SystemParamsHelper>();
 
             var logger = LogManagerFactory.DefaultLogManager.GetLogger<Startup>();
             services.AddSingleton(logger);

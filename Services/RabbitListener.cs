@@ -34,7 +34,7 @@ namespace NetworkMonitor.Objects.Repository
     {
         private IAlertMessageService _alertMessageService;
         private IDataQueueService _dataQueueService;
-        public RabbitListener(IAlertMessageService alertMessageService, IDataQueueService dataQueueService, INetLoggerFactory loggerFactory, SystemParamsHelper systemParamsHelper) : base(DeriveLogger(loggerFactory), DeriveSystemUrl(systemParamsHelper))
+        public RabbitListener(IAlertMessageService alertMessageService, IDataQueueService dataQueueService, INetLoggerFactory loggerFactory, ISystemParamsHelper systemParamsHelper) : base(DeriveLogger(loggerFactory), DeriveSystemUrl(systemParamsHelper))
         {
             _alertMessageService = alertMessageService;
             _dataQueueService = dataQueueService;
@@ -46,7 +46,7 @@ namespace NetworkMonitor.Objects.Repository
             return loggerFactory.GetLogger("RabbitListener"); 
         }
 
-        private static SystemUrl DeriveSystemUrl(SystemParamsHelper systemParamsHelper)
+        private static SystemUrl DeriveSystemUrl(ISystemParamsHelper systemParamsHelper)
         {
             return systemParamsHelper.GetSystemParams().ThisSystemUrl;
         }
