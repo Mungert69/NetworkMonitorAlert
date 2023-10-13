@@ -51,7 +51,7 @@ namespace NetworkMonitor.Alert.Services
                     else
                     {
                         result.Success = true;
-                        result.Message=" Success : Finshed CommitProcessorDataBytes at " + DateTime.UtcNow + " for Processor AppID " + processorDataObj.AppID;
+                        result.Message=" Success : Finshed CommitProcessorDataBytes at " + DateTime.UtcNow + " for Processor AppID " + processorDataObj.AppID+ ". ";
                         _logger.LogInformation(result.Message);
                     }
                 }
