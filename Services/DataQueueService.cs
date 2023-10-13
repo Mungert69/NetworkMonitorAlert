@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using NetworkMonitor.Objects;
 using NetworkMonitor.Objects.ServiceMessage;
-using Microsoft.Extensions.Logging;
+using MetroLog;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using NetworkMonitorService.Objects.ServiceMessage;
 using System.Threading.Tasks;
+using NetworkMonitor.Objects.Factory;
 namespace NetworkMonitor.Alert.Services
 {
     public interface IDataQueueService
@@ -19,12 +20,12 @@ namespace NetworkMonitor.Alert.Services
     }
     public class DataQueueService : IDataQueueService
     {
-        private ILogger<DataQueueService> _logger;
+        private ILogger _logger;
         private TaskQueue taskQueue = new TaskQueue();
-        public DataQueueService(ILogger<DataQueueService> logger)
+        public DataQueueService(INetLoggerFactory loggerFactory)
         {
 
-            _logger = logger;
+            _logger = loggerFactory.GetLogger("DataQueueService");
         }
         public Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<MonitorStatusAlert> monitorStatusAlerts)
         {
@@ -36,7 +37,7 @@ namespace NetworkMonitor.Alert.Services
         {
             return Task<ResultObj>.Run(() =>
             {
-                _logger.LogInformation("Started CommitProcessorDataBytes at " + DateTime.UtcNow);
+                _logger.Info("Started CommitProcessorDataBytes at " + DateTime.UtcNow);
                 var result = new ResultObj();
                 try
                 {
@@ -45,21 +46,21 @@ namespace NetworkMonitor.Alert.Services
                     {
                         result.Success = false;
                         result.Message=" Error : Failed CommitProcessorDataBytes no ProcessorDataObj or AppID found";
-                        _logger.LogError(result.Message);
+                        _logger.Error(result.Message);
 
                     }
                     else
                     {
                         result.Success = true;
                         result.Message=" Success : Finshed CommitProcessorDataBytes at " + DateTime.UtcNow + " for Processor AppID " + processorDataObj.AppID+ ". ";
-                        _logger.LogInformation(result.Message);
+                        _logger.Info(result.Message);
                     }
                 }
                 catch (Exception e)
                 {
                     result.Success = false;
                     result.Message += "Error : failed to process Data. Error was : " + e.Message.ToString();
-                    _logger.LogError(result.Message);
+                    _logger.Error(result.Message);
                 }
                 return result;
             });
