@@ -14,8 +14,8 @@ namespace NetworkMonitor.Alert.Services
 {
     public interface IDataQueueService
     {
-        Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString,List<MonitorStatusAlert> monitorStatusAlerts);
-   
+        Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<MonitorStatusAlert> monitorStatusAlerts);
+
     }
     public class DataQueueService : IDataQueueService
     {
@@ -23,26 +23,37 @@ namespace NetworkMonitor.Alert.Services
         private TaskQueue taskQueue = new TaskQueue();
         public DataQueueService(ILogger<DataQueueService> logger)
         {
-   
+
             _logger = logger;
         }
-        public Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString,List<MonitorStatusAlert> monitorStatusAlerts)
+        public Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<MonitorStatusAlert> monitorStatusAlerts)
         {
-            Func<string,List<MonitorStatusAlert>, Task<ResultObj>> func = CommitProcessorDataString;
-            return taskQueue.EnqueueStatusString<ResultObj>(func, processorDataString,monitorStatusAlerts);
+            Func<string, List<MonitorStatusAlert>, Task<ResultObj>> func = CommitProcessorDataString;
+            return taskQueue.EnqueueStatusString<ResultObj>(func, processorDataString, monitorStatusAlerts);
         }
-      
-        private Task<ResultObj> CommitProcessorDataString(string processorDataString,List<MonitorStatusAlert> monitorStatusAlerts)
+
+        private Task<ResultObj> CommitProcessorDataString(string processorDataString, List<MonitorStatusAlert> monitorStatusAlerts)
         {
             return Task<ResultObj>.Run(() =>
             {
-                _logger.LogInformation("Started CommitProcessorDataBytes at "+DateTime.UtcNow);
+                _logger.LogInformation("Started CommitProcessorDataBytes at " + DateTime.UtcNow);
                 var result = new ResultObj();
                 try
-                {              
-                     var processorDataObj =ProcessorDataBuilder.MergeMonitorStatusAlerts(processorDataString,monitorStatusAlerts);           
-                    result.Success=true;
-                    _logger.LogInformation("Finshed CommitProcessorDataBytes at "+DateTime.UtcNow+ " for Processor AppID "+processorDataObj.AppID);
+                {
+                    var processorDataObj = ProcessorDataBuilder.MergeMonitorStatusAlerts(processorDataString, monitorStatusAlerts);
+                    if (processorDataObj == null || processorDataObj.AppID == null)
+                    {
+                        result.Success = false;
+                        result.Message=" Error : Failed CommitProcessorDataBytes no ProcessorDataObj or AppID found";
+                        _logger.LogError(result.Message);
+
+                    }
+                    else
+                    {
+                        result.Success = true;
+                        result.Message=" Success : Finshed CommitProcessorDataBytes at " + DateTime.UtcNow + " for Processor AppID " + processorDataObj.AppID;
+                        _logger.LogInformation(result.Message);
+                    }
                 }
                 catch (Exception e)
                 {

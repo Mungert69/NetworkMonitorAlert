@@ -20,10 +20,10 @@ namespace NetworkMonitor.Objects.Repository
         ResultObj WakeUp();
         ResultObj AlertMessageInit(AlertServiceInitObj initObj);
         ResultObj AlertMessageResetAlerts(List<AlertFlagObj> alertFlagObjs);
-        ResultObj AlertMessage(AlertMessage alertMessage);
+        Task <ResultObj> AlertMessage(AlertMessage alertMessage);
         Task<ResultObj> UpdateUserInfoAlertMessage(UserInfo userInfo);
-        ResultObj MonitorAlert();
-        ResultObj AlertUpdateMonitorStatusAlerts(string monitorStatusAlertString);
+        Task <ResultObj> MonitorAlert();
+        Task <ResultObj> AlertUpdateMonitorStatusAlerts(string monitorStatusAlertString);
     }
 
     public class RabbitListener : RabbitListenerBase, IRabbitListener
@@ -147,11 +147,11 @@ namespace NetworkMonitor.Objects.Repository
                         break;
                     case "alertMessage":
                         rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
-                        rabbitMQObj.Consumer.Received += (model, ea) =>
+                        rabbitMQObj.Consumer.Received += async (model, ea) =>
                     {
                         try
                         {
-                            result = AlertMessage(ConvertToObject<AlertMessage>(model, ea));
+                            result = await AlertMessage(ConvertToObject<AlertMessage>(model, ea));
                             rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
                         }
                         catch (Exception ex)
@@ -177,11 +177,11 @@ namespace NetworkMonitor.Objects.Repository
                         break;
                     case "monitorAlert":
                         rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
-                        rabbitMQObj.Consumer.Received += (model, ea) =>
+                        rabbitMQObj.Consumer.Received += async (model, ea) =>
                     {
                         try
                         {
-                            result = MonitorAlert();
+                            result = await MonitorAlert();
                             rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
                         }
                         catch (Exception ex)
@@ -192,11 +192,11 @@ namespace NetworkMonitor.Objects.Repository
                         break;
                     case "alertUpdateMonitorStatusAlerts":
                         rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
-                        rabbitMQObj.Consumer.Received += (model, ea) =>
+                        rabbitMQObj.Consumer.Received += async (model, ea) =>
                     {
                         try
                         {
-                            result = AlertUpdateMonitorStatusAlerts(ConvertToString(model, ea));
+                            result = await AlertUpdateMonitorStatusAlerts(ConvertToString(model, ea));
                             rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
                         }
                         catch (Exception ex)
@@ -284,14 +284,14 @@ namespace NetworkMonitor.Objects.Repository
             }
             return result;
         }
-        public ResultObj AlertMessage(AlertMessage alertMessage)
+        public async Task<ResultObj> AlertMessage(AlertMessage alertMessage)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : AlertMessage : ";
             try
             {
-                result = _alertMessageService.Send(alertMessage);
+                result = await _alertMessageService.Send(alertMessage);
                 _logger.Info(result.Message);
             }
             catch (Exception e)
@@ -322,14 +322,14 @@ namespace NetworkMonitor.Objects.Repository
             }
             return result;
         }
-        public ResultObj MonitorAlert()
+        public async Task<ResultObj> MonitorAlert()
         {
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : MonitorAlert : ";
             try
             {
-                result = _alertMessageService.Alert();
+                result = await _alertMessageService.Alert();
                 _logger.Info(result.Message);
             }
             catch (Exception e)
@@ -341,7 +341,7 @@ namespace NetworkMonitor.Objects.Repository
             }
             return result;
         }
-        public ResultObj AlertUpdateMonitorStatusAlerts(string monitorStatusAlertString)
+        public async Task<ResultObj> AlertUpdateMonitorStatusAlerts(string monitorStatusAlertString)
         {
             var result = new ResultObj();
             result.Success = false;
@@ -354,12 +354,11 @@ namespace NetworkMonitor.Objects.Repository
                     new System.Threading.ManualResetEvent(false).WaitOne(5000);
                 }
                 _alertMessageService.IsAlertRunning = true;
-                _dataQueueService.AddProcessorDataStringToQueue(monitorStatusAlertString, _alertMessageService.MonitorStatusAlerts);
+                var returnResult =  await _dataQueueService.AddProcessorDataStringToQueue(monitorStatusAlertString, _alertMessageService.MonitorStatusAlerts);
                 _alertMessageService.IsAlertRunning = false;
-                result.Message += "Success added task AlertMonitorStatusAlerts ";
-                result.Success = true;
+                result.Message +=returnResult.Message;
+                result.Success = returnResult.Success;
                 result.Data = null;
-                _logger.Info(result.Message);
                 _logger.Debug("AlertMonitorStatusAlerts : " + JsonUtils.writeJsonObjectToString(_alertMessageService.MonitorStatusAlerts.ToList()));
             }
             catch (Exception e)

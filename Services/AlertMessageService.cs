@@ -197,7 +197,7 @@ namespace NetworkMonitor.Alert.Services
             str = AesOperation.EncryptString(_emailEncryptKey, str);
             return HttpUtility.UrlEncode(str);
         }
-        public ResultObj Send(AlertMessage alertMessage)
+        public async Task<ResultObj> Send(AlertMessage alertMessage)
         {
             ResultObj result = new ResultObj();
             if (alertMessage.UserInfo == null || alertMessage.UserInfo.UserID == null)
@@ -255,11 +255,11 @@ namespace NetworkMonitor.Alert.Services
                 client.CheckCertificateRevocation = false;
                 if (mailServerUseSSL)
                 {
-                    client.Connect(_mailServer, mailServerPort, true);
+                    await client.ConnectAsync(_mailServer, mailServerPort, true);
                 }
                 else
                 {
-                    client.Connect(_mailServer, mailServerPort, MailKit.Security.SecureSocketOptions.StartTls);
+                    await client.ConnectAsync(_mailServer, mailServerPort, MailKit.Security.SecureSocketOptions.StartTls);
                 }
                 client.Authenticate(systemUser, systemPassword);
                 client.Send(message);
@@ -305,7 +305,7 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
-        public ResultObj Alert()
+        public async Task<ResultObj> Alert()
         {
             _awake = true;
             ResultObj result = new ResultObj();
@@ -313,14 +313,14 @@ namespace NetworkMonitor.Alert.Services
             AlertServiceInitObj alertObj = new AlertServiceInitObj();
             result.Success = false;
             alertObj.IsAlertServiceReady = false;
-            _rabbitRepo.Publish<AlertServiceInitObj>("alertServiceReady", alertObj);
+            await _rabbitRepo.PublishAsync<AlertServiceInitObj>("alertServiceReady", alertObj);
             _logger.Info("Published event AlertServiceItitObj.IsAlertServiceReady = false");
             Stopwatch timerInner = new Stopwatch();
             timerInner.Start();
             try
             {
                 result.Message += InitAlerts(_userInfos);
-                int count = SendAlerts();
+                int count = await SendAlerts();
                 result.Message += "Success : AlertMessageService.Alert Executed ";
                 if (_alert)
                 {
@@ -348,7 +348,7 @@ namespace NetworkMonitor.Alert.Services
                         new System.Threading.ManualResetEvent(false).WaitOne(10000 - timeTakenInnerInt);
                     }
                     alertObj.IsAlertServiceReady = true;
-                    _rabbitRepo.Publish<AlertServiceInitObj>("alertServiceReady", alertObj);
+                    await _rabbitRepo.PublishAsync<AlertServiceInitObj>("alertServiceReady", alertObj);
                     _logger.Info("Published event AlertServiceItitObj.IsAlertServiceReady = true");
                 }
                 catch (Exception e)
@@ -545,7 +545,7 @@ namespace NetworkMonitor.Alert.Services
                 //if (updateMonitorStatusAlert != null) updateMonitorStatusAlert.AlertSent = true;
             }
         }
-        public int SendAlerts()
+        public async Task<int> SendAlerts()
         {
             int count = 0;
             if (_alert)
@@ -558,8 +558,8 @@ namespace NetworkMonitor.Alert.Services
                     if (!alertMessage.dontSend)
                     {
                         alertMessage.VerifyLink = false;
-                        var result = Send(alertMessage);
-                        if (result.Success)
+                        var result = await Send(alertMessage);
+                        if ( result.Success)
                         {
                             _logger.Info(" Success : Sent alert message to " + alertMessage.EmailTo);
                             UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList);
@@ -572,7 +572,7 @@ namespace NetworkMonitor.Alert.Services
                         UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList);
                     }
                 }
-                PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorList);
+                await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorList);
             }
             return count;
         }

@@ -20,8 +20,8 @@ namespace NetworkMonitor.Alert.Services
         bool IsAlertRunning{get;set;}
         bool Awake{get;set;}
 
-           public ResultObj Alert();
-        ResultObj Send(AlertMessage alertMessage);
+        Task<ResultObj> Alert();
+        Task <ResultObj> Send(AlertMessage alertMessage);
        
       
       
