@@ -37,6 +37,7 @@ namespace NetworkMonitor.Alert.Services
         private string _mailServer;
         private int _mailServerPort;
         private bool _mailServerUseSSL;
+        private string _emailSendServerName;
         private SystemUrl _thisSystemUrl;
         private string _publicIPAddress;
         private int _alertThreshold;
@@ -116,6 +117,7 @@ namespace NetworkMonitor.Alert.Services
                 _mailServer = systemParams.MailServer;
                 _mailServerPort = systemParams.MailServerPort;
                 _mailServerUseSSL = systemParams.MailServerUseSSL;
+                _emailSendServerName=systemParams.EmailSendServerName;
                 _trustPilotReviewEmail = systemParams.TrustPilotReviewEmail;
                 _thisSystemUrl = systemParams.ThisSystemUrl;
                 _publicIPAddress = systemParams.PublicIPAddress;
@@ -209,7 +211,7 @@ namespace NetworkMonitor.Alert.Services
 
             string enryptEmailAddressStr = EncryptStr(alertMessage.UserInfo.Email);
             string enryptUserID = EncryptStr(alertMessage.UserInfo.UserID);
-            string subscribeUrl = _thisSystemUrl.ExternalUrl + "/email/unsubscribe?email=" + enryptEmailAddressStr + "&userid=" + enryptUserID;
+            string subscribeUrl = _emailSendServerName + "/email/unsubscribe?email=" + enryptEmailAddressStr + "&userid=" + enryptUserID;
             string resubscribeUrl = subscribeUrl + "&subscribe=true";
             string unsubscribeUrl = subscribeUrl + "&subscribe=false";
             if (alertMessage.VerifyLink)
@@ -219,10 +221,10 @@ namespace NetworkMonitor.Alert.Services
                 {
                     return result;
                 }
-                string verifyUrl = _thisSystemUrl.ExternalUrl + "/email/verifyemail?email=" + enryptEmailAddressStr + "&userid=" + enryptUserID;
+                string verifyUrl = _emailSendServerName + "/email/verifyemail?email=" + enryptEmailAddressStr + "&userid=" + enryptUserID;
                 alertMessage.Message += "\n\nPlease click on this link to verify your email " + verifyUrl;
             }
-            alertMessage.Message += "\n\nThis message was sent by the messenger running at " + _thisSystemUrl.ExternalUrl + " (" + _publicIPAddress.ToString() + ")\n\n To unsubscribe from receiving these messages, please click this link " + unsubscribeUrl + "\n\n To re-subscribe to receiving these messages, please click this link " + resubscribeUrl;
+            alertMessage.Message += "\n\nThis message was sent by the messenger running at " + _emailSendServerName + " (" + _publicIPAddress.ToString() + ")\n\n To unsubscribe from receiving these messages, please click this link " + unsubscribeUrl + "\n\n To re-subscribe to receiving these messages, please click this link " + resubscribeUrl;
             string emailFrom = _systemEmail;
             string systemPassword = _systemPassword;
             string systemUser = _systemUser;
