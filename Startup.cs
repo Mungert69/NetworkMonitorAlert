@@ -8,7 +8,6 @@ using NetworkMonitor.Alert.Services;
 using NetworkMonitor.Objects.Factory;
 using NetworkMonitor.Objects.Repository;
 using NetworkMonitor.Utils.Helpers;
-using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
