@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NetworkMonitor.Objects;
 using NetworkMonitor.Objects.ServiceMessage;
-using MetroLog;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
@@ -22,10 +22,10 @@ namespace NetworkMonitor.Alert.Services
     {
         private ILogger _logger;
         private TaskQueue taskQueue = new TaskQueue();
-        public DataQueueService(INetLoggerFactory loggerFactory)
+        public DataQueueService(ILogger logger)
         {
 
-            _logger = loggerFactory.GetLogger("DataQueueService");
+            _logger = logger;
         }
         public Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<MonitorStatusAlert> monitorStatusAlerts)
         {
@@ -37,7 +37,7 @@ namespace NetworkMonitor.Alert.Services
         {
             return Task<ResultObj>.Run(() =>
             {
-                _logger.Info("Started CommitProcessorDataBytes at " + DateTime.UtcNow);
+                _logger.LogInformation("Started CommitProcessorDataBytes at " + DateTime.UtcNow);
                 var result = new ResultObj();
                 try
                 {
@@ -46,21 +46,21 @@ namespace NetworkMonitor.Alert.Services
                     {
                         result.Success = false;
                         result.Message=" Error : Failed CommitProcessorDataBytes no ProcessorDataObj or AppID found";
-                        _logger.Error(result.Message);
+                        _logger.LogError(result.Message);
 
                     }
                     else
                     {
                         result.Success = true;
                         result.Message=" Success : Finshed CommitProcessorDataBytes at " + DateTime.UtcNow + " for Processor AppID " + processorDataObj.AppID+ ". ";
-                        _logger.Info(result.Message);
+                        _logger.LogInformation(result.Message);
                     }
                 }
                 catch (Exception e)
                 {
                     result.Success = false;
                     result.Message += "Error : failed to process Data. Error was : " + e.Message.ToString();
-                    _logger.Error(result.Message);
+                    _logger.LogError(result.Message);
                 }
                 return result;
             });

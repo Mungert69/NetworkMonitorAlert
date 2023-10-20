@@ -4,7 +4,7 @@ using System.Linq;
 using NetworkMonitor.Objects.ServiceMessage;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using MetroLog;
+using Microsoft.Extensions.Logging;
 
 namespace NetworkMonitor.Objects.Repository
 {
@@ -20,13 +20,13 @@ namespace NetworkMonitor.Objects.Repository
                     if (monitorStatusAlertIDs.Count != 0)
                     {
                         await rabbitRepo.PublishAsync<List<int>>("processorAlertSent" + processorObj.AppID, monitorStatusAlertIDs);
-                        logger.Info("Sent event processorAlertSent for AppID  " + processorObj.AppID);
+                        logger.LogInformation("Sent event processorAlertSent for AppID  " + processorObj.AppID);
                     }
                 }
             }
             catch (Exception e)
             {
-                logger.Fatal("Error : Unable to send processorAlertSent message. Error was :  " + e.Message.ToString());
+                logger.LogCritical("Error : Unable to send processorAlertSent message. Error was :  " + e.Message.ToString());
             }
         }
         public static  async  Task ProcessorAlertFlag(ILogger logger,  IRabbitRepo rabbitRepo, List<MonitorStatusAlert> publishAlertFlagList, List<ProcessorObj> processorList)
@@ -37,7 +37,7 @@ namespace NetworkMonitor.Objects.Repository
                 if (monitorStatusAlertIDs.Count != 0)
                 {
                     await rabbitRepo.PublishAsync<List<int>>( "processorAlertFlag" + processorObj.AppID, monitorStatusAlertIDs);
-                    logger.Info("Sent event processorAlertFlag for AppID  " + processorObj.AppID);
+                    logger.LogInformation("Sent event processorAlertFlag for AppID  " + processorObj.AppID);
                 }
                 publishAlertFlagList.Where(w => w.AppID == processorObj.AppID).ToList().ForEach(f => f.AlertFlag=true);
             }
@@ -55,7 +55,7 @@ namespace NetworkMonitor.Objects.Repository
             }
             catch (Exception e)
             {
-                logger.Error(" Error : failed to publish ProcessResetAlerts. Error was :" + e.ToString());
+                logger.LogError(" Error : failed to publish ProcessResetAlerts. Error was :" + e.ToString());
             }
         }
     }

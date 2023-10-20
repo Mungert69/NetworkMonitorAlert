@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using NetworkMonitor.Utils;
 using NetworkMonitor.Utils.Helpers;
 using NetworkMonitor.Objects.Factory;
-using MetroLog;
+using Microsoft.Extensions.Logging;
 namespace NetworkMonitor.Objects.Repository
 {
     public interface IRabbitListener
@@ -30,17 +30,14 @@ namespace NetworkMonitor.Objects.Repository
     {
         private IAlertMessageService _alertMessageService;
         private IDataQueueService _dataQueueService;
-        public RabbitListener(IAlertMessageService alertMessageService, IDataQueueService dataQueueService, INetLoggerFactory loggerFactory, ISystemParamsHelper systemParamsHelper) : base(DeriveLogger(loggerFactory), DeriveSystemUrl(systemParamsHelper))
+        public RabbitListener(IAlertMessageService alertMessageService, IDataQueueService dataQueueService, ILogger logger, ISystemParamsHelper systemParamsHelper) : base(logger, DeriveSystemUrl(systemParamsHelper))
         {
             _alertMessageService = alertMessageService;
             _dataQueueService = dataQueueService;
             Setup();
         }
 
-              private static ILogger DeriveLogger(INetLoggerFactory loggerFactory)
-        {
-            return loggerFactory.GetLogger("RabbitListener"); 
-        }
+              
 
         private static SystemUrl DeriveSystemUrl(ISystemParamsHelper systemParamsHelper)
         {
@@ -109,7 +106,7 @@ namespace NetworkMonitor.Objects.Repository
                         }
                         catch (Exception ex)
                         {
-                            _logger.Error(" Error : RabbitListener.DeclareConsumers.serviceWakeUp " + ex.Message);
+                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.serviceWakeUp " + ex.Message);
                         }
                     };
                         break;
@@ -124,7 +121,7 @@ namespace NetworkMonitor.Objects.Repository
                         }
                         catch (Exception ex)
                         {
-                            _logger.Error(" Error : RabbitListener.DeclareConsumers.alertMessageinit " + ex.Message);
+                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessageinit " + ex.Message);
                         }
                         result = AlertMessageInit(ConvertToObject<AlertServiceInitObj>(model, ea));
                         rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
@@ -141,7 +138,7 @@ namespace NetworkMonitor.Objects.Repository
                         }
                         catch (Exception ex)
                         {
-                            _logger.Error(" Error : RabbitListener.DeclareConsumers.alertMessageResetAlerts " + ex.Message);
+                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessageResetAlerts " + ex.Message);
                         }
                     };
                         break;
@@ -156,7 +153,7 @@ namespace NetworkMonitor.Objects.Repository
                         }
                         catch (Exception ex)
                         {
-                            _logger.Error(" Error : RabbitListener.DeclareConsumers.alertMessage " + ex.Message);
+                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessage " + ex.Message);
                         }
                     };
                         break;
@@ -171,7 +168,7 @@ namespace NetworkMonitor.Objects.Repository
                         }
                         catch (Exception ex)
                         {
-                            _logger.Error(" Error : RabbitListener.DeclareConsumers.updateUserInfoAlertMessage " + ex.Message);
+                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.updateUserInfoAlertMessage " + ex.Message);
                         }
                     };
                         break;
@@ -186,7 +183,7 @@ namespace NetworkMonitor.Objects.Repository
                         }
                         catch (Exception ex)
                         {
-                            _logger.Error(" Error : RabbitListener.DeclareConsumers.monitorAlert " + ex.Message);
+                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.monitorAlert " + ex.Message);
                         }
                     };
                         break;
@@ -201,7 +198,7 @@ namespace NetworkMonitor.Objects.Repository
                         }
                         catch (Exception ex)
                         {
-                            _logger.Error(" Error : RabbitListener.DeclareConsumers.alertUpdateMonitorStatusAlerts " + ex.Message);
+                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertUpdateMonitorStatusAlerts " + ex.Message);
                         }
                     };
                         break;
@@ -230,14 +227,14 @@ namespace NetworkMonitor.Objects.Repository
                 result.Message+="Success : Set Awake to true in AlertMessageService.";
                 result.Success=true;*/
                 result = _alertMessageService.WakeUp();
-                _logger.Warn(result.Message);
+                _logger.LogWarning(result.Message);
             }
             catch (Exception e)
             {
                 result.Data = null;
                 result.Success = false;
                 result.Message += "Error : Failed to receive message : Error was : " + e.Message + " ";
-                _logger.Error(result.Message);
+                _logger.LogError(result.Message);
             }
             return result;
         }
@@ -251,14 +248,14 @@ namespace NetworkMonitor.Objects.Repository
                 _alertMessageService.InitService(initObj);
                 result.Message += "Success ran ok ";
                 result.Success = true;
-                _logger.Info(result.Message);
+                _logger.LogInformation(result.Message);
             }
             catch (Exception e)
             {
                 result.Data = null;
                 result.Success = false;
                 result.Message += "Error : Failed to receive message : Error was : " + e.Message + " ";
-                _logger.Error(result.Message);
+                _logger.LogError(result.Message);
             }
             return result;
         }
@@ -273,14 +270,14 @@ namespace NetworkMonitor.Objects.Repository
                 results.ForEach(f => result.Message += f.Message);
                 result.Success = results.All(a => a.Success == true) && results.Count() != 0;
                 result.Data = results;
-                _logger.Info(result.Message);
+                _logger.LogInformation(result.Message);
             }
             catch (Exception e)
             {
                 result.Data = null;
                 result.Success = false;
                 result.Message += "Error : Failed to receive message : Error was : " + e.Message + " ";
-                _logger.Error(result.Message);
+                _logger.LogError(result.Message);
             }
             return result;
         }
@@ -292,14 +289,14 @@ namespace NetworkMonitor.Objects.Repository
             try
             {
                 result = await _alertMessageService.Send(alertMessage);
-                _logger.Info(result.Message);
+                _logger.LogInformation(result.Message);
             }
             catch (Exception e)
             {
                 result.Data = null;
                 result.Success = false;
                 result.Message += "Error : Failed to run AlertMessage : Error was : " + e.Message + " ";
-                _logger.Error("Error : Failed to run AlertMessage : Error was : " + e.Message + " ");
+                _logger.LogError("Error : Failed to run AlertMessage : Error was : " + e.Message + " ");
             }
             return result;
         }
@@ -311,14 +308,14 @@ namespace NetworkMonitor.Objects.Repository
             try
             {
                 result = await _alertMessageService.UpdateUserInfo(userInfo);
-                _logger.Info(result.Message);
+                _logger.LogInformation(result.Message);
             }
             catch (Exception e)
             {
                 result.Data = null;
                 result.Success = false;
                 result.Message += "Error : Failed to run UpdateUserInfoAlertMessage : Error was : " + e.Message + " ";
-                _logger.Error("Error : Failed to run UpdateUserInfoAlertMessage : Error was : " + e.Message + " ");
+                _logger.LogError("Error : Failed to run UpdateUserInfoAlertMessage : Error was : " + e.Message + " ");
             }
             return result;
         }
@@ -330,14 +327,14 @@ namespace NetworkMonitor.Objects.Repository
             try
             {
                 result = await _alertMessageService.Alert();
-                _logger.Info(result.Message);
+                _logger.LogInformation(result.Message);
             }
             catch (Exception e)
             {
                 result.Data = null;
                 result.Success = false;
                 result.Message += "Error : Failed to run MonitorAlert : Error was : " + e.Message + " ";
-                _logger.Error("Error : Failed to run MonitorAlert : Error was : " + e.Message + " ");
+                _logger.LogError("Error : Failed to run MonitorAlert : Error was : " + e.Message + " ");
             }
             return result;
         }
@@ -359,13 +356,13 @@ namespace NetworkMonitor.Objects.Repository
                 result.Message +=returnResult.Message;
                 result.Success = returnResult.Success;
                 result.Data = null;
-                _logger.Debug("AlertMonitorStatusAlerts : " + JsonUtils.writeJsonObjectToString(_alertMessageService.MonitorStatusAlerts.ToList()));
+                _logger.LogDebug("AlertMonitorStatusAlerts : " + JsonUtils.writeJsonObjectToString(_alertMessageService.MonitorStatusAlerts.ToList()));
             }
             catch (Exception e)
             {
                 result.Success = false;
                 result.Message += "Error : Failed to set AlertMonitorStatusAlerts : Error was : " + e.Message + " ";
-                _logger.Error("Error : Failed to set AlertMonitorStatusAlerts : Error was : " + e.Message + " ");
+                _logger.LogError("Error : Failed to set AlertMonitorStatusAlerts : Error was : " + e.Message + " ");
             }
             return result;
         }

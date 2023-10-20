@@ -13,7 +13,7 @@ using NetworkMonitor.Utils;
 using System.Linq;
 using System.Web;
 using System.Collections.Generic;
-using MetroLog;
+using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Diagnostics;
@@ -60,12 +60,12 @@ namespace NetworkMonitor.Alert.Services
         public bool IsAlertRunning { get => _isAlertRunning; set => _isAlertRunning = value; }
         public bool Awake { get => _awake; set => _awake = value; }
         public List<MonitorStatusAlert> MonitorStatusAlerts { get => _monitorStatusAlerts; set => _monitorStatusAlerts = value; }
-        public AlertMessageService(INetLoggerFactory loggerFactory, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo, IRabbitRepo rabbitRepo, ISystemParamsHelper systemParamsHelper)
+        public AlertMessageService(ILogger logger, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo, IRabbitRepo rabbitRepo, ISystemParamsHelper systemParamsHelper)
         {
             _dataQueueService = dataQueueService;
             _fileRepo = fileRepo;
             _rabbitRepo=rabbitRepo;
-            _logger = loggerFactory.GetLogger("AlertMessageService");
+            _logger = logger;
             _fileRepo.CheckFileExists("UserInfos", _logger);
             _config = config;
             _token = cancellationTokenSource.Token;
@@ -83,12 +83,12 @@ namespace NetworkMonitor.Alert.Services
                 _fileRepo.SaveStateJsonZAsync<List<UserInfo>>("UserInfos", _userInfos);
                 result.Message += " Saved UserInfos into statestore. ";
                 result.Success = true;
-                _logger.Info(result.Message);
-                _logger.Warn("SERVICE SHUTDOWN : Complete : ");
+                _logger.LogInformation(result.Message);
+                _logger.LogWarning("SERVICE SHUTDOWN : Complete : ");
             }
             catch (Exception e)
             {
-                _logger.Fatal("Error : Failed to run Save Data before shutdown : Error Was : " + e.Message);
+                _logger.LogCritical("Error : Failed to run Save Data before shutdown : Error Was : " + e.Message);
             }
         }
         public Task Init()
@@ -108,8 +108,8 @@ namespace NetworkMonitor.Alert.Services
                 SystemParams systemParams= _systemParamsHelper.GetSystemParams();
                 _processorList = new List<ProcessorObj>();
                 _config.GetSection("ProcessorList").Bind(_processorList);
-                _logger.Debug("SystemParams: " + JsonUtils.writeJsonObjectToString(systemParams));
-                _logger.Debug("PingAlertThreshold: " + _alertThreshold);
+                _logger.LogDebug("SystemParams: " + JsonUtils.writeJsonObjectToString(systemParams));
+                _logger.LogDebug("PingAlertThreshold: " + _alertThreshold);
                 _emailEncryptKey = systemParams.EmailEncryptKey;
                 _systemEmail = systemParams.SystemEmail;
                 _systemUser = systemParams.SystemUser;
@@ -123,24 +123,24 @@ namespace NetworkMonitor.Alert.Services
                 _publicIPAddress = systemParams.PublicIPAddress;
                 _sendTrustPilot = systemParams.SendTrustPilot;
               
-                _logger.Info("Got config");
+                _logger.LogInformation("Got config");
             }
             catch (Exception e)
             {
-                _logger.Error("Error : Can not get Config" + e.Message.ToString());
+                _logger.LogError("Error : Can not get Config" + e.Message.ToString());
             }
             if (alertObj.TotalReset)
             {
                 try
                 {
-                    _logger.Info("Resetting Alert UserInfos in statestore");
+                    _logger.LogInformation("Resetting Alert UserInfos in statestore");
                     _userInfos = new List<UserInfo>();
                     _fileRepo.SaveStateJsonZAsync<List<UserInfo>>("UserInfos", _userInfos);
-                    _logger.Info("Reset UserInfos in statestore ");
+                    _logger.LogInformation("Reset UserInfos in statestore ");
                 }
                 catch (Exception e)
                 {
-                    _logger.Error("Error : Can not reset UserInfos in statestre Error was : " + e.Message.ToString());
+                    _logger.LogError("Error : Can not reset UserInfos in statestre Error was : " + e.Message.ToString());
                 }
             }
             else
@@ -151,11 +151,11 @@ namespace NetworkMonitor.Alert.Services
                     try
                     {
                         _fileRepo.SaveStateJsonZAsync<List<UserInfo>>("UserInfos", _userInfos);
-                        _logger.Info("Saved " + _userInfos.Count() + " UserInfos to statestore ");
+                        _logger.LogInformation("Saved " + _userInfos.Count() + " UserInfos to statestore ");
                     }
                     catch (Exception e)
                     {
-                        _logger.Error("Error : Can not save UserInfos to statestore Error was : " + e.Message.ToString());
+                        _logger.LogError("Error : Can not save UserInfos to statestore Error was : " + e.Message.ToString());
                     }
                 }
                 else
@@ -166,32 +166,32 @@ namespace NetworkMonitor.Alert.Services
                         if (_userInfos == null) _userInfos = new List<UserInfo>();
                         else
                         {
-                            _logger.Info("Got " + _userInfos.Count() + "  UserInfos from statestore ");
+                            _logger.LogInformation("Got " + _userInfos.Count() + "  UserInfos from statestore ");
                         }
                     }
                     catch (Exception e)
                     {
-                        _logger.Error("Error : Can not get UserInfos from statestore Error was : " + e.Message.ToString());
+                        _logger.LogError("Error : Can not get UserInfos from statestore Error was : " + e.Message.ToString());
                     }
                 }
                 if (_userInfos != null && _userInfos.Count() != 0)
                 {
-                    _logger.Info("Got UserInfos " + _userInfos.Count + " from published message ");
+                    _logger.LogInformation("Got UserInfos " + _userInfos.Count + " from published message ");
                 }
                 else
                 {
-                    _logger.Warn("Warning got no UserInfos from state file.");
+                    _logger.LogWarning("Warning got no UserInfos from state file.");
                 }
             }
             try
             {
                 alertObj.IsAlertServiceReady = true;
                 _rabbitRepo.Publish<AlertServiceInitObj>("alertServiceReady", alertObj);
-                _logger.Info("Published event AlertServiceItitObj.IsAlertServiceReady = true");
+                _logger.LogInformation("Published event AlertServiceItitObj.IsAlertServiceReady = true");
             }
             catch (Exception e)
             {
-                _logger.Error("Error : Can not publish event  AlertServiceItitObj.IsAlertServiceReady Error was : " + e.Message.ToString());
+                _logger.LogError("Error : Can not publish event  AlertServiceItitObj.IsAlertServiceReady Error was : " + e.Message.ToString());
             }
         }
         public string EncryptStr(string str)
@@ -270,13 +270,13 @@ namespace NetworkMonitor.Alert.Services
                 result.Message = "Email with subject " + alertMessage.Subject + " sent ok";
                 result.Success = true;
                 _spamFilter.UpdateAlertSentList(alertMessage);
-                _logger.Info(result.Message);
+                _logger.LogInformation(result.Message);
             }
             catch (Exception e)
             {
                 result.Message = "Email with subject " + alertMessage.Subject + " failed to send . Error was :" + e.Message.ToString().ToString();
                 result.Success = false;
-                _logger.Error(result.Message);
+                _logger.LogError(result.Message);
             }
             return result;
         }
@@ -316,7 +316,7 @@ namespace NetworkMonitor.Alert.Services
             result.Success = false;
             alertObj.IsAlertServiceReady = false;
             await _rabbitRepo.PublishAsync<AlertServiceInitObj>("alertServiceReady", alertObj);
-            _logger.Info("Published event AlertServiceItitObj.IsAlertServiceReady = false");
+            _logger.LogInformation("Published event AlertServiceItitObj.IsAlertServiceReady = false");
             Stopwatch timerInner = new Stopwatch();
             timerInner.Start();
             try
@@ -329,13 +329,13 @@ namespace NetworkMonitor.Alert.Services
                     result.Message += "Info : Message sent was to :" + count + " users";
                 }
                 result.Success = true;
-                _logger.Info(result.Message);
+                _logger.LogInformation(result.Message);
             }
             catch (Exception e)
             {
                 result.Message += "Error : AlertMessageService.Alert Execute failed : Error was : " + e.ToString();
                 result.Success = false;
-                _logger.Error(result.Message);
+                _logger.LogError(result.Message);
             }
             finally
             {
@@ -346,16 +346,16 @@ namespace NetworkMonitor.Alert.Services
                     int timeTakenInnerInt = (int)timeTakenInner.TotalMilliseconds;
                     if (timeTakenInnerInt < 10000)
                     {
-                        _logger.Info("Sleeping for " + (10000 - timeTakenInnerInt) + " ms to allow message to pass to scheduler");
+                        _logger.LogInformation("Sleeping for " + (10000 - timeTakenInnerInt) + " ms to allow message to pass to scheduler");
                         new System.Threading.ManualResetEvent(false).WaitOne(10000 - timeTakenInnerInt);
                     }
                     alertObj.IsAlertServiceReady = true;
                     await _rabbitRepo.PublishAsync<AlertServiceInitObj>("alertServiceReady", alertObj);
-                    _logger.Info("Published event AlertServiceItitObj.IsAlertServiceReady = true");
+                    _logger.LogInformation("Published event AlertServiceItitObj.IsAlertServiceReady = true");
                 }
                 catch (Exception e)
                 {
-                    _logger.Error("Error : Can not publish event  AlertServiceItitObj.IsAlertServiceReady " + e.Message.ToString().ToString());
+                    _logger.LogError("Error : Can not publish event  AlertServiceItitObj.IsAlertServiceReady " + e.Message.ToString().ToString());
                 }
                 _awake = false;
             }
@@ -373,7 +373,7 @@ namespace NetworkMonitor.Alert.Services
                 if (emailRegex.IsMatch(monitorStatusAlert.AddUserEmail))
                 {
 
-                    //_logger.Info(" Success : Rewriting email address from " + userInfo.Email + " to " + monitorStatusAlert.AddUserEmail);
+                    //_logger.LogInformation(" Success : Rewriting email address from " + userInfo.Email + " to " + monitorStatusAlert.AddUserEmail);
                     userInfo.Email = monitorStatusAlert.AddUserEmail;
                     userInfo.DisableEmail = !monitorStatusAlert.IsEmailVerified;
                 }
@@ -381,7 +381,7 @@ namespace NetworkMonitor.Alert.Services
                 {
                     userInfo.DisableEmail = true;
                     // Handle invalid email format
-                    _logger.Warn(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
+                    _logger.LogWarning(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
                 }
             }
             else {
@@ -465,7 +465,7 @@ namespace NetworkMonitor.Alert.Services
             }
             if (publishAlertSentList.Count() != 0)
             {
-                _logger.Warn("Warning republishing AlertSent List check coms. ");
+                _logger.LogWarning("Warning republishing AlertSent List check coms. ");
                 PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorList);
             }
             CheckAlerts(updateAlertFlagList);
@@ -500,7 +500,7 @@ namespace NetworkMonitor.Alert.Services
                 });
                 if (a.Timeout > maxTimeout) maxTimeout = a.Timeout;
             });
-            _logger.Info(" Checking " + monitorPingInfos.Count() + " Alerts ");
+            _logger.LogInformation(" Checking " + monitorPingInfos.Count() + " Alerts ");
             var connectFactory = new ConnectFactory(_config, _logger, false);
             var netConnectCollection = new NetConnectCollection(_logger, _config, connectFactory);
             SemaphoreSlim semaphore = new SemaphoreSlim(1);
@@ -519,7 +519,7 @@ namespace NetworkMonitor.Alert.Services
             monitorPingInfos.Where(w => w.MonitorStatus.IsUp == true).ToList().ForEach(m =>
            {
                updateAlertFlagList.RemoveAll(r => r.ID == m.MonitorIPID);
-               _logger.Warn(" Warning : Overturned Alert with MonitorPingID = " + m.MonitorIPID + " . On Processor with AppID " + m.AppID + " . ");
+               _logger.LogWarning(" Warning : Overturned Alert with MonitorPingID = " + m.MonitorIPID + " . On Processor with AppID " + m.AppID + " . ");
                _alertMessages.ForEach(a =>
                {
                    a.AlertFlagObjs.RemoveAll(r => r.ID == m.MonitorIPID);
@@ -563,10 +563,10 @@ namespace NetworkMonitor.Alert.Services
                         var result = await Send(alertMessage);
                         if ( result.Success)
                         {
-                            _logger.Info(" Success : Sent alert message to " + alertMessage.EmailTo);
+                            _logger.LogInformation(" Success : Sent alert message to " + alertMessage.EmailTo);
                             UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList);
                         }
-                        _logger.Info(result.Message);
+                        _logger.LogInformation(result.Message);
                         count++;
                     }
                     else
@@ -630,11 +630,11 @@ namespace NetworkMonitor.Alert.Services
                 try
                 {
                     await _fileRepo.SaveStateJsonZAsync<List<UserInfo>>("UserInfos", _userInfos);
-                    _logger.Info("Saved UserInfos to file statestore ");
+                    _logger.LogInformation("Saved UserInfos to file statestore ");
                 }
                 catch (Exception e)
                 {
-                    _logger.Error("Error : Can not save UserInfos to statestore Error was : " + e.Message.ToString());
+                    _logger.LogError("Error : Can not save UserInfos to statestore Error was : " + e.Message.ToString());
                 }
                 result.Success = true;
                 result.Message = ("Success : updated UserInfo");

@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using MetroLog;
+using Microsoft.Extensions.Logging;
 using HostInitActions;
 
 
