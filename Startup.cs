@@ -44,8 +44,10 @@ namespace NetworkMonitor.Service
             services.AddSingleton<IRabbitListener, RabbitListener>();
             services.AddSingleton<ISystemParamsHelper, SystemParamsHelper>();
 
-            var logger = LogManagerFactory.DefaultLogManager.GetLogger<Startup>();
-            services.AddSingleton(logger);
+            services.AddLogging(builder =>
+        {
+            builder.AddConsole();
+        });
             services.AddSingleton<IFileRepo, FileRepo>();
             services.AddAsyncServiceInitialization()
                .AddInitAction<IAlertMessageService>(async (alertMessageService) =>
