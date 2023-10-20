@@ -41,7 +41,6 @@ namespace NetworkMonitor.Service
             services.AddSingleton<IDataQueueService, DataQueueService>();
             services.AddSingleton<IAlertMessageService, AlertMessageService>();
             services.Configure<HostOptions>(s => s.ShutdownTimeout = TimeSpan.FromMinutes(5));
-            services.AddSingleton<INetLoggerFactory, NetLoggerFactory>();
             services.AddSingleton(_cancellationTokenSource);
             services.AddSingleton<IRabbitRepo, RabbitRepo>();
             services.AddSingleton<IRabbitListener, RabbitListener>();

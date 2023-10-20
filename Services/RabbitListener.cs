@@ -30,7 +30,7 @@ namespace NetworkMonitor.Alert.Services
     {
         private IAlertMessageService _alertMessageService;
         private IDataQueueService _dataQueueService;
-        public RabbitListener(IAlertMessageService alertMessageService, IDataQueueService dataQueueService, ILogger logger, ISystemParamsHelper systemParamsHelper) : base(logger, DeriveSystemUrl(systemParamsHelper))
+        public RabbitListener(IAlertMessageService alertMessageService, IDataQueueService dataQueueService, ILogger<RabbitListenerBase> logger, ISystemParamsHelper systemParamsHelper) : base(logger, DeriveSystemUrl(systemParamsHelper))
         {
             _alertMessageService = alertMessageService;
             _dataQueueService = dataQueueService;
