@@ -34,6 +34,10 @@ namespace NetworkMonitor.Service
         public void ConfigureServices(IServiceCollection services)
         {
             _services = services;
+            services.AddLogging(builder =>
+               {
+                   builder.AddConsole();
+               });
             services.AddSingleton<IDataQueueService, DataQueueService>();
             services.AddSingleton<IAlertMessageService, AlertMessageService>();
             services.Configure<HostOptions>(s => s.ShutdownTimeout = TimeSpan.FromMinutes(5));
@@ -43,10 +47,7 @@ namespace NetworkMonitor.Service
             services.AddSingleton<IRabbitListener, RabbitListener>();
             services.AddSingleton<ISystemParamsHelper, SystemParamsHelper>();
 
-            services.AddLogging(builder =>
-        {
-            builder.AddConsole();
-        });
+
             services.AddSingleton<IFileRepo, FileRepo>();
             services.AddAsyncServiceInitialization()
                .AddInitAction<IAlertMessageService>(async (alertMessageService) =>
@@ -55,10 +56,10 @@ namespace NetworkMonitor.Service
                     })
                     .AddInitAction<IRabbitListener>((rabbitListener) =>
                     {
-                        return Task.CompletedTask; 
+                        return Task.CompletedTask;
                     });
         }
 
-      
+
     }
 }

@@ -22,7 +22,7 @@ namespace NetworkMonitor.Alert.Services
     {
         private ILogger _logger;
         private TaskQueue taskQueue = new TaskQueue();
-        public DataQueueService(ILogger logger)
+        public DataQueueService(ILogger<DataQueueService> logger)
         {
 
             _logger = logger;

@@ -18,9 +18,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Diagnostics;
 using NetworkMonitor.Utils.Helpers;
-using NetworkMonitor.Objects.Factory;
-using NetworkMonitor.Objects.Repository;
-using HostInitActions;
+
 namespace NetworkMonitor.Alert.Services
 {
     public class AlertMessageService : IAlertMessageService
@@ -60,7 +58,7 @@ namespace NetworkMonitor.Alert.Services
         public bool IsAlertRunning { get => _isAlertRunning; set => _isAlertRunning = value; }
         public bool Awake { get => _awake; set => _awake = value; }
         public List<MonitorStatusAlert> MonitorStatusAlerts { get => _monitorStatusAlerts; set => _monitorStatusAlerts = value; }
-        public AlertMessageService(ILogger logger, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo, IRabbitRepo rabbitRepo, ISystemParamsHelper systemParamsHelper)
+        public AlertMessageService(ILogger<AlertMessageService> logger, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo, IRabbitRepo rabbitRepo, ISystemParamsHelper systemParamsHelper)
         {
             _dataQueueService = dataQueueService;
             _fileRepo = fileRepo;
@@ -321,7 +319,7 @@ namespace NetworkMonitor.Alert.Services
             timerInner.Start();
             try
             {
-                result.Message += InitAlerts(_userInfos);
+                result.Message += await InitAlerts(_userInfos);
                 int count = await SendAlerts();
                 result.Message += "Success : AlertMessageService.Alert Executed ";
                 if (_alert)
@@ -388,7 +386,7 @@ namespace NetworkMonitor.Alert.Services
                 userInfo.DisableEmail=!userInfo.Email_verified;
             }
         }
-        public String InitAlerts(List<UserInfo> userInfos)
+        public async Task<String> InitAlerts(List<UserInfo> userInfos)
         {
             string resultStr = " InitAlerts : ";
             _alert = false;
@@ -466,18 +464,18 @@ namespace NetworkMonitor.Alert.Services
             if (publishAlertSentList.Count() != 0)
             {
                 _logger.LogWarning("Warning republishing AlertSent List check coms. ");
-                PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorList);
+                await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorList);
             }
-            CheckAlerts(updateAlertFlagList);
+            await CheckAlerts(updateAlertFlagList);
             if (updateAlertFlagList.Count() > 0)
             {
                 _alert = true;
-                PublishAlertsRepo.ProcessorAlertFlag(_logger, _rabbitRepo, updateAlertFlagList, _processorList);
+                await PublishAlertsRepo.ProcessorAlertFlag(_logger, _rabbitRepo, updateAlertFlagList, _processorList);
             }
             else _alert = false;
             return resultStr;
         }
-        private void CheckAlerts(List<MonitorStatusAlert> updateAlertFlagList)
+        private async Task CheckAlerts(List<MonitorStatusAlert> updateAlertFlagList)
         {
             if (updateAlertFlagList == null || updateAlertFlagList.Count() == 0) return;
             if (!_checkAlerts) return;
@@ -534,7 +532,7 @@ namespace NetworkMonitor.Alert.Services
                }
            });
             _alertMessages.RemoveAll(r => r.AlertFlagObjs.Count() == 0);
-            PublishAlertsRepo.ProcessorResetAlerts(_logger, _rabbitRepo, monitorIPDic);
+            await PublishAlertsRepo.ProcessorResetAlerts(_logger, _rabbitRepo, monitorIPDic);
         }
         private void UpdateAndPublishAlertSentList(AlertMessage alertMessage, List<MonitorStatusAlert> publishAlertSentList)
         {

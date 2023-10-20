@@ -11,9 +11,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using NetworkMonitor.Utils;
 using NetworkMonitor.Utils.Helpers;
-using NetworkMonitor.Objects.Factory;
+using NetworkMonitor.Objects.Repository;
 using Microsoft.Extensions.Logging;
-namespace NetworkMonitor.Objects.Repository
+namespace NetworkMonitor.Alert.Services
 {
     public interface IRabbitListener
     {
