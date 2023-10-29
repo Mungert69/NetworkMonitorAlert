@@ -278,6 +278,34 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
+
+          private void VerifyEmail(UserInfo userInfo, MonitorStatusAlert monitorStatusAlert)
+        {
+            // Validate email format
+            if (monitorStatusAlert.AddUserEmail != null)
+            {
+
+
+                var emailRegex = new Regex(@"^[\w-+]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$");
+                if (emailRegex.IsMatch(monitorStatusAlert.AddUserEmail))
+                {
+
+                    //_logger.LogInformation(" Success : Rewriting email address from " + userInfo.Email + " to " + monitorStatusAlert.AddUserEmail);
+                    userInfo.Email = monitorStatusAlert.AddUserEmail;
+                    userInfo.DisableEmail = !monitorStatusAlert.IsEmailVerified;
+                }
+                else
+                {
+                    userInfo.DisableEmail = true;
+                    // Handle invalid email format
+                    _logger.LogWarning(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
+                }
+            }
+            else {
+                userInfo.DisableEmail=!userInfo.Email_verified;
+            }
+        }
+      
         public ResultObj WakeUp()
         {
             ResultObj result = new ResultObj();
@@ -360,32 +388,6 @@ namespace NetworkMonitor.Alert.Services
             return result;
         }
 
-        private void VerifyEmail(UserInfo userInfo, MonitorStatusAlert monitorStatusAlert)
-        {
-            // Validate email format
-            if (monitorStatusAlert.AddUserEmail != null)
-            {
-
-
-                var emailRegex = new Regex(@"^[\w-+]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$");
-                if (emailRegex.IsMatch(monitorStatusAlert.AddUserEmail))
-                {
-
-                    //_logger.LogInformation(" Success : Rewriting email address from " + userInfo.Email + " to " + monitorStatusAlert.AddUserEmail);
-                    userInfo.Email = monitorStatusAlert.AddUserEmail;
-                    userInfo.DisableEmail = !monitorStatusAlert.IsEmailVerified;
-                }
-                else
-                {
-                    userInfo.DisableEmail = true;
-                    // Handle invalid email format
-                    _logger.LogWarning(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
-                }
-            }
-            else {
-                userInfo.DisableEmail=!userInfo.Email_verified;
-            }
-        }
         public async Task<String> InitAlerts(List<UserInfo> userInfos)
         {
             string resultStr = " InitAlerts : ";
@@ -534,17 +536,7 @@ namespace NetworkMonitor.Alert.Services
             _alertMessages.RemoveAll(r => r.AlertFlagObjs.Count() == 0);
             await PublishAlertsRepo.ProcessorResetAlerts(_logger, _rabbitRepo, monitorIPDic);
         }
-        private void UpdateAndPublishAlertSentList(AlertMessage alertMessage, List<MonitorStatusAlert> publishAlertSentList)
-        {
-            foreach (MonitorStatusAlert alertFlagObj in alertMessage.AlertFlagObjs)
-            {
-                alertFlagObj.AlertSent = true;
-                publishAlertSentList.Add(alertFlagObj);
-                _updateAlertSentList.Add(alertFlagObj);
-                //var updateMonitorStatusAlert = _monitorStatusAlerts.FirstOrDefault(w => w.ID == alertFlagObj.ID);
-                //if (updateMonitorStatusAlert != null) updateMonitorStatusAlert.AlertSent = true;
-            }
-        }
+      
         public async Task<int> SendAlerts()
         {
             int count = 0;
@@ -575,6 +567,18 @@ namespace NetworkMonitor.Alert.Services
                 await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorList);
             }
             return count;
+        }
+
+          private void UpdateAndPublishAlertSentList(AlertMessage alertMessage, List<MonitorStatusAlert> publishAlertSentList)
+        {
+            foreach (MonitorStatusAlert alertFlagObj in alertMessage.AlertFlagObjs)
+            {
+                alertFlagObj.AlertSent = true;
+                publishAlertSentList.Add(alertFlagObj);
+                _updateAlertSentList.Add(alertFlagObj);
+                //var updateMonitorStatusAlert = _monitorStatusAlerts.FirstOrDefault(w => w.ID == alertFlagObj.ID);
+                //if (updateMonitorStatusAlert != null) updateMonitorStatusAlert.AlertSent = true;
+            }
         }
         public List<ResultObj> ResetAlerts(List<AlertFlagObj> alertFlagObjs)
         {
