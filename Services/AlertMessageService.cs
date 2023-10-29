@@ -406,7 +406,7 @@ namespace NetworkMonitor.Alert.Services
             foreach (MonitorStatusAlert monitorStatusAlert in monitorStatusAlerts)
             {
                 bool noAlertSentStored = _updateAlertSentList.FirstOrDefault(w => w.ID == monitorStatusAlert.ID) == null;
-                if (monitorStatusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(monitorStatusAlert);
+                if (monitorStatusAlert.AlertFlag=true && monitorStatusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(monitorStatusAlert);
                 string userId = monitorStatusAlert.UserID;
                 UserInfo userInfo = new UserInfo(userInfos.FirstOrDefault(u => u.UserID == userId));
 
