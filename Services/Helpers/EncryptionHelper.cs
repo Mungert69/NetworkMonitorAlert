@@ -1,0 +1,14 @@
+
+using NetworkMonitor.Utils;
+using System.Web;
+
+namespace NetworkMonitor.Alert.Services.Helpers;
+
+public class EncryptionHelper{
+
+    public static string EncryptStr(string emailEncryptKey,string str)
+        {
+            str = AesOperation.EncryptString(emailEncryptKey, str);
+            return HttpUtility.UrlEncode(str);
+        }
+}

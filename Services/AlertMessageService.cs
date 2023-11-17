@@ -5,6 +5,7 @@ using NetworkMonitor.Objects;
 using NetworkMonitor.Objects.ServiceMessage;
 using NetworkMonitor.Objects.Repository;
 using NetworkMonitor.Connection;
+using NetworkMonitor.Alert.Services.Helpers;
 using System;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
@@ -24,27 +25,18 @@ namespace NetworkMonitor.Alert.Services
     public class AlertMessageService : IAlertMessageService
     {
         private IConfiguration _config;
-        private ILogger _logger;
+
         private List<UserInfo> _userInfos = new List<UserInfo>();
-        private string _emailEncryptKey;
-        private string _systemEmail;
-        private string _systemUrl;
-        private string _systemPassword;
-        private string _systemUser;
-        private string _trustPilotReviewEmail;
-        private string _mailServer;
-        private int _mailServerPort;
-        private bool _mailServerUseSSL;
-        private string _emailSendServerName;
-        private SystemUrl _thisSystemUrl;
-        private string _publicIPAddress;
+ 
         private int _alertThreshold;
         private bool _sendTrustPilot;
         private bool _alert;
         private bool _isAlertRunning = false;
         private bool _awake;
         private bool _checkAlerts;
-        private SpamFilter _spamFilter;
+            private ILogger _logger;
+
+        private EmailProcessor _emailProcessor;
         List<MonitorStatusAlert> _updateAlertSentList = new List<MonitorStatusAlert>();
         private IDataQueueService _dataQueueService;
         private List<AlertMessage> _alertMessages = new List<AlertMessage>();
@@ -69,7 +61,7 @@ namespace NetworkMonitor.Alert.Services
             _token = cancellationTokenSource.Token;
             _token.Register(() => OnStopping());
             _systemParamsHelper = systemParamsHelper;
-            _spamFilter = new SpamFilter(_logger);
+
         }
         private void OnStopping()
         {
@@ -101,6 +93,7 @@ namespace NetworkMonitor.Alert.Services
         {
             try
             {
+             
                 _alertThreshold = _config.GetValue<int>("PingAlertThreshold");
                 _checkAlerts = _config.GetValue<bool>("CheckAlerts");
                 SystemParams systemParams= _systemParamsHelper.GetSystemParams();
@@ -108,19 +101,9 @@ namespace NetworkMonitor.Alert.Services
                 _config.GetSection("ProcessorList").Bind(_processorList);
                 _logger.LogDebug("SystemParams: " + JsonUtils.writeJsonObjectToString(systemParams));
                 _logger.LogDebug("PingAlertThreshold: " + _alertThreshold);
-                _emailEncryptKey = systemParams.EmailEncryptKey;
-                _systemEmail = systemParams.SystemEmail;
-                _systemUser = systemParams.SystemUser;
-                _systemPassword = systemParams.SystemPassword;
-                _mailServer = systemParams.MailServer;
-                _mailServerPort = systemParams.MailServerPort;
-                _mailServerUseSSL = systemParams.MailServerUseSSL;
-                _emailSendServerName=systemParams.EmailSendServerName;
-                _trustPilotReviewEmail = systemParams.TrustPilotReviewEmail;
-                _thisSystemUrl = systemParams.ThisSystemUrl;
-                _publicIPAddress = systemParams.PublicIPAddress;
+               
                 _sendTrustPilot = systemParams.SendTrustPilot;
-              
+                 var emailProcessor = new EmailProcessor(systemParams,_logger);
                 _logger.LogInformation("Got config");
             }
             catch (Exception e)
@@ -192,93 +175,16 @@ namespace NetworkMonitor.Alert.Services
                 _logger.LogError("Error : Can not publish event  AlertServiceItitObj.IsAlertServiceReady Error was : " + e.Message.ToString());
             }
         }
-        public string EncryptStr(string str)
-        {
-            str = AesOperation.EncryptString(_emailEncryptKey, str);
-            return HttpUtility.UrlEncode(str);
-        }
+        
         public async Task<ResultObj> Send(AlertMessage alertMessage)
-        {
-            ResultObj result = new ResultObj();
-            if (alertMessage.UserInfo == null || alertMessage.UserInfo.UserID == null)
-            {
-                result.Message = " Error : Missing UserInfo ";
-                result.Success = false;
-                return result;
-            }
+    {
+        return await _emailProcessor.SendAlert(alertMessage);
+    }
 
-            string enryptEmailAddressStr = EncryptStr(alertMessage.UserInfo.Email);
-            string enryptUserID = EncryptStr(alertMessage.UserInfo.UserID);
-            string subscribeUrl = _emailSendServerName + "/email/unsubscribe?email=" + enryptEmailAddressStr + "&userid=" + enryptUserID;
-            string resubscribeUrl = subscribeUrl + "&subscribe=true";
-            string unsubscribeUrl = subscribeUrl + "&subscribe=false";
-            if (alertMessage.VerifyLink)
-            {
-                result = _spamFilter.IsVerifyLimit(alertMessage.UserInfo.UserID);
-                if (!result.Success)
-                {
-                    return result;
-                }
-                string verifyUrl = _emailSendServerName + "/email/verifyemail?email=" + enryptEmailAddressStr + "&userid=" + enryptUserID;
-                alertMessage.Message += "\n\nPlease click on this link to verify your email " + verifyUrl;
-            }
-            alertMessage.Message += "\n\nThis message was sent by the messenger running at " + _emailSendServerName + " (" + _publicIPAddress.ToString() + ")\n\n To unsubscribe from receiving these messages, please click this link " + unsubscribeUrl + "\n\n To re-subscribe to receiving these messages, please click this link " + resubscribeUrl;
-            string emailFrom = _systemEmail;
-            string systemPassword = _systemPassword;
-            string systemUser = _systemUser;
-            int mailServerPort = _mailServerPort;
-            bool mailServerUseSSL = _mailServerUseSSL;
-            try
-            {
-                MimeMessage message = new MimeMessage();
-                message.Headers.Add("List-Unsubscribe", "<" + unsubscribeUrl + ">, <mailto:" + emailFrom + "?subject=unsubscribe>");
-                MailboxAddress from = new MailboxAddress("Free Network Monitor",
-                emailFrom);
-                message.From.Add(from);
-                if (alertMessage.SendTrustPilot)
-                {
-                    MailboxAddress bcc = new MailboxAddress("Trust Pilot",
-             _trustPilotReviewEmail);
-                    message.Bcc.Add(bcc);
-                }
-                MailboxAddress to = new MailboxAddress(alertMessage.Name,
-                alertMessage.EmailTo);
-                message.To.Add(to);
-                //message.Subject = "Network Monitor Alert : Host Down";
-                message.Subject = alertMessage.Subject;
-                BodyBuilder bodyBuilder = new BodyBuilder();
-                bodyBuilder.TextBody = alertMessage.Message;
-                //bodyBuilder.Attachments.Add(_env.WebRootPath + "\\file.png");
-                message.Body = bodyBuilder.ToMessageBody();
-                SmtpClient client = new SmtpClient();
-                client.ServerCertificateValidationCallback = (mysender, certificate, chain, sslPolicyErrors) => { return true; };
-                client.CheckCertificateRevocation = false;
-                if (mailServerUseSSL)
-                {
-                    await client.ConnectAsync(_mailServer, mailServerPort, true);
-                }
-                else
-                {
-                    await client.ConnectAsync(_mailServer, mailServerPort, MailKit.Security.SecureSocketOptions.StartTls);
-                }
-                client.Authenticate(systemUser, systemPassword);
-                client.Send(message);
-                client.Disconnect(true);
-                client.Dispose();
-                result.Message = "Email with subject " + alertMessage.Subject + " sent ok";
-                result.Success = true;
-                _spamFilter.UpdateAlertSentList(alertMessage);
-                _logger.LogInformation(result.Message);
-            }
-            catch (Exception e)
-            {
-                result.Message = "Email with subject " + alertMessage.Subject + " failed to send . Error was :" + e.Message.ToString().ToString();
-                result.Success = false;
-                _logger.LogError(result.Message);
-            }
-            return result;
-        }
-
+     public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
+    {
+        return await _emailProcessor.UserHostExpire(userInfos);
+    }
           private void VerifyEmail(UserInfo userInfo, MonitorStatusAlert monitorStatusAlert)
         {
             // Validate email format
@@ -550,7 +456,7 @@ namespace NetworkMonitor.Alert.Services
                     if (!alertMessage.dontSend)
                     {
                         alertMessage.VerifyLink = false;
-                        var result = await Send(alertMessage);
+                        var result = await _emailProcessor.SendAlert(alertMessage);
                         if ( result.Success)
                         {
                             _logger.LogInformation(" Success : Sent alert message to " + alertMessage.EmailTo);

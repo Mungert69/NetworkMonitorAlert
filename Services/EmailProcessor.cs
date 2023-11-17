@@ -1,0 +1,235 @@
+using System.IO;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using MailKit.Net.Smtp;
+using MimeKit;
+using NetworkMonitor.Objects;
+using NetworkMonitor.Alert.Services.Helpers;
+using Microsoft.Extensions.Logging;
+
+
+namespace NetworkMonitor.Alert.Services;
+
+public class EmailProcessor
+{
+    private string _emailEncryptKey;
+    private string _systemEmail;
+    private string _systemUrl;
+    private string _systemPassword;
+    private string _systemUser;
+    private string _trustPilotReviewEmail;
+    private string _mailServer;
+    private int _mailServerPort;
+    private bool _mailServerUseSSL;
+    private string _emailSendServerName;
+    private SystemUrl _thisSystemUrl;
+    private string _publicIPAddress;
+    private SpamFilter _spamFilter;
+    private ILogger _logger;
+
+    public EmailProcessor(SystemParams systemParams, ILogger logger)
+    {
+        _emailEncryptKey = systemParams.EmailEncryptKey;
+        _systemEmail = systemParams.SystemEmail;
+        _systemUser = systemParams.SystemUser;
+        _systemPassword = systemParams.SystemPassword;
+        _mailServer = systemParams.MailServer;
+        _mailServerPort = systemParams.MailServerPort;
+        _mailServerUseSSL = systemParams.MailServerUseSSL;
+        _emailSendServerName = systemParams.EmailSendServerName;
+        _trustPilotReviewEmail = systemParams.TrustPilotReviewEmail;
+        _thisSystemUrl = systemParams.ThisSystemUrl;
+        _publicIPAddress = systemParams.PublicIPAddress;
+        _spamFilter = new SpamFilter(logger);
+        _logger = logger;
+    }
+
+
+
+    public string PopulateTemplate(string template, Dictionary<string, string> contentMap)
+    {
+        foreach (var item in contentMap)
+        {
+            template = template.Replace($"{{{item.Key}}}", item.Value);
+        }
+        return template;
+    }
+
+    public async Task<ResultObj> SendAlert(AlertMessage alertMessage)
+    {
+        ResultObj result = new ResultObj();
+        if (alertMessage.UserInfo == null || alertMessage.UserInfo.UserID == null)
+        {
+            result.Message = " Error : Missing UserInfo ";
+            result.Success = false;
+            return result;
+        }
+
+        string enryptEmailAddressStr = EncryptionHelper.EncryptStr(_emailEncryptKey, alertMessage.UserInfo.Email);
+        string enryptUserID = EncryptionHelper.EncryptStr(_emailEncryptKey, alertMessage.UserInfo.UserID);
+        string subscribeUrl = _emailSendServerName + "/email/unsubscribe?email=" + enryptEmailAddressStr + "&userid=" + enryptUserID;
+        string resubscribeUrl = subscribeUrl + "&subscribe=true";
+        string unsubscribeUrl = subscribeUrl + "&subscribe=false";
+        if (alertMessage.VerifyLink)
+        {
+            result = _spamFilter.IsVerifyLimit(alertMessage.UserInfo.UserID);
+            if (!result.Success)
+            {
+                return result;
+            }
+            string verifyUrl = _emailSendServerName + "/email/verifyemail?email=" + enryptEmailAddressStr + "&userid=" + enryptUserID;
+            alertMessage.Message += "\n\nPlease click on this link to verify your email " + verifyUrl;
+        }
+        alertMessage.Message += "\n\nThis message was sent by the messenger running at " + _emailSendServerName + " (" + _publicIPAddress.ToString() + ")\n\n To unsubscribe from receiving these messages, please click this link " + unsubscribeUrl + "\n\n To re-subscribe to receiving these messages, please click this link " + resubscribeUrl;
+        string emailFrom = _systemEmail;
+        string systemPassword = _systemPassword;
+        string systemUser = _systemUser;
+        int mailServerPort = _mailServerPort;
+        bool mailServerUseSSL = _mailServerUseSSL;
+        try
+        {
+            MimeMessage message = new MimeMessage();
+            message.Headers.Add("List-Unsubscribe", "<" + unsubscribeUrl + ">, <mailto:" + emailFrom + "?subject=unsubscribe>");
+            MailboxAddress from = new MailboxAddress("Free Network Monitor",
+            emailFrom);
+            message.From.Add(from);
+            if (alertMessage.SendTrustPilot)
+            {
+                MailboxAddress bcc = new MailboxAddress("Trust Pilot",
+         _trustPilotReviewEmail);
+                message.Bcc.Add(bcc);
+            }
+            MailboxAddress to = new MailboxAddress(alertMessage.Name,
+            alertMessage.EmailTo);
+            message.To.Add(to);
+            //message.Subject = "Network Monitor Alert : Host Down";
+            message.Subject = alertMessage.Subject;
+            BodyBuilder bodyBuilder = new BodyBuilder();
+            bodyBuilder.TextBody = alertMessage.Message;
+            //bodyBuilder.Attachments.Add(_env.WebRootPath + "\\file.png");
+            message.Body = bodyBuilder.ToMessageBody();
+            SmtpClient client = new SmtpClient();
+            client.ServerCertificateValidationCallback = (mysender, certificate, chain, sslPolicyErrors) => { return true; };
+            client.CheckCertificateRevocation = false;
+            if (mailServerUseSSL)
+            {
+                await client.ConnectAsync(_mailServer, mailServerPort, true);
+            }
+            else
+            {
+                await client.ConnectAsync(_mailServer, mailServerPort, MailKit.Security.SecureSocketOptions.StartTls);
+            }
+            client.Authenticate(systemUser, systemPassword);
+            client.Send(message);
+            client.Disconnect(true);
+            client.Dispose();
+            result.Message = "Email with subject " + alertMessage.Subject + " sent ok";
+            result.Success = true;
+            _spamFilter.UpdateAlertSentList(alertMessage);
+            _logger.LogInformation(result.Message);
+        }
+        catch (Exception e)
+        {
+            result.Message = "Email with subject " + alertMessage.Subject + " failed to send . Error was :" + e.Message.ToString().ToString();
+            result.Success = false;
+            _logger.LogError(result.Message);
+        }
+        return result;
+    }
+
+    private async Task<ResultObj> SendTemplate(string userId, string toAddress, string subject, string body, bool isBodyHtml = true)
+    {
+        ResultObj result = new ResultObj();
+        string systemPassword = _systemPassword;
+        string systemUser = _systemUser;
+        int mailServerPort = _mailServerPort;
+        bool mailServerUseSSL = _mailServerUseSSL;
+        string enryptEmailAddressStr = EncryptionHelper.EncryptStr(_emailEncryptKey, toAddress);
+        string enryptUserID = EncryptionHelper.EncryptStr(_emailEncryptKey, userId);
+        string subscribeUrl = _emailSendServerName + "/email/unsubscribe?email=" + enryptEmailAddressStr + "&userid=" + enryptUserID;
+        string resubscribeUrl = subscribeUrl + "&subscribe=true";
+        string unsubscribeUrl = subscribeUrl + "&subscribe=false";
+
+        try
+        {
+            var message = new MimeMessage();
+            message.Headers.Add("List-Unsubscribe", "<" + unsubscribeUrl + ">, <mailto:" + _systemEmail + "?subject=unsubscribe>");
+
+            message.From.Add(new MailboxAddress("Free Network Monitor", _systemEmail));
+            message.To.Add(new MailboxAddress("", toAddress));
+            message.Subject = subject;
+
+            var bodyBuilder = new BodyBuilder();
+            if (isBodyHtml)
+            {
+                bodyBuilder.HtmlBody = body;
+            }
+            else
+            {
+                bodyBuilder.TextBody = body;
+            }
+
+            message.Body = bodyBuilder.ToMessageBody();
+
+            using (var client = new SmtpClient())
+            {
+                client.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+                client.CheckCertificateRevocation = false;
+
+                if (mailServerUseSSL)
+                {
+                    await client.ConnectAsync(_mailServer, mailServerPort, true);
+                }
+                else
+                {
+                    await client.ConnectAsync(_mailServer, mailServerPort, MailKit.Security.SecureSocketOptions.StartTls);
+                }
+
+                client.Authenticate(systemUser, systemPassword);
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+            }
+
+            result.Message = "Email sent successfully to " + toAddress;
+            result.Success = true;
+        }
+        catch (Exception e)
+        {
+            result.Message = "Failed to send email to " + toAddress + ". Error: " + e.Message;
+            result.Success = false;
+        }
+
+        return result;
+    }
+
+
+
+    public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
+    {
+        var results=new List<ResultObj>();
+        var template = File.ReadAllText("user-message-template.html");
+        var contentMap = new Dictionary<string, string>
+            {
+                 { "EmailTitle", "Action Required: Your Free Network Monitor Account" },
+                { "HeaderImageUrl", "https://freenetworkmonitor.click/img/logo.jpg" }, // Assuming this is your logo URL
+                { "HeaderImageAlt", "Free Network Monitor Logo" },
+                 { "MainHeading", "We Miss You at Free Network Monitor!" },
+                  { "MainContent", "Hello! We've noticed that you haven't logged in for a while. To keep our services efficient, we've paused the monitoring of your hosts. Don't worry, you can easily resume monitoring by logging back in. Remember, active monitoring is key to staying informed! <br><br>Prefer not to log in every three months? Upgrade to our standard plan, only $1 a month, for uninterrupted monitoring and many additional features." },
+                  { "ButtonUrl", "https://freenetworkmonitor.click/login" },
+                 { "ButtonText", "Reactivate My Hosts" },
+                  { "CurrentYear", DateTime.Now.Year.ToString() },
+                  { "UnsubscribeUrl", "https://freenetworkmonitor.click/unsubscribe" }
+            };
+
+
+        var populatedTemplate = PopulateTemplate(template, contentMap);
+        foreach (var user in userInfos)
+        {
+            results.Add(await SendTemplate(user.UserID, user.Email, "Important Update: Keep Your Hosts Active with Free Network Monitor", populatedTemplate));
+        }
+        return results;
+
+    }
+
+}

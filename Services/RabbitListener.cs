@@ -84,6 +84,12 @@ namespace NetworkMonitor.Alert.Services
                 FuncName = "alertUpdateMonitorStatusAlerts",
                 MessageTimeout = 60000
             });
+             _rabbitMQObjs.Add(new RabbitMQObj()
+            {
+                ExchangeName = "userHostExpire",
+                FuncName = "userHostExpire",
+                MessageTimeout = 60000
+            });
         }
         protected override ResultObj DeclareConsumers()
         {
@@ -202,6 +208,21 @@ namespace NetworkMonitor.Alert.Services
                         }
                     };
                         break;
+                          case "userHostExpire":
+                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
+                        rabbitMQObj.Consumer.Received += async (model, ea) =>
+                    {
+                        try
+                        {
+                            result = await UserHostExpire(ConvertToList<List<UserInfo>>(model, ea));
+                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.userHostExpireNotfications " + ex.Message);
+                        }
+                    };
+                    break;
                 }
             });
                 result.Success = true;
@@ -259,14 +280,14 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
-        public ResultObj AlertMessageResetAlerts(List<AlertFlagObj> alertFlagObjs)
+        public  ResultObj AlertMessageResetAlerts(List<AlertFlagObj> alertFlagObjs)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : AlertMessageResetAlerts : ";
             try
             {
-                var results = _alertMessageService.ResetAlerts(alertFlagObjs);
+                var results =  _alertMessageService.ResetAlerts(alertFlagObjs);
                 results.ForEach(f => result.Message += f.Message);
                 result.Success = results.All(a => a.Success == true) && results.Count() != 0;
                 result.Data = results;
@@ -363,6 +384,29 @@ namespace NetworkMonitor.Alert.Services
                 result.Success = false;
                 result.Message += "Error : Failed to set AlertMonitorStatusAlerts : Error was : " + e.Message + " ";
                 _logger.LogError("Error : Failed to set AlertMonitorStatusAlerts : Error was : " + e.Message + " ");
+            }
+            return result;
+        }
+
+         public async Task<ResultObj> UserHostExpire(List<UserInfo> userInfos)
+        {
+            ResultObj result = new ResultObj();
+            result.Success = false;
+            result.Message = "MessageAPI : UserHostExpire : ";
+            try
+            {
+                var results = await _alertMessageService.UserHostExpire(userInfos);
+                results.ForEach(f => result.Message += f.Message);
+                result.Success = results.All(a => a.Success == true) && results.Count() != 0;
+                result.Data = results;
+                _logger.LogInformation(result.Message);
+            }
+            catch (Exception e)
+            {
+                result.Data = null;
+                result.Success = false;
+                result.Message += "Error : Failed to receive message : Error was : " + e.Message + " ";
+                _logger.LogError(result.Message);
             }
             return result;
         }
