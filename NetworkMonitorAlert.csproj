@@ -23,4 +23,11 @@
     <ProjectReference Include="..\NetworkMonitorData\NetworkMonitorData.csproj" />
    </ItemGroup>
 
+    <!-- Include the templates folder -->
+  <ItemGroup>
+    <Content Include="templates\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
