@@ -183,6 +183,12 @@ namespace NetworkMonitor.Alert.Services
             return await _emailProcessor.SendAlert(alertMessage);
         }
 
+         public async Task<ResultObj> SendHostReport(HostReportObj hostReport)
+        {
+            
+            return await _emailProcessor.SendHostReport(hostReport);
+        }
+
         public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
         {
             return await _emailProcessor.UserHostExpire(userInfos);

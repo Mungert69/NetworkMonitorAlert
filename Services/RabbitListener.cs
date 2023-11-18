@@ -90,6 +90,12 @@ namespace NetworkMonitor.Alert.Services
                 FuncName = "userHostExpire",
                 MessageTimeout = 86300000
             });
+             _rabbitMQObjs.Add(new RabbitMQObj()
+            {
+                ExchangeName = "sendhostReport",
+                FuncName = "sendhostReport",
+                MessageTimeout = 86300000
+            });
         }
         protected override ResultObj DeclareConsumers()
         {
@@ -223,6 +229,21 @@ namespace NetworkMonitor.Alert.Services
                         }
                     };
                     break;
+                     case "sendHostReport":
+                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+                        rabbitMQObj.Consumer.Received += async (model, ea) =>
+                    {
+                        try
+                        {
+                            result = await SendHostReport(ConvertToObject<(HostReportObj)>(model, ea));
+                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessage " + ex.Message);
+                        }
+                    };
+                        break;
                 }
             });
                 result.Success = true;
@@ -413,6 +434,25 @@ namespace NetworkMonitor.Alert.Services
                 result.Success = false;
                 result.Message += "Error : Failed to receive message : Error was : " + e.Message + " ";
                 _logger.LogError(result.Message);
+            }
+            return result;
+        }
+        public async Task<ResultObj> SendHostReport(HostReportObj? hostReport)
+        {
+            ResultObj result = new ResultObj();
+            result.Success = false;
+            result.Message = "MessageAPI : SendHostReport : ";
+            try
+            {
+                result = await _alertMessageService.SendHostReport();
+                _logger.LogInformation(result.Message);
+            }
+            catch (Exception e)
+            {
+                result.Data = null;
+                result.Success = false;
+                result.Message += "Error : Failed to run SendHostReport : Error was : " + e.Message + " ";
+                _logger.LogError("Error : Failed to run SendHostReport : Error was : " + e.Message + " ");
             }
             return result;
         }

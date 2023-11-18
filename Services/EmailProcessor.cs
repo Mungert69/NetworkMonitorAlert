@@ -67,7 +67,7 @@ public class EmailProcessor
         }
 
 
-      var urls=GetUrls(alertMessage.UserInfo.UserID,alertMessage.UserInfo.Email );
+        var urls = GetUrls(alertMessage.UserInfo.UserID, alertMessage.UserInfo.Email);
         if (alertMessage.VerifyLink)
         {
             result = _spamFilter.IsVerifyLimit(alertMessage.UserInfo.UserID);
@@ -135,23 +135,24 @@ public class EmailProcessor
         return result;
     }
 
-private (string resubscribeUrl,string unsubscribeUrl, string encryptEmailAddressStr, string encryptUserID ) GetUrls(string userId, string email){
-     string encryptEmailAddressStr = EncryptionHelper.EncryptStr(_emailEncryptKey, email);
+    private (string resubscribeUrl, string unsubscribeUrl, string encryptEmailAddressStr, string encryptUserID) GetUrls(string userId, string email)
+    {
+        string encryptEmailAddressStr = EncryptionHelper.EncryptStr(_emailEncryptKey, email);
         string encryptUserID = EncryptionHelper.EncryptStr(_emailEncryptKey, userId);
         string subscribeUrl = _emailSendServerName + "/email/unsubscribe?email=" + encryptEmailAddressStr + "&userid=" + encryptUserID;
         string resubscribeUrl = subscribeUrl + "&subscribe=true";
         string unsubscribeUrl = subscribeUrl + "&subscribe=false";
-        return (resubscribeUrl,unsubscribeUrl, encryptEmailAddressStr,encryptUserID);
-}
-    private async Task<ResultObj> SendTemplate(string userId, string email, string subject, string body, (string resubscribeUrl,string unsubscribeUrl, string encryptEmailAddressStr, string encryptUserID
-     ) urls , bool isBodyHtml = true)
+        return (resubscribeUrl, unsubscribeUrl, encryptEmailAddressStr, encryptUserID);
+    }
+    private async Task<ResultObj> SendTemplate(string userId, string email, string subject, string body, (string resubscribeUrl, string unsubscribeUrl, string encryptEmailAddressStr, string encryptUserID
+     ) urls, bool isBodyHtml = true)
     {
         ResultObj result = new ResultObj();
         string systemPassword = _systemPassword;
         string systemUser = _systemUser;
         int mailServerPort = _mailServerPort;
         bool mailServerUseSSL = _mailServerUseSSL;
-       
+
 
         try
         {
@@ -206,17 +207,76 @@ private (string resubscribeUrl,string unsubscribeUrl, string encryptEmailAddress
         return result;
     }
 
-    
-
-    public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
+    public async Task<ResultObj> SendHostReport(HostReportObj hostReport)
     {
-        var results=new List<ResultObj>();
-        var template = File.ReadAllText("./templates/user-message-template.html");
-       
-        foreach (var user in userInfos)
+        var result = new ResultObj();
+        var report=hostReport.Report;
+        var user=hostReport.User;
+        string? template = null;
+        try
         {
-            var urls=GetUrls(user.UserID, user.Email);
-             var contentMap = new Dictionary<string, string>
+            template = File.ReadAllText("./templates/user-message-template.html");
+        }
+        catch (Exception e)
+        {
+
+            result.Success = false;
+            result.Message = $" Error : Could not open file /templates/user-message-template.html : Error was : {e.Message} .";
+            return result;
+        }
+        if (template == null)
+        {
+            result.Success = false;
+            result.Message = " Error : file ./templates/user-message-template.html returns null .";
+            return result;
+        }
+
+        var contentMap = new Dictionary<string, string>
+            {
+                { "EmailTitle", "Weekly Free Network Monitor Host Report" },
+                { "MainContent", report },
+                // Add other key-value pairs as needed based on your template
+            };
+        var urls = GetUrls(user.UserID, user.Email);
+
+
+
+        var populatedTemplate = PopulateTemplate(template, contentMap);
+
+        result=await SendTemplate(user.UserID, user.Email, "Weekly Host Report", populatedTemplate, urls);
+        return result;
+    }
+
+
+public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
+{
+    var results = new List<ResultObj>();
+    var result=new ResultObj();
+   string? template = null;
+        try
+        {
+            template = File.ReadAllText("./templates/user-message-template.html");
+        }
+        catch (Exception e)
+        {
+
+            result.Success = false;
+            result.Message = $" Error : Could not open file /templates/user-message-template.html : Error was : {e.Message} .";
+            results.Add(result);
+            return results;
+        }
+        if (template == null)
+        {
+            result.Success = false;
+            result.Message = " Error : file ./templates/user-message-template.html returns null .";
+                        results.Add(result);
+            return results;
+        }
+
+    foreach (var user in userInfos)
+    {
+        var urls = GetUrls(user.UserID, user.Email);
+        var contentMap = new Dictionary<string, string>
             {
                  { "EmailTitle", "Action Required: Your Free Network Monitor Account" },
                 { "HeaderImageUrl", "https://freenetworkmonitor.click/img/logo.jpg" }, // Assuming this is your logo URL
@@ -232,10 +292,10 @@ private (string resubscribeUrl,string unsubscribeUrl, string encryptEmailAddress
 
         var populatedTemplate = PopulateTemplate(template, contentMap);
 
-            results.Add(await SendTemplate(user.UserID, user.Email, "Important Update: Keep Your Hosts Active with Free Network Monitor", populatedTemplate,urls));
-        }
-        return results;
-
+        results.Add(await SendTemplate(user.UserID, user.Email, "Important Update: Keep Your Hosts Active with Free Network Monitor", populatedTemplate, urls));
     }
+    return results;
+
+}
 
 }
