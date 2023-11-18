@@ -88,7 +88,7 @@ namespace NetworkMonitor.Alert.Services
             {
                 ExchangeName = "userHostExpire",
                 FuncName = "userHostExpire",
-                MessageTimeout = 60000
+                MessageTimeout = 86300000
             });
         }
         protected override ResultObj DeclareConsumers()
