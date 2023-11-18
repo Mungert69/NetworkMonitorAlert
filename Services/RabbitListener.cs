@@ -235,7 +235,7 @@ namespace NetworkMonitor.Alert.Services
                     {
                         try
                         {
-                            result = await SendHostReport(ConvertToObject<(HostReportObj)>(model, ea));
+                            result = await SendHostReport(ConvertToObject<HostReportObj>(model, ea));
                             rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
                         }
                         catch (Exception ex)
@@ -442,9 +442,14 @@ namespace NetworkMonitor.Alert.Services
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : SendHostReport : ";
+            if (hostReport==null){
+                result.Success=false;
+                result.Message+=" Error : hostReport is null . ";
+                return result;
+            }
             try
             {
-                result = await _alertMessageService.SendHostReport();
+                result = await _alertMessageService.SendHostReport(hostReport);
                 _logger.LogInformation(result.Message);
             }
             catch (Exception e)
