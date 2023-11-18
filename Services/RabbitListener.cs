@@ -92,8 +92,8 @@ namespace NetworkMonitor.Alert.Services
             });
              _rabbitMQObjs.Add(new RabbitMQObj()
             {
-                ExchangeName = "sendhostReport",
-                FuncName = "sendhostReport",
+                ExchangeName = "sendHostReport",
+                FuncName = "sendHostReport",
                 MessageTimeout = 86300000
             });
         }
