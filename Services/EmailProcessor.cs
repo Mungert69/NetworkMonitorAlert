@@ -211,7 +211,7 @@ private (string resubscribeUrl,string unsubscribeUrl, string encryptEmailAddress
     public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
     {
         var results=new List<ResultObj>();
-        var template = File.ReadAllText("user-message-template.html");
+        var template = File.ReadAllText("./templates/user-message-template.html");
        
         foreach (var user in userInfos)
         {
