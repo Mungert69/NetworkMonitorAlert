@@ -27,14 +27,15 @@ namespace NetworkMonitor.Alert.Services
         private IConfiguration _config;
 
         private List<UserInfo> _userInfos = new List<UserInfo>();
- 
+
         private int _alertThreshold;
         private bool _sendTrustPilot;
         private bool _alert;
         private bool _isAlertRunning = false;
         private bool _awake;
         private bool _checkAlerts;
-            private ILogger _logger;
+        private bool _disableEmailAlert = false;
+        private ILogger _logger;
 
         private EmailProcessor _emailProcessor;
         List<MonitorStatusAlert> _updateAlertSentList = new List<MonitorStatusAlert>();
@@ -54,7 +55,7 @@ namespace NetworkMonitor.Alert.Services
         {
             _dataQueueService = dataQueueService;
             _fileRepo = fileRepo;
-            _rabbitRepo=rabbitRepo;
+            _rabbitRepo = rabbitRepo;
             _logger = logger;
             _fileRepo.CheckFileExists("UserInfos", _logger);
             _config = config;
@@ -93,17 +94,18 @@ namespace NetworkMonitor.Alert.Services
         {
             try
             {
-             
+
                 _alertThreshold = _config.GetValue<int>("PingAlertThreshold");
                 _checkAlerts = _config.GetValue<bool>("CheckAlerts");
-                SystemParams systemParams= _systemParamsHelper.GetSystemParams();
+                _disableEmailAlert = _config.GetValue<bool>("DisableEmailAlert");
+                SystemParams systemParams = _systemParamsHelper.GetSystemParams();
                 _processorList = new List<ProcessorObj>();
                 _config.GetSection("ProcessorList").Bind(_processorList);
                 _logger.LogDebug("SystemParams: " + JsonUtils.writeJsonObjectToString(systemParams));
                 _logger.LogDebug("PingAlertThreshold: " + _alertThreshold);
-               
+
                 _sendTrustPilot = systemParams.SendTrustPilot;
-                 var emailProcessor = new EmailProcessor(systemParams,_logger);
+                _emailProcessor = new EmailProcessor(systemParams, _logger);
                 _logger.LogInformation("Got config");
             }
             catch (Exception e)
@@ -175,17 +177,17 @@ namespace NetworkMonitor.Alert.Services
                 _logger.LogError("Error : Can not publish event  AlertServiceItitObj.IsAlertServiceReady Error was : " + e.Message.ToString());
             }
         }
-        
-        public async Task<ResultObj> Send(AlertMessage alertMessage)
-    {
-        return await _emailProcessor.SendAlert(alertMessage);
-    }
 
-     public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
-    {
-        return await _emailProcessor.UserHostExpire(userInfos);
-    }
-          private void VerifyEmail(UserInfo userInfo, MonitorStatusAlert monitorStatusAlert)
+        public async Task<ResultObj> Send(AlertMessage alertMessage)
+        {
+            return await _emailProcessor.SendAlert(alertMessage);
+        }
+
+        public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
+        {
+            return await _emailProcessor.UserHostExpire(userInfos);
+        }
+        private void VerifyEmail(UserInfo userInfo, MonitorStatusAlert monitorStatusAlert)
         {
             // Validate email format
             if (monitorStatusAlert.AddUserEmail != null)
@@ -207,11 +209,12 @@ namespace NetworkMonitor.Alert.Services
                     _logger.LogWarning(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
                 }
             }
-            else {
-                userInfo.DisableEmail=!userInfo.Email_verified;
+            else
+            {
+                userInfo.DisableEmail = !userInfo.Email_verified;
             }
         }
-      
+
         public ResultObj WakeUp()
         {
             ResultObj result = new ResultObj();
@@ -312,26 +315,27 @@ namespace NetworkMonitor.Alert.Services
             foreach (MonitorStatusAlert monitorStatusAlert in monitorStatusAlerts)
             {
                 bool noAlertSentStored = _updateAlertSentList.FirstOrDefault(w => w.ID == monitorStatusAlert.ID) == null;
-                if (monitorStatusAlert.AlertFlag=true && monitorStatusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(monitorStatusAlert);
+                if (monitorStatusAlert.AlertFlag = true && monitorStatusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(monitorStatusAlert);
                 string userId = monitorStatusAlert.UserID;
                 UserInfo userInfo = new UserInfo(userInfos.FirstOrDefault(u => u.UserID == userId));
 
                 if (userInfo.UserID == "default")
                 {
-                    VerifyEmail(userInfo,monitorStatusAlert);
+                    VerifyEmail(userInfo, monitorStatusAlert);
                     userInfo.Name = userInfo.Email.Split('@')[0];
                     userId = userInfo.Email;
                     userInfo.UserID = userId;
                 }
                 else
                 {
-                    if (!userInfo.DisableEmail) {
-                        VerifyEmail(userInfo,monitorStatusAlert);
-                        }
+                    if (!userInfo.DisableEmail)
+                    {
+                        VerifyEmail(userInfo, monitorStatusAlert);
+                    }
                 }
 
                 if (monitorStatusAlert.AddUserEmail == "delete") userInfo.DisableEmail = true;
-               
+
                 monitorStatusAlert.UserName = userInfo.Name;
                 if (monitorStatusAlert.DownCount > _alertThreshold && monitorStatusAlert.AlertSent == false && noAlertSentStored)
                 {
@@ -442,7 +446,7 @@ namespace NetworkMonitor.Alert.Services
             _alertMessages.RemoveAll(r => r.AlertFlagObjs.Count() == 0);
             await PublishAlertsRepo.ProcessorResetAlerts(_logger, _rabbitRepo, monitorIPDic);
         }
-      
+
         public async Task<int> SendAlerts()
         {
             int count = 0;
@@ -456,13 +460,28 @@ namespace NetworkMonitor.Alert.Services
                     if (!alertMessage.dontSend)
                     {
                         alertMessage.VerifyLink = false;
-                        var result = await _emailProcessor.SendAlert(alertMessage);
-                        if ( result.Success)
+                        var result = new ResultObj();
+                        if (_disableEmailAlert)
                         {
-                            _logger.LogInformation(" Success : Sent alert message to " + alertMessage.EmailTo);
-                            UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList);
+                            result.Success = false;
+                            result.Message += " Error : Alert emails are diabled in appsettings.json (DisableEmailAlert=true) . ";
+
                         }
-                        _logger.LogInformation(result.Message);
+                        else
+                        {
+                            result = await _emailProcessor.SendAlert(alertMessage);
+                        }
+                        if (result.Success)
+                        {
+                            result.Message += " Success : Sent alert message to " + alertMessage.EmailTo;
+                            UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList);
+                            _logger.LogInformation(result.Message);
+                        }
+                        else
+                        {
+                            _logger.LogError(result.Message);
+                        }
+
                         count++;
                     }
                     else
@@ -475,7 +494,7 @@ namespace NetworkMonitor.Alert.Services
             return count;
         }
 
-          private void UpdateAndPublishAlertSentList(AlertMessage alertMessage, List<MonitorStatusAlert> publishAlertSentList)
+        private void UpdateAndPublishAlertSentList(AlertMessage alertMessage, List<MonitorStatusAlert> publishAlertSentList)
         {
             foreach (MonitorStatusAlert alertFlagObj in alertMessage.AlertFlagObjs)
             {

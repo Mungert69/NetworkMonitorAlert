@@ -399,7 +399,13 @@ namespace NetworkMonitor.Alert.Services
                 results.ForEach(f => result.Message += f.Message);
                 result.Success = results.All(a => a.Success == true) && results.Count() != 0;
                 result.Data = results;
-                _logger.LogInformation(result.Message);
+                if (result.Success){
+                    _logger.LogInformation(result.Message);
+                }
+                else{
+                    _logger.LogError(result.Message);
+                }
+                
             }
             catch (Exception e)
             {

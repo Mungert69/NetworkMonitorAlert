@@ -66,11 +66,8 @@ public class EmailProcessor
             return result;
         }
 
-        string enryptEmailAddressStr = EncryptionHelper.EncryptStr(_emailEncryptKey, alertMessage.UserInfo.Email);
-        string enryptUserID = EncryptionHelper.EncryptStr(_emailEncryptKey, alertMessage.UserInfo.UserID);
-        string subscribeUrl = _emailSendServerName + "/email/unsubscribe?email=" + enryptEmailAddressStr + "&userid=" + enryptUserID;
-        string resubscribeUrl = subscribeUrl + "&subscribe=true";
-        string unsubscribeUrl = subscribeUrl + "&subscribe=false";
+
+      var urls=GetUrls(alertMessage.UserInfo.UserID,alertMessage.UserInfo.Email );
         if (alertMessage.VerifyLink)
         {
             result = _spamFilter.IsVerifyLimit(alertMessage.UserInfo.UserID);
@@ -78,10 +75,10 @@ public class EmailProcessor
             {
                 return result;
             }
-            string verifyUrl = _emailSendServerName + "/email/verifyemail?email=" + enryptEmailAddressStr + "&userid=" + enryptUserID;
+            string verifyUrl = _emailSendServerName + "/email/verifyemail?email=" + urls.encryptEmailAddressStr + "&userid=" + urls.encryptUserID;
             alertMessage.Message += "\n\nPlease click on this link to verify your email " + verifyUrl;
         }
-        alertMessage.Message += "\n\nThis message was sent by the messenger running at " + _emailSendServerName + " (" + _publicIPAddress.ToString() + ")\n\n To unsubscribe from receiving these messages, please click this link " + unsubscribeUrl + "\n\n To re-subscribe to receiving these messages, please click this link " + resubscribeUrl;
+        alertMessage.Message += "\n\nThis message was sent by the messenger running at " + _emailSendServerName + " (" + _publicIPAddress.ToString() + ")\n\n To unsubscribe from receiving these messages, please click this link " + urls.unsubscribeUrl + "\n\n To re-subscribe to receiving these messages, please click this link " + urls.resubscribeUrl;
         string emailFrom = _systemEmail;
         string systemPassword = _systemPassword;
         string systemUser = _systemUser;
@@ -90,7 +87,7 @@ public class EmailProcessor
         try
         {
             MimeMessage message = new MimeMessage();
-            message.Headers.Add("List-Unsubscribe", "<" + unsubscribeUrl + ">, <mailto:" + emailFrom + "?subject=unsubscribe>");
+            message.Headers.Add("List-Unsubscribe", "<" + urls.unsubscribeUrl + ">, <mailto:" + emailFrom + "?subject=unsubscribe>");
             MailboxAddress from = new MailboxAddress("Free Network Monitor",
             emailFrom);
             message.From.Add(from);
@@ -138,26 +135,32 @@ public class EmailProcessor
         return result;
     }
 
-    private async Task<ResultObj> SendTemplate(string userId, string toAddress, string subject, string body, bool isBodyHtml = true)
+private (string resubscribeUrl,string unsubscribeUrl, string encryptEmailAddressStr, string encryptUserID ) GetUrls(string userId, string email){
+     string encryptEmailAddressStr = EncryptionHelper.EncryptStr(_emailEncryptKey, email);
+        string encryptUserID = EncryptionHelper.EncryptStr(_emailEncryptKey, userId);
+        string subscribeUrl = _emailSendServerName + "/email/unsubscribe?email=" + encryptEmailAddressStr + "&userid=" + encryptUserID;
+        string resubscribeUrl = subscribeUrl + "&subscribe=true";
+        string unsubscribeUrl = subscribeUrl + "&subscribe=false";
+        return (resubscribeUrl,unsubscribeUrl, encryptEmailAddressStr,encryptUserID);
+}
+    private async Task<ResultObj> SendTemplate(string userId, string email, string subject, string body, (string resubscribeUrl,string unsubscribeUrl, string encryptEmailAddressStr, string encryptUserID
+     ) urls , bool isBodyHtml = true)
     {
         ResultObj result = new ResultObj();
         string systemPassword = _systemPassword;
         string systemUser = _systemUser;
         int mailServerPort = _mailServerPort;
         bool mailServerUseSSL = _mailServerUseSSL;
-        string enryptEmailAddressStr = EncryptionHelper.EncryptStr(_emailEncryptKey, toAddress);
-        string enryptUserID = EncryptionHelper.EncryptStr(_emailEncryptKey, userId);
-        string subscribeUrl = _emailSendServerName + "/email/unsubscribe?email=" + enryptEmailAddressStr + "&userid=" + enryptUserID;
-        string resubscribeUrl = subscribeUrl + "&subscribe=true";
-        string unsubscribeUrl = subscribeUrl + "&subscribe=false";
+       
 
         try
         {
             var message = new MimeMessage();
-            message.Headers.Add("List-Unsubscribe", "<" + unsubscribeUrl + ">, <mailto:" + _systemEmail + "?subject=unsubscribe>");
+
+            message.Headers.Add("List-Unsubscribe", "<" + urls.unsubscribeUrl + ">, <mailto:" + _systemEmail + "?subject=unsubscribe>");
 
             message.From.Add(new MailboxAddress("Free Network Monitor", _systemEmail));
-            message.To.Add(new MailboxAddress("", toAddress));
+            message.To.Add(new MailboxAddress("", email));
             message.Subject = subject;
 
             var bodyBuilder = new BodyBuilder();
@@ -191,42 +194,45 @@ public class EmailProcessor
                 await client.DisconnectAsync(true);
             }
 
-            result.Message = "Email sent successfully to " + toAddress;
+            result.Message = "Email sent successfully to " + email;
             result.Success = true;
         }
         catch (Exception e)
         {
-            result.Message = "Failed to send email to " + toAddress + ". Error: " + e.Message;
+            result.Message = "Failed to send email to " + email + ". Error: " + e.Message;
             result.Success = false;
         }
 
         return result;
     }
 
-
+    
 
     public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
     {
         var results=new List<ResultObj>();
         var template = File.ReadAllText("user-message-template.html");
-        var contentMap = new Dictionary<string, string>
+       
+        foreach (var user in userInfos)
+        {
+            var urls=GetUrls(user.UserID, user.Email);
+             var contentMap = new Dictionary<string, string>
             {
                  { "EmailTitle", "Action Required: Your Free Network Monitor Account" },
                 { "HeaderImageUrl", "https://freenetworkmonitor.click/img/logo.jpg" }, // Assuming this is your logo URL
                 { "HeaderImageAlt", "Free Network Monitor Logo" },
                  { "MainHeading", "We Miss You at Free Network Monitor!" },
                   { "MainContent", "Hello! We've noticed that you haven't logged in for a while. To keep our services efficient, we've paused the monitoring of your hosts. Don't worry, you can easily resume monitoring by logging back in. Remember, active monitoring is key to staying informed! <br><br>Prefer not to log in every three months? Upgrade to our standard plan, only $1 a month, for uninterrupted monitoring and many additional features." },
-                  { "ButtonUrl", "https://freenetworkmonitor.click/login" },
+                  { "ButtonUrl", "https://freenetworkmonitor.click/subscription" },
                  { "ButtonText", "Reactivate My Hosts" },
                   { "CurrentYear", DateTime.Now.Year.ToString() },
-                  { "UnsubscribeUrl", "https://freenetworkmonitor.click/unsubscribe" }
+                  { "UnsubscribeUrl", urls.unsubscribeUrl }
             };
 
 
         var populatedTemplate = PopulateTemplate(template, contentMap);
-        foreach (var user in userInfos)
-        {
-            results.Add(await SendTemplate(user.UserID, user.Email, "Important Update: Keep Your Hosts Active with Free Network Monitor", populatedTemplate));
+
+            results.Add(await SendTemplate(user.UserID, user.Email, "Important Update: Keep Your Hosts Active with Free Network Monitor", populatedTemplate,urls));
         }
         return results;
 
