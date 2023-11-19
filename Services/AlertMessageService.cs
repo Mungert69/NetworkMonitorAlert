@@ -97,7 +97,7 @@ namespace NetworkMonitor.Alert.Services
 
                 _alertThreshold = _config.GetValue<int>("PingAlertThreshold");
                 _checkAlerts = _config.GetValue<bool>("CheckAlerts");
-                _disableEmailAlert = _config.GetValue<bool>("DisableEmailAlert");
+                _disableEmailAlert = _config.GetValue<bool>("DisableEmailAlert") ;
                 SystemParams systemParams = _systemParamsHelper.GetSystemParams();
                 _processorList = new List<ProcessorObj>();
                 _config.GetSection("ProcessorList").Bind(_processorList);
@@ -105,7 +105,7 @@ namespace NetworkMonitor.Alert.Services
                 _logger.LogDebug("PingAlertThreshold: " + _alertThreshold);
 
                 _sendTrustPilot = systemParams.SendTrustPilot;
-                _emailProcessor = new EmailProcessor(systemParams, _logger);
+                _emailProcessor = new EmailProcessor(systemParams, _logger,_disableEmailAlert);
                 _logger.LogInformation("Got config");
             }
             catch (Exception e)
@@ -183,9 +183,9 @@ namespace NetworkMonitor.Alert.Services
             return await _emailProcessor.SendAlert(alertMessage);
         }
 
-         public async Task<ResultObj> SendHostReport(HostReportObj hostReport)
+        public async Task<ResultObj> SendHostReport(HostReportObj hostReport)
         {
-            
+
             return await _emailProcessor.SendHostReport(hostReport);
         }
 
@@ -467,16 +467,8 @@ namespace NetworkMonitor.Alert.Services
                     {
                         alertMessage.VerifyLink = false;
                         var result = new ResultObj();
-                        if (_disableEmailAlert)
-                        {
-                            result.Success = false;
-                            result.Message += " Error : Alert emails are diabled in appsettings.json (DisableEmailAlert=true) . ";
+                        result = await _emailProcessor.SendAlert(alertMessage);
 
-                        }
-                        else
-                        {
-                            result = await _emailProcessor.SendAlert(alertMessage);
-                        }
                         if (result.Success)
                         {
                             result.Message += " Success : Sent alert message to " + alertMessage.EmailTo;

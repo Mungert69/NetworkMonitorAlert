@@ -27,9 +27,11 @@ public class EmailProcessor
     private string _publicIPAddress;
     private SpamFilter _spamFilter;
     private ILogger _logger;
+    private bool _disableEmailAlert;
 
-    public EmailProcessor(SystemParams systemParams, ILogger logger)
+    public EmailProcessor(SystemParams systemParams, ILogger logger, bool disableEmailAlert)
     {
+        _disableEmailAlert=disableEmailAlert;
         _emailEncryptKey = systemParams.EmailEncryptKey;
         _systemEmail = systemParams.SystemEmail;
         _systemUser = systemParams.SystemUser;
@@ -63,6 +65,12 @@ public class EmailProcessor
         {
             result.Message = " Error : Missing UserInfo ";
             result.Success = false;
+            return result;
+        }
+        if (_disableEmailAlert)
+        {
+            result.Success = false;
+            result.Message += " Error : Alert emails are diabled in appsettings.json (DisableEmailAlert=true) . ";
             return result;
         }
 
@@ -153,7 +161,12 @@ public class EmailProcessor
         int mailServerPort = _mailServerPort;
         bool mailServerUseSSL = _mailServerUseSSL;
 
-
+        if (_disableEmailAlert)
+        {
+            result.Success = false;
+            result.Message += " Error : Alert emails are diabled in appsettings.json (DisableEmailAlert=true) . ";
+            return result;
+        }
         try
         {
             var message = new MimeMessage();
@@ -210,8 +223,8 @@ public class EmailProcessor
     public async Task<ResultObj> SendHostReport(HostReportObj hostReport)
     {
         var result = new ResultObj();
-        var report=hostReport.Report;
-        var user=hostReport.User;
+        var report = hostReport.Report;
+        var user = hostReport.User;
         string? template = null;
         try
         {
@@ -230,7 +243,7 @@ public class EmailProcessor
             result.Message = " Error : file ./templates/user-message-template.html returns null .";
             return result;
         }
-       var urls = GetUrls(user.UserID, user.Email);
+        var urls = GetUrls(user.UserID, user.Email);
         var contentMap = new Dictionary<string, string>
             {
                 { "EmailTitle", "Weekly Free Network Monitor Host Report" },
@@ -244,22 +257,22 @@ public class EmailProcessor
                                   { "UnsubscribeUrl", urls.unsubscribeUrl }
                 // Add other key-value pairs as needed based on your template
             };
- 
+
 
 
 
         var populatedTemplate = PopulateTemplate(template, contentMap);
 
-        result=await SendTemplate(user.UserID, user.Email, "Weekly Host Report", populatedTemplate, urls);
+        result = await SendTemplate(user.UserID, user.Email, "Weekly Host Report", populatedTemplate, urls);
         return result;
     }
 
 
-public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
-{
-    var results = new List<ResultObj>();
-    var result=new ResultObj();
-   string? template = null;
+    public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
+    {
+        var results = new List<ResultObj>();
+        var result = new ResultObj();
+        string? template = null;
         try
         {
             template = File.ReadAllText("./templates/user-message-template.html");
@@ -276,14 +289,14 @@ public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
         {
             result.Success = false;
             result.Message = " Error : file ./templates/user-message-template.html returns null .";
-                        results.Add(result);
+            results.Add(result);
             return results;
         }
 
-    foreach (var user in userInfos)
-    {
-        var urls = GetUrls(user.UserID, user.Email);
-        var contentMap = new Dictionary<string, string>
+        foreach (var user in userInfos)
+        {
+            var urls = GetUrls(user.UserID, user.Email);
+            var contentMap = new Dictionary<string, string>
             {
                  { "EmailTitle", "Action Required: Your Free Network Monitor Account" },
                 { "HeaderImageUrl", "https://freenetworkmonitor.click/img/logo.jpg" }, // Assuming this is your logo URL
@@ -297,12 +310,12 @@ public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
             };
 
 
-        var populatedTemplate = PopulateTemplate(template, contentMap);
+            var populatedTemplate = PopulateTemplate(template, contentMap);
 
-        results.Add(await SendTemplate(user.UserID, user.Email, "Important Update: Keep Your Hosts Active with Free Network Monitor", populatedTemplate, urls));
+            results.Add(await SendTemplate(user.UserID, user.Email, "Important Update: Keep Your Hosts Active with Free Network Monitor", populatedTemplate, urls));
+        }
+        return results;
+
     }
-    return results;
-
-}
 
 }
