@@ -230,14 +230,21 @@ public class EmailProcessor
             result.Message = " Error : file ./templates/user-message-template.html returns null .";
             return result;
         }
-
+       var urls = GetUrls(user.UserID, user.Email);
         var contentMap = new Dictionary<string, string>
             {
                 { "EmailTitle", "Weekly Free Network Monitor Host Report" },
+                 { "HeaderImageUrl", "https://freenetworkmonitor.click/img/logo.jpg" }, // Assuming this is your logo URL
+                { "HeaderImageAlt", "Free Network Monitor Logo" },
+              { "MainHeading", "Free Network Monitor Host Report" },
+                  { "ButtonUrl", "https://freenetworkmonitor.click/dashboard" },
+                 { "ButtonText", "Login and View My Hosts" },
+                  { "CurrentYear", DateTime.Now.Year.ToString() },
                 { "MainContent", report },
+                                  { "UnsubscribeUrl", urls.unsubscribeUrl }
                 // Add other key-value pairs as needed based on your template
             };
-        var urls = GetUrls(user.UserID, user.Email);
+ 
 
 
 
