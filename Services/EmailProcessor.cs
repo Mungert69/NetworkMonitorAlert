@@ -267,6 +267,48 @@ public class EmailProcessor
         return result;
     }
 
+public async Task<ResultObj> SendGenericEmail(GenericEmailObj emailObj)
+{
+    var result = new ResultObj();
+  
+    string? template = null;
+    try
+    {
+        template = File.ReadAllText("./templates/user-message-template.html");
+    }
+    catch (Exception e)
+    {
+        result.Success = false;
+        result.Message = $"Error: Could not open file /templates/user-message-template.html: {e.Message}";
+        return result;
+    }
+
+    if (template == null)
+    {
+        result.Success = false;
+        result.Message = "Error: file ./templates/user-message-template.html returns null.";
+        return result;
+    }
+
+    var urls = GetUrls(emailObj.UserInfo.UserID, emailObj.UserInfo.Email);
+    var contentMap = new Dictionary<string, string>
+    {
+        { "EmailTitle", emailObj.EmailTitle },
+        { "HeaderImageUrl", emailObj.HeaderImageUrl},
+        { "HeaderImageAlt", emailObj.HeaderImageAlt },
+        { "MainHeading", emailObj.MainHeading },
+        { "MainContent", emailObj.MainContent },
+        { "ButtonUrl", emailObj.ButtonUrl },
+        { "ButtonText", emailObj.ButtonText},
+        { "CurrentYear", emailObj.CurrentYear },
+        { "UnsubscribeUrl", urls.unsubscribeUrl }
+    };
+
+    var populatedTemplate = PopulateTemplate(template, contentMap);
+
+    result = await SendTemplate(emailObj.UserInfo.UserID, emailObj.UserInfo.Email, emailObj.EmailTitle, populatedTemplate, urls);
+    return result;
+}
 
     public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
     {

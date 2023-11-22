@@ -96,6 +96,12 @@ namespace NetworkMonitor.Alert.Services
                 FuncName = "sendHostReport",
                 MessageTimeout = 86300000
             });
+             _rabbitMQObjs.Add(new RabbitMQObj()
+            {
+                ExchangeName = "sendGenericEmail",
+                FuncName = "sendGenericEmail",
+                MessageTimeout = 86300000
+            });
         }
         protected override ResultObj DeclareConsumers()
         {
@@ -241,6 +247,21 @@ namespace NetworkMonitor.Alert.Services
                         catch (Exception ex)
                         {
                             _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessage " + ex.Message);
+                        }
+                    };
+                        break;
+                  case "sendGenericEmail":
+                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+                        rabbitMQObj.Consumer.Received += async (model, ea) =>
+                    {
+                        try
+                        {
+                            result = await SendGenericEmail(ConvertToObject<GenericEmailObj>(model, ea));
+                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.sendGenericEmail " + ex.Message);
                         }
                     };
                         break;
@@ -461,5 +482,31 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
+
+         public async Task<ResultObj> SendGenericEmail(GenericEmailObj genericEmail)
+        {
+            ResultObj result = new ResultObj();
+            result.Success = false;
+            result.Message = "MessageAPI : SendGenericEmail : ";
+            if (genericEmail==null){
+                result.Success=false;
+                result.Message+=" Error : genericEmail is null . ";
+                return result;
+            }
+            try
+            {
+                result = await _alertMessageService.SendGenericEmail(genericEmail);
+                _logger.LogInformation(result.Message);
+            }
+            catch (Exception e)
+            {
+                result.Data = null;
+                result.Success = false;
+                result.Message += "Error : Failed to run SendGenericEmail : Error was : " + e.Message + " ";
+                _logger.LogError("Error : Failed to run SendGenericEmail : Error was : " + e.Message + " ");
+            }
+            return result;
+        }
+
     }
 }

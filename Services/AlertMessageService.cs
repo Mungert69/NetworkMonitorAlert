@@ -183,6 +183,11 @@ namespace NetworkMonitor.Alert.Services
             return await _emailProcessor.SendAlert(alertMessage);
         }
 
+        public async Task<ResultObj> SendGenericEmail(GenericEmailObj genericEmail)
+        {
+            return await _emailProcessor.SendGenericEmail(genericEmail);
+        }
+
         public async Task<ResultObj> SendHostReport(HostReportObj hostReport)
         {
 

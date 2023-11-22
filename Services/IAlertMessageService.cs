@@ -22,6 +22,7 @@ namespace NetworkMonitor.Alert.Services
 
         Task<ResultObj> Alert();
         Task <ResultObj> Send(AlertMessage alertMessage);
+        Task<ResultObj> SendGenericEmail(GenericEmailObj genericEmail);
         Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos);
          Task<ResultObj> SendHostReport(HostReportObj hostReport);
 
