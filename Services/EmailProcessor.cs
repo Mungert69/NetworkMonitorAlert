@@ -243,6 +243,11 @@ public class EmailProcessor
             result.Message = " Error : file ./templates/user-message-template.html returns null .";
             return result;
         }
+        if (user.DisableEmail){
+             result.Success = false;
+            result.Message = $" Warning  : User has disabled email alerts {user.UserID} .";
+            return result;
+        }
         var urls = GetUrls(user.UserID, user.Email);
         var contentMap = new Dictionary<string, string>
             {
@@ -289,6 +294,11 @@ public async Task<ResultObj> SendGenericEmail(GenericEmailObj emailObj)
         result.Message = "Error: file ./templates/user-message-template.html returns null.";
         return result;
     }
+     if (emailObj.UserInfo.DisableEmail){
+             result.Success = false;
+            result.Message = $" Warning  : User has disabled email alerts {emailObj.UserInfo.UserID} .";
+            return result;
+        }
 
     var urls = GetUrls(emailObj.UserInfo.UserID, emailObj.UserInfo.Email);
     var contentMap = new Dictionary<string, string>
