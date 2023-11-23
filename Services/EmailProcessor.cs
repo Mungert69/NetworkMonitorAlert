@@ -31,7 +31,7 @@ public class EmailProcessor
 
     public EmailProcessor(SystemParams systemParams, ILogger logger, bool disableEmailAlert)
     {
-        _disableEmailAlert=disableEmailAlert;
+        _disableEmailAlert = disableEmailAlert;
         _emailEncryptKey = systemParams.EmailEncryptKey;
         _systemEmail = systemParams.SystemEmail;
         _systemUser = systemParams.SystemUser;
@@ -243,9 +243,10 @@ public class EmailProcessor
             result.Message = " Error : file ./templates/user-message-template.html returns null .";
             return result;
         }
-        if (user.DisableEmail){
-             result.Success = false;
-            result.Message = $" Warning  : User has disabled email alerts {user.UserID} .";
+        if (user.DisableEmail)
+        {
+            result.Success = false;
+            result.Message = $" Warning  : User has disabled email {user.UserID} .";
             return result;
         }
         var urls = GetUrls(user.UserID, user.Email);
@@ -272,36 +273,37 @@ public class EmailProcessor
         return result;
     }
 
-public async Task<ResultObj> SendGenericEmail(GenericEmailObj emailObj)
-{
-    var result = new ResultObj();
-  
-    string? template = null;
-    try
+    public async Task<ResultObj> SendGenericEmail(GenericEmailObj emailObj)
     {
-        template = File.ReadAllText("./templates/user-message-template.html");
-    }
-    catch (Exception e)
-    {
-        result.Success = false;
-        result.Message = $"Error: Could not open file /templates/user-message-template.html: {e.Message}";
-        return result;
-    }
+        var result = new ResultObj();
 
-    if (template == null)
-    {
-        result.Success = false;
-        result.Message = "Error: file ./templates/user-message-template.html returns null.";
-        return result;
-    }
-     if (emailObj.UserInfo.DisableEmail){
-             result.Success = false;
-            result.Message = $" Warning  : User has disabled email alerts {emailObj.UserInfo.UserID} .";
+        string? template = null;
+        try
+        {
+            template = File.ReadAllText("./templates/user-message-template.html");
+        }
+        catch (Exception e)
+        {
+            result.Success = false;
+            result.Message = $"Error: Could not open file /templates/user-message-template.html: {e.Message}";
             return result;
         }
 
-    var urls = GetUrls(emailObj.UserInfo.UserID, emailObj.UserInfo.Email);
-    var contentMap = new Dictionary<string, string>
+        if (template == null)
+        {
+            result.Success = false;
+            result.Message = "Error: file ./templates/user-message-template.html returns null.";
+            return result;
+        }
+        if (emailObj.UserInfo.DisableEmail)
+        {
+            result.Success = false;
+            result.Message = $" Warning  : User has disabled email {emailObj.UserInfo.UserID} .";
+            return result;
+        }
+
+        var urls = GetUrls(emailObj.UserInfo.UserID, emailObj.UserInfo.Email);
+        var contentMap = new Dictionary<string, string>
     {
         { "EmailTitle", emailObj.EmailTitle },
         { "HeaderImageUrl", emailObj.HeaderImageUrl},
@@ -314,11 +316,11 @@ public async Task<ResultObj> SendGenericEmail(GenericEmailObj emailObj)
         { "UnsubscribeUrl", urls.unsubscribeUrl }
     };
 
-    var populatedTemplate = PopulateTemplate(template, contentMap);
+        var populatedTemplate = PopulateTemplate(template, contentMap);
 
-    result = await SendTemplate(emailObj.UserInfo.UserID, emailObj.UserInfo.Email, emailObj.EmailTitle, populatedTemplate, urls);
-    return result;
-}
+        result = await SendTemplate(emailObj.UserInfo.UserID, emailObj.UserInfo.Email, emailObj.EmailTitle, populatedTemplate, urls);
+        return result;
+    }
 
     public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
     {
@@ -347,8 +349,14 @@ public async Task<ResultObj> SendGenericEmail(GenericEmailObj emailObj)
 
         foreach (var user in userInfos)
         {
-            var urls = GetUrls(user.UserID, user.Email);
-            var contentMap = new Dictionary<string, string>
+            if (user.DisableEmail)
+            {
+                results.Add(new ResultObj { Success = false, Message = $" Warning : User Email Disabled {user.UserID} ." });
+            }
+            else
+            {
+                var urls = GetUrls(user.UserID, user.Email);
+                var contentMap = new Dictionary<string, string>
             {
                  { "EmailTitle", "Action Required: Your Free Network Monitor Account" },
                 { "HeaderImageUrl", "https://freenetworkmonitor.click/img/logo.jpg" }, // Assuming this is your logo URL
@@ -362,9 +370,12 @@ public async Task<ResultObj> SendGenericEmail(GenericEmailObj emailObj)
             };
 
 
-            var populatedTemplate = PopulateTemplate(template, contentMap);
+                var populatedTemplate = PopulateTemplate(template, contentMap);
+                   // Dont send to fast.
+                await Task.Delay(5000);
+                results.Add(await SendTemplate(user.UserID, user.Email, "Important Update: Keep Your Hosts Active with Free Network Monitor", populatedTemplate, urls));
 
-            results.Add(await SendTemplate(user.UserID, user.Email, "Important Update: Keep Your Hosts Active with Free Network Monitor", populatedTemplate, urls));
+            }
         }
         return results;
 
