@@ -387,7 +387,7 @@ private string BuildUrl(IGenericEmailObj genericEmailObj)
         StringBuilder sb = new StringBuilder(genericEmailObj.HeaderImageUri);
         sb.TrimEnd(new char[] { ':', '/' });
         sb.Append("/Email/Logo");
-        sb.Append(genericEmailObj.HeaderImageFile);
+        //sb.Append(genericEmailObj.HeaderImageFile);
         sb.Append("?id=");
         if (genericEmailObj.UserInfo != null && !string.IsNullOrEmpty(genericEmailObj.UserInfo.Email))
         {
