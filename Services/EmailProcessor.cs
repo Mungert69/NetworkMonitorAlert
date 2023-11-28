@@ -7,7 +7,6 @@ using MailKit.Net.Smtp;
 using MimeKit;
 using NetworkMonitor.Objects;
 using NetworkMonitor.Utils;
-using NetworkMonitor.Alert.Services.Helpers;
 using Microsoft.Extensions.Logging;
 
 
@@ -392,7 +391,7 @@ private string BuildUrl(IGenericEmailObj genericEmailObj)
         sb.Append("?id=");
         if (genericEmailObj.UserInfo != null && !string.IsNullOrEmpty(genericEmailObj.UserInfo.Email))
         {
-            sb.Append(AesOperation.EncryptString(_emailEncryptKey,genericEmailObj.UserInfo.Email));
+            sb.Append(EncryptionHelper.EncryptStr(_emailEncryptKey,genericEmailObj.UserInfo.Email));
         }
         return sb.ToString();
     }

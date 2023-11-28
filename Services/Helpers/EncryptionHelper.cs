@@ -2,7 +2,7 @@
 using NetworkMonitor.Utils;
 using System.Web;
 
-namespace NetworkMonitor.Alert.Services.Helpers;
+namespace NetworkMonitor.Utils;
 
 public class EncryptionHelper{
 
