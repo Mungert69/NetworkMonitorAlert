@@ -389,9 +389,9 @@ private string BuildUrl(IGenericEmailObj genericEmailObj)
         sb.Append("/Email/Logo");
         //sb.Append(genericEmailObj.HeaderImageFile);
         sb.Append("?id=");
-        if (genericEmailObj.UserInfo != null && !string.IsNullOrEmpty(genericEmailObj.UserInfo.Email))
+        if (genericEmailObj != null && !string.IsNullOrEmpty(genericEmailObj.ID))
         {
-            sb.Append(EncryptionHelper.EncryptStr(_emailEncryptKey,genericEmailObj.UserInfo.Email));
+            sb.Append(EncryptionHelper.EncryptStr(_emailEncryptKey,genericEmailObj.ID));
         }
         return sb.ToString();
     }
