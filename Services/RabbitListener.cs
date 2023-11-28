@@ -226,7 +226,7 @@ namespace NetworkMonitor.Alert.Services
                     {
                         try
                         {
-                            result = await UserHostExpire(ConvertToList<List<UserInfo>>(model, ea));
+                            result = await UserHostExpire(ConvertToList<List<GenericEmailObj>>(model, ea));
                             rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
                         }
                         catch (Exception ex)
@@ -430,14 +430,14 @@ namespace NetworkMonitor.Alert.Services
             return result;
         }
 
-         public async Task<ResultObj> UserHostExpire(List<UserInfo> userInfos)
+         public async Task<ResultObj> UserHostExpire(List<GenericEmailObj> emailObjs)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : UserHostExpire : ";
             try
             {
-                var results = await _alertMessageService.UserHostExpire(userInfos);
+                var results = await _alertMessageService.UserHostExpire(emailObjs );
                 results.ForEach(f => result.Message += f.Message);
                 result.Success = results.All(a => a.Success == true) && results.Count() != 0;
                 result.Data = results;

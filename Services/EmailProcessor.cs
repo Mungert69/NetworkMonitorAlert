@@ -2,9 +2,11 @@ using System.IO;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Text;
 using MailKit.Net.Smtp;
 using MimeKit;
 using NetworkMonitor.Objects;
+using NetworkMonitor.Utils;
 using NetworkMonitor.Alert.Services.Helpers;
 using Microsoft.Extensions.Logging;
 
@@ -224,7 +226,8 @@ public class EmailProcessor
     {
         var result = new ResultObj();
         var report = hostReport.Report;
-        var user = hostReport.User;
+        var user = hostReport.UserInfo;
+        var headerImageUrl=BuildUrl(hostReport);
         string? template = null;
         try
         {
@@ -253,7 +256,7 @@ public class EmailProcessor
         var contentMap = new Dictionary<string, string>
             {
                 { "EmailTitle", "Weekly Free Network Monitor Host Report" },
-                 { "HeaderImageUrl", "https://freenetworkmonitor.click/img/logo.jpg" }, // Assuming this is your logo URL
+                 { "HeaderImageUrl",  headerImageUrl}, // Assuming this is your logo URL
                 { "HeaderImageAlt", "Free Network Monitor Logo" },
               { "MainHeading", "Free Network Monitor Host Report" },
                   { "ButtonUrl", "https://freenetworkmonitor.click/dashboard" },
@@ -306,7 +309,7 @@ public class EmailProcessor
         var contentMap = new Dictionary<string, string>
     {
         { "EmailTitle", emailObj.EmailTitle },
-        { "HeaderImageUrl", emailObj.HeaderImageUrl},
+        { "HeaderImageUrl", BuildUrl(emailObj as IGenericEmailObj)},
         { "HeaderImageAlt", emailObj.HeaderImageAlt },
         { "MainHeading", emailObj.MainHeading },
         { "MainContent", emailObj.MainContent },
@@ -322,7 +325,7 @@ public class EmailProcessor
         return result;
     }
 
-    public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
+    public async Task<List<ResultObj>> UserHostExpire(List<GenericEmailObj> emailObjs)
     {
         var results = new List<ResultObj>();
         var result = new ResultObj();
@@ -347,25 +350,25 @@ public class EmailProcessor
             return results;
         }
 
-        foreach (var user in userInfos)
+        foreach (var emailObj in emailObjs)
         {
-            if (user.DisableEmail)
+            if (emailObj.UserInfo.DisableEmail)
             {
-                results.Add(new ResultObj { Success = false, Message = $" Warning : User Email Disabled {user.UserID} ." });
+                results.Add(new ResultObj { Success = false, Message = $" Warning : User Email Disabled {emailObj.UserInfo.UserID} ." });
             }
             else
             {
-                var urls = GetUrls(user.UserID, user.Email);
-                var contentMap = new Dictionary<string, string>
+                var urls = GetUrls(emailObj.UserInfo.UserID, emailObj.UserInfo.Email);
+                    var contentMap = new Dictionary<string, string>
             {
-                 { "EmailTitle", "Action Required: Your Free Network Monitor Account" },
-                { "HeaderImageUrl", "https://freenetworkmonitor.click/img/logo.jpg" }, // Assuming this is your logo URL
-                { "HeaderImageAlt", "Free Network Monitor Logo" },
+                 { "EmailTitle", "Action Required: Your Free Network Monitor Account"},
+                { "HeaderImageUrl",  BuildUrl(emailObj as IGenericEmailObj)}, 
+                { "HeaderImageAlt", emailObj.HeaderImageAlt },
                  { "MainHeading", "We Miss You at Free Network Monitor!" },
                   { "MainContent", "Hello! We've noticed that you haven't logged in for a while. To keep our services efficient, we've paused the monitoring of your hosts. Don't worry, you can easily resume monitoring by logging back in. Remember, active monitoring is key to staying informed! <br><br>Prefer not to log in every three months? Upgrade to our standard plan, only $1 a month, for uninterrupted monitoring and many additional features." },
-                  { "ButtonUrl", "https://freenetworkmonitor.click/subscription" },
+                  { "ButtonUrl", "https://freenetworkmonitor.click/dashboard" },
                  { "ButtonText", "Reactivate My Hosts" },
-                  { "CurrentYear", DateTime.Now.Year.ToString() },
+                  { "CurrentYear", emailObj.CurrentYear },
                   { "UnsubscribeUrl", urls.unsubscribeUrl }
             };
 
@@ -373,12 +376,24 @@ public class EmailProcessor
                 var populatedTemplate = PopulateTemplate(template, contentMap);
                    // Dont send to fast.
                 await Task.Delay(5000);
-                results.Add(await SendTemplate(user.UserID, user.Email, "Important Update: Keep Your Hosts Active with Free Network Monitor", populatedTemplate, urls));
+                results.Add(await SendTemplate(emailObj.UserInfo.UserID, emailObj.UserInfo.Email, "Important Update: Keep Your Hosts Active with Free Network Monitor", populatedTemplate, urls));
 
             }
         }
         return results;
 
     }
-
+private string BuildUrl(IGenericEmailObj genericEmailObj)
+    {
+        StringBuilder sb = new StringBuilder(genericEmailObj.HeaderImageUri);
+        sb.TrimEnd(new char[] { ':', '/' });
+        sb.Append("/Email/Logo");
+        sb.Append(genericEmailObj.HeaderImageFile);
+        sb.Append("?id=");
+        if (genericEmailObj.UserInfo != null && !string.IsNullOrEmpty(genericEmailObj.UserInfo.Email))
+        {
+            sb.Append(AesOperation.EncryptString(_emailEncryptKey,genericEmailObj.UserInfo.Email));
+        }
+        return sb.ToString();
+    }
 }

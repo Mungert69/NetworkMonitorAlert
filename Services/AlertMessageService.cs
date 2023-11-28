@@ -194,9 +194,9 @@ namespace NetworkMonitor.Alert.Services
             return await _emailProcessor.SendHostReport(hostReport);
         }
 
-        public async Task<List<ResultObj>> UserHostExpire(List<UserInfo> userInfos)
+        public async Task<List<ResultObj>> UserHostExpire(List<GenericEmailObj> emailObjs)
         {
-            return await _emailProcessor.UserHostExpire(userInfos);
+            return await _emailProcessor.UserHostExpire(emailObjs);
         }
         private void VerifyEmail(UserInfo userInfo, MonitorStatusAlert monitorStatusAlert)
         {
