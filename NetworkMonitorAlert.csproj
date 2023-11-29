@@ -1,19 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp7.0</TargetFramework>
+    <TargetFramework>netcoreapp8.0</TargetFramework>
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <PublishProfile>DefaultContainer</PublishProfile>
-    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:7.0-jammy-amd64</ContainerBaseImage>
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0-jammy-amd64</ContainerBaseImage>
     <ContainerImageName>mungert/networkmonitoralert</ContainerImageName>
-    <ContainerImageTag>1.5.3</ContainerImageTag>
+    <ContainerImageTag>1.6.0</ContainerImageTag>
         <Nullable>enable</Nullable>
 </PropertyGroup>
 
   <ItemGroup>
 <PackageReference Include="HostInitActions" Version="1.2.0" />
     <PackageReference Include="MailKit" Version="4.2.0" />
-       <PackageReference Include="Microsoft.NET.Build.Containers" Version="7.0.401" />
+       <PackageReference Include="Microsoft.NET.Build.Containers" Version="8.0.0" />
    </ItemGroup>
 
     <ItemGroup>
