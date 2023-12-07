@@ -41,7 +41,9 @@ namespace NetworkMonitor.Alert.Services
         private IDataQueueService _dataQueueService;
         private List<AlertMessage> _alertMessages = new List<AlertMessage>();
         private List<MonitorStatusAlert> _monitorStatusAlerts = new List<MonitorStatusAlert>();
-        private List<ProcessorObj> _processorList = new List<ProcessorObj>();
+        //private List<ProcessorObj> _processorList = new List<ProcessorObj>();
+
+        private IProcessorState _processorState;
         private IRabbitRepo _rabbitRepo;
         private IFileRepo _fileRepo;
         private ISystemParamsHelper _systemParamsHelper;
@@ -50,7 +52,7 @@ namespace NetworkMonitor.Alert.Services
         public bool IsAlertRunning { get => _isAlertRunning; set => _isAlertRunning = value; }
         public bool Awake { get => _awake; set => _awake = value; }
         public List<MonitorStatusAlert> MonitorStatusAlerts { get => _monitorStatusAlerts; set => _monitorStatusAlerts = value; }
-        public AlertMessageService(ILogger<AlertMessageService> logger, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo, IRabbitRepo rabbitRepo, ISystemParamsHelper systemParamsHelper)
+        public AlertMessageService(ILogger<AlertMessageService> logger, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo, IRabbitRepo rabbitRepo, ISystemParamsHelper systemParamsHelper, IProcessorState processorState)
         {
             _dataQueueService = dataQueueService;
             _fileRepo = fileRepo;
@@ -61,6 +63,7 @@ namespace NetworkMonitor.Alert.Services
             _token = cancellationTokenSource.Token;
             _token.Register(() => OnStopping());
             _systemParamsHelper = systemParamsHelper;
+            _processorState = processorState;
 
         }
         private void OnStopping()
@@ -98,8 +101,26 @@ namespace NetworkMonitor.Alert.Services
                 _checkAlerts = _config.GetValue<bool>("CheckAlerts");
                 _disableEmailAlert = _config.GetValue<bool>("DisableEmailAlert") ;
                 SystemParams systemParams = _systemParamsHelper.GetSystemParams();
-                _processorList = new List<ProcessorObj>();
-                _config.GetSection("ProcessorList").Bind(_processorList);
+                 var processorList = new List<ProcessorObj>();
+            try
+            {
+                _fileRepo.CheckFileExists("ProcessorList", _logger);
+                processorList =  _fileRepo.GetStateJson<List<ProcessorObj>>("ProcessorList");
+
+            }
+            catch (Exception e)
+            {
+                _logger.LogInformation($" Error : Unable to ger Processor List from State . Error was : {e.Message}");
+
+            }
+
+            if (processorList == null)
+            {
+
+                _logger.LogError(" Error : No processors in processor list .");
+                processorList = new List<ProcessorObj>();
+            }
+            _processorState.ProcessorList = processorList;
                 _logger.LogDebug("SystemParams: " + JsonUtils.writeJsonObjectToString(systemParams));
                 _logger.LogDebug("PingAlertThreshold: " + _alertThreshold);
 
@@ -144,10 +165,11 @@ namespace NetworkMonitor.Alert.Services
                 {
                     try
                     {
-                        _userInfos = _fileRepo.GetStateJsonZAsync<List<UserInfo>>("UserInfos").Result;
-                        if (_userInfos == null) _userInfos = new List<UserInfo>();
+                        var userInfos= _fileRepo.GetStateJsonZAsync<List<UserInfo>>("UserInfos").Result;
+                        if (userInfos == null) _userInfos = new List<UserInfo>();
                         else
                         {
+                            _userInfos=userInfos;
                             _logger.LogInformation("Got " + _userInfos.Count() + "  UserInfos from statestore ");
                         }
                     }
@@ -326,12 +348,18 @@ namespace NetworkMonitor.Alert.Services
             {
                 bool noAlertSentStored = _updateAlertSentList.FirstOrDefault(w => w.ID == monitorStatusAlert.ID) == null;
                 if (monitorStatusAlert.AlertFlag = true && monitorStatusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(monitorStatusAlert);
-                string userId = monitorStatusAlert.UserID;
-                UserInfo userInfo = new UserInfo(userInfos.FirstOrDefault(u => u.UserID == userId));
+                string? userId = monitorStatusAlert.UserID;
+                var testUserInfo=userInfos.FirstOrDefault(u => u.UserID == userId);
+                if (testUserInfo==null) {
+                    _logger.LogWarning(" Warning : MonitorStatusAlert contains userId not present in UserInfos State store  .");
+                    continue;
+                }
+                UserInfo userInfo = new UserInfo(testUserInfo);
 
                 if (userInfo.UserID == "default")
                 {
                     VerifyEmail(userInfo, monitorStatusAlert);
+                    if (userInfo.Email==null) userInfo.Email="missing@email";
                     userInfo.Name = userInfo.Email.Split('@')[0];
                     userId = userInfo.Email;
                     userInfo.UserID = userId;
@@ -353,7 +381,11 @@ namespace NetworkMonitor.Alert.Services
                     if (_alertMessages.FirstOrDefault(a => a.UserID == userId) != null)
                     {
                         var alertMessage = _alertMessages.FirstOrDefault(a => a.UserID == userId);
-                        alertMessage.Message += "\n" + monitorStatusAlert.EndPointType.ToUpper() + " Alert for host at address " + monitorStatusAlert.Address + " status message is " + monitorStatusAlert.Message + " . " +
+                        if (alertMessage==null) {
+                                 _logger.LogWarning($" Warning : No alert messages contains userId {userId} .");
+                    continue;
+                        }
+                        alertMessage.Message += "\n" + monitorStatusAlert.EndPointType!.ToUpper() + " Alert for host at address " + monitorStatusAlert.Address + " status message is " + monitorStatusAlert.Message + " . " +
                                                    "\nHost down count is " + monitorStatusAlert.DownCount + "\nThe time of this event is  " + monitorStatusAlert.EventTime + "\n" +
                                                    " The Processing server ID was " + monitorStatusAlert.AppID + " The timeout was set to " + monitorStatusAlert.Timeout + " ms. \n\n";
                         alertMessage.AlertFlagObjs.Add(monitorStatusAlert);
@@ -371,7 +403,7 @@ namespace NetworkMonitor.Alert.Services
                         {
                             // Add start message
                             alertMessage.Message = "Alert message for " + monitorStatusAlert.UserName + " . ";
-                            alertMessage.Message += "\n" + monitorStatusAlert.EndPointType.ToUpper() + " Alert for host at address " + monitorStatusAlert.Address + " status message is " + monitorStatusAlert.Message + " . " +
+                            alertMessage.Message += "\n" + monitorStatusAlert.EndPointType!.ToUpper() + " Alert for host at address " + monitorStatusAlert.Address + " status message is " + monitorStatusAlert.Message + " . " +
                                       "\nHost down count is " + monitorStatusAlert.DownCount + "\nThe time of this event is  " + monitorStatusAlert.EventTime + "\n" +
                                       " The Processing server ID was " + monitorStatusAlert.AppID + " The timeout was set to " + monitorStatusAlert.Timeout + " ms. \n\n";
                             alertMessage.dontSend = userInfo.DisableEmail;
@@ -386,13 +418,13 @@ namespace NetworkMonitor.Alert.Services
             if (publishAlertSentList.Count() != 0)
             {
                 _logger.LogWarning("Warning republishing AlertSent List check coms. ");
-                await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorList);
+                await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorState.EnabledProcessorList);
             }
             await CheckAlerts(updateAlertFlagList);
             if (updateAlertFlagList.Count() > 0)
             {
                 _alert = true;
-                await PublishAlertsRepo.ProcessorAlertFlag(_logger, _rabbitRepo, updateAlertFlagList, _processorList);
+                await PublishAlertsRepo.ProcessorAlertFlag(_logger, _rabbitRepo, updateAlertFlagList, _processorState.EnabledProcessorList);
             }
             else _alert = false;
             return resultStr;
@@ -406,15 +438,15 @@ namespace NetworkMonitor.Alert.Services
             int maxTimeout = 0;
             // exclude MonitorPingInfos that have EndPointType set to string values in ExcludeEndPointTypList
             var excludeEndPoints = new ExcludeEndPointTypeList();
-            updateAlertFlagList.Where(w => !excludeEndPoints.Contains(w.EndPointType)).ToList().ForEach(a =>
+            updateAlertFlagList.Where(w => !excludeEndPoints.Contains(w.EndPointType!)).ToList().ForEach(a =>
             {
                 monitorPingInfos.Add(new MonitorPingInfo()
                 {
                     ID = a.ID,
                     MonitorIPID = a.ID,
-                    Address = a.Address,
+                    Address = a.Address!,
                     AppID = a.AppID,
-                    EndPointType = a.EndPointType,
+                    EndPointType = a.EndPointType!,
                     Timeout = a.Timeout,
                     Enabled = true
                 });
@@ -444,13 +476,13 @@ namespace NetworkMonitor.Alert.Services
                {
                    a.AlertFlagObjs.RemoveAll(r => r.ID == m.MonitorIPID);
                });
-               if (!monitorIPDic.ContainsKey(m.AppID))
+               if (!monitorIPDic.ContainsKey(m.AppID!))
                {
-                   monitorIPDic.Add(m.AppID, new List<int>() { m.MonitorIPID });
+                   monitorIPDic.Add(m.AppID!, new List<int>() { m.MonitorIPID });
                }
                else
                {
-                   monitorIPDic[m.AppID].Add(m.MonitorIPID);
+                   monitorIPDic[m.AppID!].Add(m.MonitorIPID);
                }
            });
             _alertMessages.RemoveAll(r => r.AlertFlagObjs.Count() == 0);
@@ -491,7 +523,7 @@ namespace NetworkMonitor.Alert.Services
                         UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList);
                     }
                 }
-                await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorList);
+                await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorState.EnabledProcessorList);
             }
             return count;
         }
@@ -552,8 +584,8 @@ namespace NetworkMonitor.Alert.Services
             {
                 if (_userInfos.Where(w => w.UserID == userInfo.UserID).Count() != 0)
                 {
-                    UserInfo newUserInfo = _userInfos.FirstOrDefault(w => w.UserID == userInfo.UserID);
-                    _userInfos.Remove(newUserInfo);
+                    UserInfo? newUserInfo = _userInfos.FirstOrDefault(w => w.UserID == userInfo.UserID);
+                    if (newUserInfo!=null) _userInfos.Remove(newUserInfo);
                 }
                 _userInfos.Add(userInfo);
                 try

@@ -45,7 +45,9 @@ namespace NetworkMonitor.Service
             services.AddSingleton<IRabbitRepo, RabbitRepo>();
             services.AddSingleton<IRabbitListener, RabbitListener>();
             services.AddSingleton<ISystemParamsHelper, SystemParamsHelper>();
-
+            services.AddSingleton<IProcessorStateRabbitListner, ProcessorStateRabbitListner>();
+            services.AddSingleton<IProcessorState, ProcessorState>();
+          
 
             services.AddSingleton<IFileRepo, FileRepo>();
             services.AddAsyncServiceInitialization()
@@ -54,6 +56,10 @@ namespace NetworkMonitor.Service
                         await alertMessageService.Init();
                     })
                     .AddInitAction<IRabbitListener>((rabbitListener) =>
+                    {
+                        return Task.CompletedTask;
+                    })
+                     .AddInitAction<IProcessorStateRabbitListner>((processorStateRabbitListener) =>
                     {
                         return Task.CompletedTask;
                     });
