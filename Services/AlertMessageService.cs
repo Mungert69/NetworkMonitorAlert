@@ -94,38 +94,43 @@ namespace NetworkMonitor.Alert.Services
         }
         public void InitService(AlertServiceInitObj alertObj)
         {
-            try
-            {
-
-                _alertThreshold = _config.GetValue<int>("PingAlertThreshold");
-                _checkAlerts = _config.GetValue<bool>("CheckAlerts");
-                _disableEmailAlert = _config.GetValue<bool>("DisableEmailAlert") ;
-                SystemParams systemParams = _systemParamsHelper.GetSystemParams();
-                 var processorList = new List<ProcessorObj>();
+            var processorList = new List<ProcessorObj>();
             try
             {
                 _fileRepo.CheckFileExists("ProcessorList", _logger);
-                processorList =  _fileRepo.GetStateJson<List<ProcessorObj>>("ProcessorList");
+                processorList = _fileRepo.GetStateJson<List<ProcessorObj>>("ProcessorList");
+                
 
             }
             catch (Exception e)
             {
-                _logger.LogInformation($" Error : Unable to ger Processor List from State . Error was : {e.Message}");
+                _logger.LogError($" Error : Unable to get Processor List from State . Error was : {e.Message}");
 
             }
 
-            if (processorList == null)
+            if (processorList == null || processorList.Count==0)
             {
 
                 _logger.LogError(" Error : No processors in processor list .");
                 processorList = new List<ProcessorObj>();
             }
+            else {
+                _logger.LogInformation($" Success : Got {processorList.Count} processors from state . ");
+            }
             _processorState.ProcessorList = processorList;
+
+            try
+            {
+
+                _alertThreshold = _config.GetValue<int>("PingAlertThreshold");
+                _checkAlerts = _config.GetValue<bool>("CheckAlerts");
+                _disableEmailAlert = _config.GetValue<bool>("DisableEmailAlert");
+                SystemParams systemParams = _systemParamsHelper.GetSystemParams();
                 _logger.LogDebug("SystemParams: " + JsonUtils.writeJsonObjectToString(systemParams));
                 _logger.LogDebug("PingAlertThreshold: " + _alertThreshold);
 
                 _sendTrustPilot = systemParams.SendTrustPilot;
-                _emailProcessor = new EmailProcessor(systemParams, _logger,_disableEmailAlert);
+                _emailProcessor = new EmailProcessor(systemParams, _logger, _disableEmailAlert);
                 _logger.LogInformation("Got config");
             }
             catch (Exception e)
@@ -165,11 +170,11 @@ namespace NetworkMonitor.Alert.Services
                 {
                     try
                     {
-                        var userInfos= _fileRepo.GetStateJsonZAsync<List<UserInfo>>("UserInfos").Result;
+                        var userInfos = _fileRepo.GetStateJsonZAsync<List<UserInfo>>("UserInfos").Result;
                         if (userInfos == null) _userInfos = new List<UserInfo>();
                         else
                         {
-                            _userInfos=userInfos;
+                            _userInfos = userInfos;
                             _logger.LogInformation("Got " + _userInfos.Count() + "  UserInfos from statestore ");
                         }
                     }
@@ -349,8 +354,9 @@ namespace NetworkMonitor.Alert.Services
                 bool noAlertSentStored = _updateAlertSentList.FirstOrDefault(w => w.ID == monitorStatusAlert.ID) == null;
                 if (monitorStatusAlert.AlertFlag = true && monitorStatusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(monitorStatusAlert);
                 string? userId = monitorStatusAlert.UserID;
-                var testUserInfo=userInfos.FirstOrDefault(u => u.UserID == userId);
-                if (testUserInfo==null) {
+                var testUserInfo = userInfos.FirstOrDefault(u => u.UserID == userId);
+                if (testUserInfo == null)
+                {
                     _logger.LogWarning(" Warning : MonitorStatusAlert contains userId not present in UserInfos State store  .");
                     continue;
                 }
@@ -359,7 +365,7 @@ namespace NetworkMonitor.Alert.Services
                 if (userInfo.UserID == "default")
                 {
                     VerifyEmail(userInfo, monitorStatusAlert);
-                    if (userInfo.Email==null) userInfo.Email="missing@email";
+                    if (userInfo.Email == null) userInfo.Email = "missing@email";
                     userInfo.Name = userInfo.Email.Split('@')[0];
                     userId = userInfo.Email;
                     userInfo.UserID = userId;
@@ -381,9 +387,10 @@ namespace NetworkMonitor.Alert.Services
                     if (_alertMessages.FirstOrDefault(a => a.UserID == userId) != null)
                     {
                         var alertMessage = _alertMessages.FirstOrDefault(a => a.UserID == userId);
-                        if (alertMessage==null) {
-                                 _logger.LogWarning($" Warning : No alert messages contains userId {userId} .");
-                    continue;
+                        if (alertMessage == null)
+                        {
+                            _logger.LogWarning($" Warning : No alert messages contains userId {userId} .");
+                            continue;
                         }
                         alertMessage.Message += "\n" + monitorStatusAlert.EndPointType!.ToUpper() + " Alert for host at address " + monitorStatusAlert.Address + " status message is " + monitorStatusAlert.Message + " . " +
                                                    "\nHost down count is " + monitorStatusAlert.DownCount + "\nThe time of this event is  " + monitorStatusAlert.EventTime + "\n" +
@@ -585,7 +592,7 @@ namespace NetworkMonitor.Alert.Services
                 if (_userInfos.Where(w => w.UserID == userInfo.UserID).Count() != 0)
                 {
                     UserInfo? newUserInfo = _userInfos.FirstOrDefault(w => w.UserID == userInfo.UserID);
-                    if (newUserInfo!=null) _userInfos.Remove(newUserInfo);
+                    if (newUserInfo != null) _userInfos.Remove(newUserInfo);
                 }
                 _userInfos.Add(userInfo);
                 try
