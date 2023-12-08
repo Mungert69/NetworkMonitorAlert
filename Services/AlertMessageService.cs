@@ -559,11 +559,11 @@ namespace NetworkMonitor.Alert.Services
                         result.Message += " Info : Waiting for Alert to stop running ";
                         new System.Threading.ManualResetEvent(false).WaitOne(5000);
                     }
-                    var updateMonitorStatusAlert = _monitorStatusAlerts.FirstOrDefault(w => w.ID == f.ID && w.AppID == f.AppID);
+                    var updateMonitorStatusAlert = _monitorStatusAlerts.FirstOrDefault(w => w.ID == f.ID);
                     if (updateMonitorStatusAlert == null)
                     {
                         result.Success = false;
-                        result.Message += " Warning : Unable to find MonitorStatusAlert with ID " + f.ID + " with AppID " + f.AppID + " . ";
+                        result.Message += " Warning : Unable to find MonitorStatusAlert with ID " + f.ID;
                     }
                     else
                     {
