@@ -48,6 +48,7 @@ namespace NetworkMonitor.Alert.Services
         private IFileRepo _fileRepo;
         private ISystemParamsHelper _systemParamsHelper;
         private CancellationToken _token;
+        private SystemParams _systemParams;
         public IRabbitRepo RabbitRepo { get => _rabbitRepo; }
         public bool IsAlertRunning { get => _isAlertRunning; set => _isAlertRunning = value; }
         public bool Awake { get => _awake; set => _awake = value; }
@@ -125,12 +126,12 @@ namespace NetworkMonitor.Alert.Services
                 _alertThreshold = _config.GetValue<int>("PingAlertThreshold");
                 _checkAlerts = _config.GetValue<bool>("CheckAlerts");
                 _disableEmailAlert = _config.GetValue<bool>("DisableEmailAlert");
-                SystemParams systemParams = _systemParamsHelper.GetSystemParams();
-                _logger.LogDebug("SystemParams: " + JsonUtils.writeJsonObjectToString(systemParams));
+                _systemParams = _systemParamsHelper.GetSystemParams();
+                _logger.LogDebug("SystemParams: " + JsonUtils.writeJsonObjectToString(_systemParams));
                 _logger.LogDebug("PingAlertThreshold: " + _alertThreshold);
 
-                _sendTrustPilot = systemParams.SendTrustPilot;
-                _emailProcessor = new EmailProcessor(systemParams, _logger, _disableEmailAlert);
+                _sendTrustPilot = _systemParams.SendTrustPilot;
+                _emailProcessor = new EmailProcessor(_systemParams, _logger, _disableEmailAlert);
                 _logger.LogInformation("Got config");
             }
             catch (Exception e)
@@ -460,8 +461,11 @@ namespace NetworkMonitor.Alert.Services
                 if (a.Timeout > maxTimeout) maxTimeout = a.Timeout;
             });
             _logger.LogInformation(" Checking " + monitorPingInfos.Count() + " Alerts ");
-            var connectFactory = new ConnectFactory(_config, _logger, false);
-            var netConnectCollection = new NetConnectCollection(_logger, _config, connectFactory);
+            var netConnectConfig=new NetConnectConfig();
+            netConnectConfig.LocalSystemUrl=_systemParams.ThisSystemUrl;
+            
+            var connectFactory = new ConnectFactory( _logger, false);
+            var netConnectCollection = new NetConnectCollection(_logger, netConnectConfig, connectFactory);
             SemaphoreSlim semaphore = new SemaphoreSlim(1);
             netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams, true, false, semaphore).Wait();
             var netConnects = netConnectCollection.GetNonLongRunningNetConnects().ToList();
