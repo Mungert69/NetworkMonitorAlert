@@ -36,8 +36,13 @@ namespace NetworkMonitor.Service
             _services = services;
             services.AddLogging(builder =>
                {
-                   builder.AddConsole();
+                   builder.AddSimpleConsole(options =>
+                        {
+                            options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
+                            options.IncludeScopes = true;
+                        });
                });
+
             services.AddSingleton<IDataQueueService, DataQueueService>();
             services.AddSingleton<IAlertMessageService, AlertMessageService>();
             services.Configure<HostOptions>(s => s.ShutdownTimeout = TimeSpan.FromMinutes(5));
