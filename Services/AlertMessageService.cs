@@ -127,7 +127,7 @@ namespace NetworkMonitor.Alert.Services
                 _checkAlerts = _config.GetValue<bool>("CheckAlerts");
                 _disableEmailAlert = _config.GetValue<bool>("DisableEmailAlert");
                 _systemParams = _systemParamsHelper.GetSystemParams();
-                _logger.LogDebug("SystemParams: " + JsonUtils.writeJsonObjectToString(_systemParams));
+                _logger.LogDebug("SystemParams: " + JsonUtils.WriteJsonObjectToString(_systemParams));
                 _logger.LogDebug("PingAlertThreshold: " + _alertThreshold);
 
                 _sendTrustPilot = _systemParams.SendTrustPilot;

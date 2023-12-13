@@ -454,7 +454,7 @@ namespace NetworkMonitor.Alert.Services
                 result.Message += returnResult.Message;
                 result.Success = returnResult.Success;
                 result.Data = null;
-                _logger.LogDebug("AlertMonitorStatusAlerts : " + JsonUtils.writeJsonObjectToString(_alertMessageService.MonitorStatusAlerts.ToList()));
+                _logger.LogDebug("AlertMonitorStatusAlerts : " + JsonUtils.WriteJsonObjectToString(_alertMessageService.MonitorStatusAlerts.ToList()));
             }
             catch (Exception e)
             {
