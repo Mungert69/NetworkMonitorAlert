@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using NetworkMonitor.Objects.Factory;
 using NetworkMonitor.Utils.Helpers;
 using NetworkMonitor.Utils;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
 
 namespace NetworkMonitor.Alert.Services
 {
@@ -64,27 +65,28 @@ namespace NetworkMonitor.Alert.Services
                      if (processorDataObj.AuthKey== null)
                     {
                         result.Success = false;
-                        result.Message = " Error : Failed CommitProcessorDataBytes processorDataObj.AppKey is null.";
+                        result.Message = $" Error : Failed CommitProcessorDataBytes processorDataObj.AppKey is null for AppID {processorDataObj.AppID}";
                         _logger.LogError(result.Message);
                         return result;
                     }
                     if (EncryptionHelper.IsBadKey(_encryptKey, processorDataObj.AuthKey, processorDataObj.AppID))
                     {
                         result.Success = false;
-                        result.Message = " Error : Failed CommitProcessorDataBytes bad AuthKey .";
+                        result.Message = $" Error : Failed CommitProcessorDataBytes bad AuthKey for AppID {processorDataObj.AppID}";
                         _logger.LogError(result.Message);
                         return result;
                     }
                     if (processorDataObj.MonitorStatusAlerts.Where(w => w.AppID != processorDataObj.AppID).Count() > 0)
                     {
                         result.Success = false;
-                        result.Message = " Error : Failed CommitProcessorDataBytes invalid AppID in data .";
+                        result.Message = $" Error : Failed CommitProcessorDataBytes invalid AppID in data for AppID {processorDataObj.AppID}";
                         _logger.LogError(result.Message);
+                        return result;
                     }
 
                     processorDataObj = ProcessorDataBuilder.MergeMonitorStatusAlerts(processorDataObj, monitorStatusAlerts);
 
-                    if (processorDataObj == null || processorDataObj.AppID == null)
+                    if (processorDataObj == null )
                     {
                         result.Success = false;
                         result.Message = " Error : Failed CommitProcessorDataBytes no ProcessorDataObj data";
