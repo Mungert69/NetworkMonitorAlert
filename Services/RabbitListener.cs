@@ -19,11 +19,11 @@ namespace NetworkMonitor.Alert.Services
     {
         ResultObj WakeUp();
         ResultObj AlertMessageInit(AlertServiceInitObj initObj);
-        ResultObj AlertMessageResetAlerts(List<AlertFlagObj> alertFlagObjs);
-        Task <ResultObj> AlertMessage(AlertMessage alertMessage);
+        ResultObj AlertMessageResetAlerts(AlertServiceAlertObj alertServiceAlertObj);
+        Task<ResultObj> AlertMessage(AlertMessage alertMessage);
         Task<ResultObj> UpdateUserInfoAlertMessage(UserInfo userInfo);
-        Task <ResultObj> MonitorAlert();
-        Task <ResultObj> AlertUpdateMonitorStatusAlerts(string monitorStatusAlertString);
+        Task<ResultObj> MonitorAlert();
+        Task<ResultObj> AlertUpdateMonitorStatusAlerts(string monitorStatusAlertString);
     }
 
     public class RabbitListener : RabbitListenerBase, IRabbitListener
@@ -37,7 +37,7 @@ namespace NetworkMonitor.Alert.Services
             Setup();
         }
 
-              
+
 
         private static SystemUrl DeriveSystemUrl(ISystemParamsHelper systemParamsHelper)
         {
@@ -84,19 +84,19 @@ namespace NetworkMonitor.Alert.Services
                 FuncName = "alertUpdateMonitorStatusAlerts",
                 MessageTimeout = 60000
             });
-             _rabbitMQObjs.Add(new RabbitMQObj()
+            _rabbitMQObjs.Add(new RabbitMQObj()
             {
                 ExchangeName = "userHostExpire",
                 FuncName = "userHostExpire",
                 MessageTimeout = 86300000
             });
-             _rabbitMQObjs.Add(new RabbitMQObj()
+            _rabbitMQObjs.Add(new RabbitMQObj()
             {
                 ExchangeName = "sendHostReport",
                 FuncName = "sendHostReport",
                 MessageTimeout = 86300000
             });
-             _rabbitMQObjs.Add(new RabbitMQObj()
+            _rabbitMQObjs.Add(new RabbitMQObj()
             {
                 ExchangeName = "sendGenericEmail",
                 FuncName = "sendGenericEmail",
@@ -111,160 +111,163 @@ namespace NetworkMonitor.Alert.Services
                 _rabbitMQObjs.ForEach(rabbitMQObj =>
             {
                 rabbitMQObj.Consumer = new EventingBasicConsumer(rabbitMQObj.ConnectChannel);
-                switch (rabbitMQObj.FuncName)
+                if (rabbitMQObj.ConnectChannel != null)
                 {
-                    case "serviceWakeUp":
-                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
-                        rabbitMQObj.Consumer.Received += (model, ea) =>
+                    switch (rabbitMQObj.FuncName)
                     {
-                        try
+                        case "serviceWakeUp":
+                            rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+                            rabbitMQObj.Consumer.Received += (model, ea) =>
                         {
-                            result = WakeUp();
-                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
-                        }
-                        catch (Exception ex)
+                            try
+                            {
+                                result = WakeUp();
+                                rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.serviceWakeUp " + ex.Message);
+                            }
+                        };
+                            break;
+                        case "alertMessageInit":
+                            rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+                            rabbitMQObj.Consumer.Received += (model, ea) =>
                         {
-                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.serviceWakeUp " + ex.Message);
-                        }
-                    };
-                        break;
-                    case "alertMessageInit":
-                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
-                        rabbitMQObj.Consumer.Received += (model, ea) =>
-                    {
-                        try
-                        {
+                            try
+                            {
+                                result = AlertMessageInit(ConvertToObject<AlertServiceInitObj>(model, ea));
+                                rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessageinit " + ex.Message);
+                            }
                             result = AlertMessageInit(ConvertToObject<AlertServiceInitObj>(model, ea));
                             rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
-                        }
-                        catch (Exception ex)
+                        };
+                            break;
+                        case "alertMessageResetAlerts":
+                            rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
+                            rabbitMQObj.Consumer.Received += (model, ea) =>
                         {
-                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessageinit " + ex.Message);
-                        }
-                        result = AlertMessageInit(ConvertToObject<AlertServiceInitObj>(model, ea));
-                        rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
-                    };
-                        break;
-                    case "alertMessageResetAlerts":
-                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
-                        rabbitMQObj.Consumer.Received += (model, ea) =>
-                    {
-                        try
+                            try
+                            {
+                                result = AlertMessageResetAlerts(ConvertToObject<AlertServiceAlertObj>(model, ea));
+                                rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessageResetAlerts " + ex.Message);
+                            }
+                        };
+                            break;
+                        case "alertMessage":
+                            rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+                            rabbitMQObj.Consumer.Received += async (model, ea) =>
                         {
-                            result = AlertMessageResetAlerts(ConvertToList<List<AlertFlagObj>>(model, ea));
-                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
-                        }
-                        catch (Exception ex)
+                            try
+                            {
+                                result = await AlertMessage(ConvertToObject<AlertMessage>(model, ea));
+                                rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessage " + ex.Message);
+                            }
+                        };
+                            break;
+                        case "updateUserInfoAlertMessage":
+                            rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+                            rabbitMQObj.Consumer.Received += async (model, ea) =>
                         {
-                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessageResetAlerts " + ex.Message);
-                        }
-                    };
-                        break;
-                    case "alertMessage":
-                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
-                        rabbitMQObj.Consumer.Received += async (model, ea) =>
-                    {
-                        try
+                            try
+                            {
+                                result = await UpdateUserInfoAlertMessage(ConvertToObject<UserInfo>(model, ea));
+                                rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.updateUserInfoAlertMessage " + ex.Message);
+                            }
+                        };
+                            break;
+                        case "monitorAlert":
+                            rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+                            rabbitMQObj.Consumer.Received += async (model, ea) =>
                         {
-                            result = await AlertMessage(ConvertToObject<AlertMessage>(model, ea));
-                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
-                        }
-                        catch (Exception ex)
+                            try
+                            {
+                                result = await MonitorAlert();
+                                rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.monitorAlert " + ex.Message);
+                            }
+                        };
+                            break;
+                        case "alertUpdateMonitorStatusAlerts":
+                            rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
+                            rabbitMQObj.Consumer.Received += async (model, ea) =>
                         {
-                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessage " + ex.Message);
-                        }
-                    };
-                        break;
-                    case "updateUserInfoAlertMessage":
-                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
-                        rabbitMQObj.Consumer.Received += async (model, ea) =>
-                    {
-                        try
+                            try
+                            {
+                                result = await AlertUpdateMonitorStatusAlerts(ConvertToString(model, ea));
+                                rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertUpdateMonitorStatusAlerts " + ex.Message);
+                            }
+                        };
+                            break;
+                        case "userHostExpire":
+                            rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
+                            rabbitMQObj.Consumer.Received += async (model, ea) =>
                         {
-                            result = await UpdateUserInfoAlertMessage(ConvertToObject<UserInfo>(model, ea));
-                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
-                        }
-                        catch (Exception ex)
+                            try
+                            {
+                                result = await UserHostExpire(ConvertToList<List<GenericEmailObj>>(model, ea));
+                                rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.userHostExpireNotfications " + ex.Message);
+                            }
+                        };
+                            break;
+                        case "sendHostReport":
+                            rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+                            rabbitMQObj.Consumer.Received += async (model, ea) =>
                         {
-                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.updateUserInfoAlertMessage " + ex.Message);
-                        }
-                    };
-                        break;
-                    case "monitorAlert":
-                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
-                        rabbitMQObj.Consumer.Received += async (model, ea) =>
-                    {
-                        try
+                            try
+                            {
+                                result = await SendHostReport(ConvertToObject<HostReportObj>(model, ea));
+                                rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessage " + ex.Message);
+                            }
+                        };
+                            break;
+                        case "sendGenericEmail":
+                            rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+                            rabbitMQObj.Consumer.Received += async (model, ea) =>
                         {
-                            result = await MonitorAlert();
-                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.monitorAlert " + ex.Message);
-                        }
-                    };
-                        break;
-                    case "alertUpdateMonitorStatusAlerts":
-                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
-                        rabbitMQObj.Consumer.Received += async (model, ea) =>
-                    {
-                        try
-                        {
-                            result = await AlertUpdateMonitorStatusAlerts(ConvertToString(model, ea));
-                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertUpdateMonitorStatusAlerts " + ex.Message);
-                        }
-                    };
-                        break;
-                          case "userHostExpire":
-                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
-                        rabbitMQObj.Consumer.Received += async (model, ea) =>
-                    {
-                        try
-                        {
-                            result = await UserHostExpire(ConvertToList<List<GenericEmailObj>>(model, ea));
-                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.userHostExpireNotfications " + ex.Message);
-                        }
-                    };
-                    break;
-                     case "sendHostReport":
-                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
-                        rabbitMQObj.Consumer.Received += async (model, ea) =>
-                    {
-                        try
-                        {
-                            result = await SendHostReport(ConvertToObject<HostReportObj>(model, ea));
-                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessage " + ex.Message);
-                        }
-                    };
-                        break;
-                  case "sendGenericEmail":
-                        rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
-                        rabbitMQObj.Consumer.Received += async (model, ea) =>
-                    {
-                        try
-                        {
-                            result = await SendGenericEmail(ConvertToObject<GenericEmailObj>(model, ea));
-                            rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(" Error : RabbitListener.DeclareConsumers.sendGenericEmail " + ex.Message);
-                        }
-                    };
-                        break;
+                            try
+                            {
+                                result = await SendGenericEmail(ConvertToObject<GenericEmailObj>(model, ea));
+                                rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.sendGenericEmail " + ex.Message);
+                            }
+                        };
+                            break;
+                    }
                 }
             });
                 result.Success = true;
@@ -301,11 +304,17 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
-        public ResultObj AlertMessageInit(AlertServiceInitObj initObj)
+        public ResultObj AlertMessageInit(AlertServiceInitObj? initObj)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : AlertMessageInit : ";
+            if (initObj == null)
+            {
+                result.Message += " Error : initObj is Null ";
+                return result;
+            }
+
             try
             {
                 _alertMessageService.InitService(initObj);
@@ -322,14 +331,25 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
-        public  ResultObj AlertMessageResetAlerts(List<AlertFlagObj> alertFlagObjs)
+        public ResultObj AlertMessageResetAlerts(AlertServiceAlertObj? alertServiceAlertObj)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : AlertMessageResetAlerts : ";
+            if (alertServiceAlertObj == null)
+            {
+                result.Message += " Error : alertServiceAlertObj is Null ";
+                return result;
+            }
+            if (_alertMessageService.IsBadAuthKey(alertServiceAlertObj.AuthKey, alertServiceAlertObj.AppID))
+            {
+                result.Message += " Error : alertServiceAlertObj is invalid ";
+                return result;
+            }
             try
             {
-                var results =  _alertMessageService.ResetAlerts(alertFlagObjs);
+
+                var results = _alertMessageService.ResetAlerts(alertServiceAlertObj.AlertFlagObjs);
                 results.ForEach(f => result.Message += f.Message);
                 result.Success = results.All(a => a.Success == true) && results.Count() != 0;
                 result.Data = results;
@@ -344,11 +364,16 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
-        public async Task<ResultObj> AlertMessage(AlertMessage alertMessage)
+        public async Task<ResultObj> AlertMessage(AlertMessage? alertMessage)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : AlertMessage : ";
+            if (alertMessage == null)
+            {
+                result.Message += " Error : alertMessage is Null ";
+                return result;
+            }
             try
             {
                 result = await _alertMessageService.Send(alertMessage);
@@ -363,11 +388,16 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
-        public async Task<ResultObj> UpdateUserInfoAlertMessage(UserInfo userInfo)
+        public async Task<ResultObj> UpdateUserInfoAlertMessage(UserInfo? userInfo)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : UpdateUserInfoAlertMessage : ";
+            if (userInfo == null)
+            {
+                result.Message += " Error : userInfo is Null ";
+                return result;
+            }
             try
             {
                 result = await _alertMessageService.UpdateUserInfo(userInfo);
@@ -401,11 +431,16 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
-        public async Task<ResultObj> AlertUpdateMonitorStatusAlerts(string monitorStatusAlertString)
+        public async Task<ResultObj> AlertUpdateMonitorStatusAlerts(string? monitorStatusAlertString)
         {
             var result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : alertUpdateMonitorStatusAlerts : ";
+            if (monitorStatusAlertString == null)
+            {
+                result.Message += " Error : monitorStatusAlertString is Null ";
+                return result;
+            }
             try
             {
                 while (_alertMessageService.IsAlertRunning)
@@ -414,9 +449,9 @@ namespace NetworkMonitor.Alert.Services
                     new System.Threading.ManualResetEvent(false).WaitOne(5000);
                 }
                 _alertMessageService.IsAlertRunning = true;
-                var returnResult =  await _dataQueueService.AddProcessorDataStringToQueue(monitorStatusAlertString, _alertMessageService.MonitorStatusAlerts);
+                var returnResult = await _dataQueueService.AddProcessorDataStringToQueue(monitorStatusAlertString, _alertMessageService.MonitorStatusAlerts);
                 _alertMessageService.IsAlertRunning = false;
-                result.Message +=returnResult.Message;
+                result.Message += returnResult.Message;
                 result.Success = returnResult.Success;
                 result.Data = null;
                 _logger.LogDebug("AlertMonitorStatusAlerts : " + JsonUtils.writeJsonObjectToString(_alertMessageService.MonitorStatusAlerts.ToList()));
@@ -430,24 +465,31 @@ namespace NetworkMonitor.Alert.Services
             return result;
         }
 
-         public async Task<ResultObj> UserHostExpire(List<GenericEmailObj> emailObjs)
+        public async Task<ResultObj> UserHostExpire(List<GenericEmailObj>? emailObjs)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : UserHostExpire : ";
+            if (emailObjs == null)
+            {
+                result.Message += " Error : emailObjs is Null ";
+                return result;
+            }
             try
             {
-                var results = await _alertMessageService.UserHostExpire(emailObjs );
+                var results = await _alertMessageService.UserHostExpire(emailObjs);
                 results.ForEach(f => result.Message += f.Message);
                 result.Success = results.All(a => a.Success == true) && results.Count() != 0;
                 result.Data = results;
-                if (result.Success){
+                if (result.Success)
+                {
                     _logger.LogInformation(result.Message);
                 }
-                else{
+                else
+                {
                     _logger.LogError(result.Message);
                 }
-                
+
             }
             catch (Exception e)
             {
@@ -463,9 +505,10 @@ namespace NetworkMonitor.Alert.Services
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : SendHostReport : ";
-            if (hostReport==null){
-                result.Success=false;
-                result.Message+=" Error : hostReport is null . ";
+            if (hostReport == null)
+            {
+                result.Success = false;
+                result.Message += " Error : hostReport is null . ";
                 return result;
             }
             try
@@ -483,14 +526,15 @@ namespace NetworkMonitor.Alert.Services
             return result;
         }
 
-         public async Task<ResultObj> SendGenericEmail(GenericEmailObj genericEmail)
+        public async Task<ResultObj> SendGenericEmail(GenericEmailObj? genericEmail)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : SendGenericEmail : ";
-            if (genericEmail==null){
-                result.Success=false;
-                result.Message+=" Error : genericEmail is null . ";
+            if (genericEmail == null)
+            {
+                result.Success = false;
+                result.Message += " Error : genericEmail is null . ";
                 return result;
             }
             try

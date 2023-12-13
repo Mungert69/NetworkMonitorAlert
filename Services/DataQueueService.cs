@@ -11,6 +11,9 @@ using System.Diagnostics;
 using NetworkMonitorService.Objects.ServiceMessage;
 using System.Threading.Tasks;
 using NetworkMonitor.Objects.Factory;
+using NetworkMonitor.Utils.Helpers;
+using NetworkMonitor.Utils;
+
 namespace NetworkMonitor.Alert.Services
 {
     public interface IDataQueueService
@@ -22,9 +25,10 @@ namespace NetworkMonitor.Alert.Services
     {
         private ILogger _logger;
         private TaskQueue taskQueue = new TaskQueue();
-        public DataQueueService(ILogger<DataQueueService> logger)
+        private string _encryptKey;
+        public DataQueueService(ILogger<DataQueueService> logger, ISystemParamsHelper systemParamsHelper)
         {
-
+            _encryptKey = systemParamsHelper.GetSystemParams().EmailEncryptKey;
             _logger = logger;
         }
         public Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<MonitorStatusAlert> monitorStatusAlerts)
@@ -41,18 +45,56 @@ namespace NetworkMonitor.Alert.Services
                 var result = new ResultObj();
                 try
                 {
-                    var processorDataObj = ProcessorDataBuilder.MergeMonitorStatusAlerts(processorDataString, monitorStatusAlerts);
+                    ProcessorDataObj? processorDataObj = ProcessorDataBuilder.ExtractFromZString<ProcessorDataObj>(processorDataString);
+
+                    if (processorDataObj == null)
+                    {
+                        result.Success = false;
+                        result.Message = " Error : Failed CommitProcessorDataBytes processorDataObj is null.";
+                        _logger.LogError(result.Message);
+                        return result;
+                    }
+                    if (processorDataObj.AppID == null)
+                    {
+                        result.Success = false;
+                        result.Message = " Error : Failed CommitProcessorDataBytes processorDataObj.AppID is null.";
+                        _logger.LogError(result.Message);
+                        return result;
+                    }
+                     if (processorDataObj.AuthKey== null)
+                    {
+                        result.Success = false;
+                        result.Message = " Error : Failed CommitProcessorDataBytes processorDataObj.AppKey is null.";
+                        _logger.LogError(result.Message);
+                        return result;
+                    }
+                    if (EncryptionHelper.IsBadKey(_encryptKey, processorDataObj.AuthKey, processorDataObj.AppID))
+                    {
+                        result.Success = false;
+                        result.Message = " Error : Failed CommitProcessorDataBytes bad AuthKey .";
+                        _logger.LogError(result.Message);
+                        return result;
+                    }
+                    if (processorDataObj.MonitorStatusAlerts.Where(w => w.AppID != processorDataObj.AppID).Count() > 0)
+                    {
+                        result.Success = false;
+                        result.Message = " Error : Failed CommitProcessorDataBytes invalid AppID in data .";
+                        _logger.LogError(result.Message);
+                    }
+
+                    processorDataObj = ProcessorDataBuilder.MergeMonitorStatusAlerts(processorDataObj, monitorStatusAlerts);
+
                     if (processorDataObj == null || processorDataObj.AppID == null)
                     {
                         result.Success = false;
-                        result.Message=" Error : Failed CommitProcessorDataBytes no ProcessorDataObj or AppID found";
+                        result.Message = " Error : Failed CommitProcessorDataBytes no ProcessorDataObj data";
                         _logger.LogError(result.Message);
 
                     }
                     else
                     {
                         result.Success = true;
-                        result.Message=" Success : Finshed CommitProcessorDataBytes at " + DateTime.UtcNow + " for Processor AppID " + processorDataObj.AppID+ ". ";
+                        result.Message = " Success : Finshed CommitProcessorDataBytes at " + DateTime.UtcNow + " for Processor AppID " + processorDataObj.AppID + ". ";
                         _logger.LogInformation(result.Message);
                     }
                 }

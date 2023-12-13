@@ -5,27 +5,27 @@ using System.Threading.Tasks;
 
 namespace NetworkMonitor.Alert.Services
 {
-    public interface IAlertMessageService
-    {
-        public void InitService(AlertServiceInitObj alertObj);
-          public Task Init();
+  public interface IAlertMessageService
+  {
+    public void InitService(AlertServiceInitObj alertObj);
+    public Task Init();
 
-        List<MonitorStatusAlert> MonitorStatusAlerts{get;set;}
-        List<ResultObj> ResetAlerts(List<AlertFlagObj> alertFlagObjs);
+    List<MonitorStatusAlert> MonitorStatusAlerts { get; set; }
+    List<ResultObj> ResetAlerts(List<AlertFlagObj> alertFlagObjs);
 
-                //ResultObj QueueRemoveFromAlertSentList(AlertFlagObj alertFlagObj);
-        Task<ResultObj> UpdateUserInfo(UserInfo userInfo);
-        ResultObj WakeUp();
+    //ResultObj QueueRemoveFromAlertSentList(AlertFlagObj alertFlagObj);
+    Task<ResultObj> UpdateUserInfo(UserInfo userInfo);
+    ResultObj WakeUp();
 
-        bool IsAlertRunning{get;set;}
-        bool Awake{get;set;}
+    bool IsAlertRunning { get; set; }
+    bool Awake { get; set; }
 
-        Task<ResultObj> Alert();
-        Task <ResultObj> Send(AlertMessage alertMessage);
-        Task<ResultObj> SendGenericEmail(GenericEmailObj genericEmail);
-        Task<List<ResultObj>> UserHostExpire(List<GenericEmailObj> userInfos);
-         Task<ResultObj> SendHostReport(HostReportObj hostReport);
+    Task<ResultObj> Alert();
+    Task<ResultObj> Send(AlertMessage alertMessage);
+    Task<ResultObj> SendGenericEmail(GenericEmailObj genericEmail);
+    Task<List<ResultObj>> UserHostExpire(List<GenericEmailObj> userInfos);
+    Task<ResultObj> SendHostReport(HostReportObj hostReport);
+    bool IsBadAuthKey(string authKey, string appID);
 
-      
-    }
+  }
 }
