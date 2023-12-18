@@ -229,6 +229,10 @@ namespace NetworkMonitor.Alert.Services
         {
             return await _emailProcessor.UserHostExpire(emailObjs);
         }
+         public async Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> emailObjs)
+        {
+            return await _emailProcessor.UpgradeAccounts(emailObjs);
+        }
         private void VerifyEmail(UserInfo userInfo, MonitorStatusAlert monitorStatusAlert)
         {
             // Validate email format

@@ -24,6 +24,8 @@ namespace NetworkMonitor.Alert.Services
     Task<ResultObj> Send(AlertMessage alertMessage);
     Task<ResultObj> SendGenericEmail(GenericEmailObj genericEmail);
     Task<List<ResultObj>> UserHostExpire(List<GenericEmailObj> userInfos);
+    Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> userInfos);
+    
     Task<ResultObj> SendHostReport(HostReportObj hostReport);
     bool IsBadAuthKey(string authKey, string appID);
 

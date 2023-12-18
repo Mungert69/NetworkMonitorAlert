@@ -271,7 +271,7 @@ public class EmailProcessor
 
         var populatedTemplate = PopulateTemplate(template, contentMap);
 
-        result = await SendTemplate(user.UserID, user.Email, "Weekly Host Report", populatedTemplate, urls);
+        result = await SendTemplate(user.UserID, user.Email, contentMap["EmailTitle"], populatedTemplate, urls);
         return result;
     }
 
@@ -375,7 +375,66 @@ public class EmailProcessor
                 var populatedTemplate = PopulateTemplate(template, contentMap);
                    // Dont send to fast.
                 await Task.Delay(5000);
-                results.Add(await SendTemplate(emailObj.UserInfo.UserID, emailObj.UserInfo.Email, "Important Update: Keep Your Hosts Active with Free Network Monitor", populatedTemplate, urls));
+                results.Add(await SendTemplate(emailObj.UserInfo.UserID, emailObj.UserInfo.Email, contentMap["EmailTitle"], populatedTemplate, urls));
+
+            }
+        }
+        return results;
+
+    }
+
+     public async Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> emailObjs)
+    {
+        var results = new List<ResultObj>();
+        var result = new ResultObj();
+        string? template = null;
+        try
+        {
+            template = File.ReadAllText("./templates/user-message-template.html");
+        }
+        catch (Exception e)
+        {
+
+            result.Success = false;
+            result.Message = $" Error : Could not open file /templates/user-message-template.html : Error was : {e.Message} .";
+            results.Add(result);
+            return results;
+        }
+        if (template == null)
+        {
+            result.Success = false;
+            result.Message = " Error : file ./templates/user-message-template.html returns null .";
+            results.Add(result);
+            return results;
+        }
+
+        foreach (var emailObj in emailObjs)
+        {
+            if (emailObj.UserInfo.DisableEmail)
+            {
+                results.Add(new ResultObj { Success = false, Message = $" Warning : User Email Disabled {emailObj.UserInfo.UserID} ." });
+            }
+            else
+            {
+                var urls = GetUrls(emailObj.UserInfo.UserID, emailObj.UserInfo.Email);
+                    var contentMap = new Dictionary<string, string>
+            {
+                 { "EmailTitle", "Complimentary 6-Month Standard Plan Upgrade from Free Network Monitor"},
+                { "HeaderImageUrl",  BuildUrl(emailObj as IGenericEmailObj)}, 
+                { "HeaderImageAlt", emailObj.HeaderImageAlt },
+                 { "MainHeading", "Our Apology and a Special Offer from Free Network Monitor" },
+                  { "MainContent", "<p>We've noticed an issue where our reminder email for inactive accounts failed to send. Consequently, the monitoring of your hosts was inadvertently paused, and we deeply apologize for any inconvenience this may have caused.</p><p>To rectify this, we're offering you a complimentary upgrade to our Standard Plan for 6 months. This upgrade includes:</p><ul><li>Monitoring for up to 50 hosts</li><li>Enhanced capabilities: ICMP, Http, Dns, Raw Connect, Smtp Ping, and Quantum Ready checks</li><li>Email support</li><li>6-month full response data retention</li></ul><p>To take advantage of this upgrade and resume monitoring, please log in to your account and re-enable the hosts you wish to monitor. You can also add new hosts to fully utilize the features of the Standard Plan.</p><p>We sincerely hope this gesture underscores our commitment to your satisfaction and trust in our services. If you have any questions or require assistance, please feel free to contact us.</p><p>Thank you for your understanding, and we look forward to serving your network monitoring needs.</p><p>Warm regards,</p><p>Mahadeva<br>Tech Support<br>Free Network Monitor Team</p>" },
+                  { "ButtonUrl", "https://freenetworkmonitor.click/dashboard" },
+                 { "ButtonText", "Use your email Address to Login" },
+                  { "CurrentYear", emailObj.CurrentYear },
+                  { "UnsubscribeUrl", urls.unsubscribeUrl }
+            };
+
+
+                var populatedTemplate = PopulateTemplate(template, contentMap);
+                   // Dont send to fast.
+                await Task.Delay(5000);
+                results.Add(await SendTemplate(emailObj.UserInfo.UserID, emailObj.UserInfo.Email, contentMap["EmailTitle"], populatedTemplate, urls));
 
             }
         }
