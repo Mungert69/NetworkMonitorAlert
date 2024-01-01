@@ -100,7 +100,7 @@ namespace NetworkMonitor.Alert.Services
             {
                 _fileRepo.CheckFileExists("ProcessorList", _logger);
                 processorList = _fileRepo.GetStateJson<List<ProcessorObj>>("ProcessorList");
-                
+
 
             }
             catch (Exception e)
@@ -109,13 +109,14 @@ namespace NetworkMonitor.Alert.Services
 
             }
 
-            if (processorList == null || processorList.Count==0)
+            if (processorList == null || processorList.Count == 0)
             {
 
                 _logger.LogError(" Error : No processors in processor list .");
                 processorList = new List<ProcessorObj>();
             }
-            else {
+            else
+            {
                 _logger.LogInformation($" Success : Got {processorList.Count} processors from state . ");
             }
             _processorState.ProcessorList = processorList;
@@ -205,8 +206,9 @@ namespace NetworkMonitor.Alert.Services
             }
         }
 
-        public bool IsBadAuthKey(string authKey, string appID){
-            return  EncryptionHelper.IsBadKey(_systemParams.EmailEncryptKey,authKey,  appID);   
+        public bool IsBadAuthKey(string authKey, string appID)
+        {
+            return EncryptionHelper.IsBadKey(_systemParams.EmailEncryptKey, authKey, appID);
         }
 
         public async Task<ResultObj> Send(AlertMessage alertMessage)
@@ -229,7 +231,7 @@ namespace NetworkMonitor.Alert.Services
         {
             return await _emailProcessor.UserHostExpire(emailObjs);
         }
-         public async Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> emailObjs)
+        public async Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> emailObjs)
         {
             return await _emailProcessor.UpgradeAccounts(emailObjs);
         }
@@ -469,8 +471,8 @@ namespace NetworkMonitor.Alert.Services
                 if (a.Timeout > maxTimeout) maxTimeout = a.Timeout;
             });
             _logger.LogInformation(" Checking " + monitorPingInfos.Count() + " Alerts ");
-            var netConnectConfig=new NetConnectConfig(_config);      
-            var connectFactory = new ConnectFactory( _logger, false);
+            var netConnectConfig = new NetConnectConfig(_config);
+            var connectFactory = new ConnectFactory(_logger, false);
             var netConnectCollection = new NetConnectCollection(_logger, netConnectConfig, connectFactory);
             SemaphoreSlim semaphore = new SemaphoreSlim(1);
             netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams, true, false, semaphore).Wait();
@@ -569,21 +571,26 @@ namespace NetworkMonitor.Alert.Services
                         result.Message += " Info : Waiting for Alert to stop running ";
                         new System.Threading.ManualResetEvent(false).WaitOne(5000);
                     }
-                    var updateMonitorStatusAlert = _monitorStatusAlerts.FirstOrDefault(w => w.ID == f.ID);
-                    if (updateMonitorStatusAlert == null)
+                    var updateMonitorStatusAlerts = _monitorStatusAlerts.Where(w => w.ID == f.ID).ToList();
+                    if (updateMonitorStatusAlerts == null)
                     {
                         result.Success = false;
-                        result.Message += " Warning : Unable to find MonitorStatusAlert with ID " + f.ID;
+                        result.Message += " Warning : Unable to find any MonitorStatusAlerts with ID " + f.ID;
                     }
                     else
                     {
-                        updateMonitorStatusAlert.AlertFlag = false;
-                        updateMonitorStatusAlert.AlertSent = false;
-                        updateMonitorStatusAlert.DownCount = 0;
-                        result.Success = true;
-                        result.Message += " Success : updated MonitorStatusAlert with ID " + f.ID + " with AppID " + f.AppID + " . ";
+                        foreach (var updateMonitorStatusAlert in updateMonitorStatusAlerts)
+                        {
+                            updateMonitorStatusAlert.AlertFlag = false;
+                            updateMonitorStatusAlert.AlertSent = false;
+                            updateMonitorStatusAlert.DownCount = 0;
+                            result.Success = true;
+                            result.Message += " Success : updated MonitorStatusAlert with ID " + f.ID + " with AppID " + f.AppID + " . ";
+
+                        }
+                        _updateAlertSentList.RemoveAll(r => r.ID == f.ID);
                     }
-                    _updateAlertSentList.RemoveAll(r => r.ID == f.ID);
+
                 }
                 catch (Exception e)
                 {
