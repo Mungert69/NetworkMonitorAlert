@@ -4,9 +4,9 @@
     <TargetFramework>netcoreapp8.0</TargetFramework>
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <PublishProfile>DefaultContainer</PublishProfile>
-    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0-jammy-amd64</ContainerBaseImage>
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0</ContainerBaseImage>
     <ContainerImageName>mungert/networkmonitoralert</ContainerImageName>
-    <ContainerImageTag>1.7.6</ContainerImageTag>
+    <ContainerImageTag>1.7.7</ContainerImageTag>
         <Nullable>enable</Nullable>
 </PropertyGroup>
 
