@@ -123,11 +123,11 @@ namespace NetworkMonitor.Alert.Services
                     {
                         case "serviceWakeUp":
                             rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
-                            rabbitMQObj.Consumer.Received += (model, ea) =>
+                            rabbitMQObj.Consumer.Received += async (model, ea) =>
                         {
                             try
                             {
-                                result = WakeUp();
+                                result = await WakeUp();
                                 rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
                             }
                             catch (Exception ex)
@@ -303,7 +303,7 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
-        public ResultObj WakeUp()
+        public async Task<ResultObj> WakeUp()
         {
             ResultObj result = new ResultObj();
             result.Success = false;
@@ -313,7 +313,7 @@ namespace NetworkMonitor.Alert.Services
                 /*_alertMessageService.Awake=true;
                 result.Message+="Success : Set Awake to true in AlertMessageService.";
                 result.Success=true;*/
-                result = _alertMessageService.WakeUp();
+                result = await _alertMessageService.WakeUp();
                 _logger.LogWarning(result.Message);
             }
             catch (Exception e)
