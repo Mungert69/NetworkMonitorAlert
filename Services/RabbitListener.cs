@@ -17,7 +17,7 @@ namespace NetworkMonitor.Alert.Services
 {
     public interface IRabbitListener
     {
-        ResultObj WakeUp();
+        Task<ResultObj> WakeUp();
         ResultObj AlertMessageInit(AlertServiceInitObj initObj);
         ResultObj AlertMessageResetAlerts(AlertServiceAlertObj alertServiceAlertObj);
         Task<ResultObj> AlertMessage(AlertMessage alertMessage);
