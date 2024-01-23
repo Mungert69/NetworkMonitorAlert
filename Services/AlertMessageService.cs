@@ -85,15 +85,14 @@ namespace NetworkMonitor.Alert.Services
                 _logger.LogCritical("Error : Failed to run Save Data before shutdown : Error Was : " + e.Message);
             }
         }
-        public Task Init()
+        public async Task Init()
         {
-            return Task.Run(() =>
-              {
+            
                   AlertServiceInitObj alertObj = new AlertServiceInitObj();
-                  InitService(alertObj);
-              });
+                  await InitService(alertObj);
+              
         }
-        public void InitService(AlertServiceInitObj alertObj)
+        public async Task InitService(AlertServiceInitObj alertObj)
         {
             var processorList = new List<ProcessorObj>();
             try
@@ -197,7 +196,7 @@ namespace NetworkMonitor.Alert.Services
             try
             {
                 alertObj.IsAlertServiceReady = true;
-                _rabbitRepo.Publish<AlertServiceInitObj>("alertServiceReady", alertObj);
+                await _rabbitRepo.PublishAsync<AlertServiceInitObj>("alertServiceReady", alertObj);
                 _logger.LogInformation("Published event AlertServiceItitObj.IsAlertServiceReady = true");
             }
             catch (Exception e)
@@ -263,7 +262,7 @@ namespace NetworkMonitor.Alert.Services
             }
         }
 
-        public ResultObj WakeUp()
+        public async Task<ResultObj> WakeUp()
         {
             ResultObj result = new ResultObj();
             result.Message = "SERVICE : AlertMessageService.WakeUp() ";
@@ -278,7 +277,7 @@ namespace NetworkMonitor.Alert.Services
                 {
                     AlertServiceInitObj alertObj = new AlertServiceInitObj();
                     alertObj.IsAlertServiceReady = true;
-                    _rabbitRepo.Publish<AlertServiceInitObj>("alertServiceReady", alertObj);
+                    await _rabbitRepo.PublishAsync<AlertServiceInitObj>("alertServiceReady", alertObj);
                     result.Message += "Received WakeUp so Published event AlertServiceItitObj.IsAlertServiceReady = true";
                     result.Success = true;
                 }

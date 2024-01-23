@@ -7,7 +7,7 @@ namespace NetworkMonitor.Alert.Services
 {
   public interface IAlertMessageService
   {
-    public void InitService(AlertServiceInitObj alertObj);
+    public Task InitService(AlertServiceInitObj alertObj);
     public Task Init();
 
     List<MonitorStatusAlert> MonitorStatusAlerts { get; set; }
@@ -15,7 +15,7 @@ namespace NetworkMonitor.Alert.Services
 
     //ResultObj QueueRemoveFromAlertSentList(AlertFlagObj alertFlagObj);
     Task<ResultObj> UpdateUserInfo(UserInfo userInfo);
-    ResultObj WakeUp();
+    Task <ResultObj> WakeUp();
 
     bool IsAlertRunning { get; set; }
     bool Awake { get; set; }
