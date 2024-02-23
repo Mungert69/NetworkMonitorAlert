@@ -11,10 +11,9 @@
 </PropertyGroup>
 
   <ItemGroup>
-<PackageReference Include="HostInitActions" Version="1.2.0" />
+
     <PackageReference Include="MailKit" Version="4.2.0" />
-       <PackageReference Include="Microsoft.NET.Build.Containers" Version="8.0.0" />
-   </ItemGroup>
+          </ItemGroup>
 
     <ItemGroup>
     <ProjectReference Include="..\NetworkMonitor\NetworkMonitor.csproj" />
