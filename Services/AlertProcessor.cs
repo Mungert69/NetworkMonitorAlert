@@ -1,0 +1,375 @@
+using NetworkMonitor.Objects;
+using NetworkMonitor.Objects.ServiceMessage;
+using NetworkMonitor.Objects.Repository;
+using NetworkMonitor.Connection;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+namespace NetworkMonitor.Alert.Services;
+public class AlertProcessor
+{
+
+    private IRabbitRepo _rabbitRepo;
+    private ILogger _logger;
+    private List<UserInfo> _userInfos = new List<UserInfo>();
+    private EmailProcessor _emailProcessor;
+    private IProcessorState _processorState;
+    private NetConnectCollection _netConnectCollection;
+
+
+    private IAlertProcess _monitorAlertProcess = new AlertProcess() {  PublishProcessor= true };
+    private IAlertProcess _predictAlertProcess = new AlertProcess() { PublishPredict= true };
+
+    public IAlertProcess MonitorAlertProcess { get => _monitorAlertProcess; set => _monitorAlertProcess = value; }
+    public IAlertProcess PredictAlertProcess { get => _predictAlertProcess; set => _predictAlertProcess = value; }
+
+    public AlertProcessor( ILogger logger,IRabbitRepo rabbitRepo,EmailProcessor emailProcessor, IProcessorState processorState,NetConnectCollection netConnectCollection)
+    {
+        _rabbitRepo = rabbitRepo;
+        _logger = logger;
+        _emailProcessor = emailProcessor;
+        _processorState=processorState;
+        _netConnectCollection=netConnectCollection;
+    }
+
+
+    public async Task<ResultObj> MonitorAlert()
+    {
+        return await Alert(MonitorAlertProcess);
+    }
+    public async Task<ResultObj> PredictAlert()
+    {
+        return await Alert(PredictAlertProcess);
+    }
+    public async Task<ResultObj> Alert(IAlertProcess alertProcess)
+    {
+        alertProcess.Awake = true;
+        AlertServiceInitObj alertObj=new AlertServiceInitObj();
+        ResultObj result = new ResultObj();
+        result.Message = $"SERVICE : AlertProcessor.Alert({alertProcess.PublishPrefix}) ";
+        result.Success = false;
+        if (alertProcess.PublishScheduler)
+        {
+            alertObj = new AlertServiceInitObj();
+            alertObj.IsAlertServiceReady = false;
+            await _rabbitRepo.PublishAsync<AlertServiceInitObj>("alertServiceReady", alertObj);
+            _logger.LogInformation("Published event AlertServiceItitObj.IsAlertServiceReady = false");
+
+        }
+        Stopwatch timerInner = new Stopwatch();
+        timerInner.Start();
+        try
+        {
+            result.Message += await InitAlerts(_userInfos, alertProcess);
+            int count = await SendAlerts(alertProcess);
+            result.Message += "Success : AlertMessageService.Alert Executed ";
+            if (alertProcess.Alert)
+            {
+                result.Message += "Info : Message sent was to :" + count + " users";
+            }
+            result.Success = true;
+            _logger.LogInformation(result.Message);
+        }
+        catch (Exception e)
+        {
+            result.Message += "Error : AlertMessageService.Alert Execute failed : Error was : " + e.ToString();
+            result.Success = false;
+            _logger.LogError(result.Message);
+        }
+        finally
+        {
+            try
+            {
+                TimeSpan timeTakenInner = timerInner.Elapsed;
+                // If time taken is greater than the time to wait, then we need to adjust the time to wait.
+                int timeTakenInnerInt = (int)timeTakenInner.TotalMilliseconds;
+                if (timeTakenInnerInt < 10000)
+                {
+                    _logger.LogInformation("Sleeping for " + (10000 - timeTakenInnerInt) + " ms to allow message to pass to scheduler");
+                    new System.Threading.ManualResetEvent(false).WaitOne(10000 - timeTakenInnerInt);
+                }
+                if (alertProcess.PublishScheduler)
+                {
+                    alertObj.IsAlertServiceReady = true;
+                    await _rabbitRepo.PublishAsync<AlertServiceInitObj>("alertServiceReady", alertObj);
+                    _logger.LogInformation("Published event AlertServiceItitObj.IsAlertServiceReady = true");
+
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Error : Can not publish event  AlertServiceItitObj.IsAlertServiceReady " + e.Message.ToString().ToString());
+            }
+            alertProcess.Awake = false;
+        }
+        return result;
+    }
+    public async Task<String> InitAlerts(List<UserInfo> userInfos, IAlertProcess alertProcess)
+    {
+        string resultStr = " InitAlerts : ";
+        alertProcess.Alert = false;
+        alertProcess.AlertMessages = new List<AlertMessage>();
+        var updateAlertFlagList = new List<IAlertable>();
+        var publishAlertSentList = new List<IAlertable>();
+        while (alertProcess.IsAlertRunning)
+        {
+            resultStr += " Warning : Waiting for Alert to stop running ";
+            new System.Threading.ManualResetEvent(false).WaitOne(1000);
+        }
+        alertProcess.IsAlertRunning = true;
+        var monitorStatusAlerts = alertProcess.Alerts.ConvertAll(c => new MonitorStatusAlert(c));
+        alertProcess.IsAlertRunning = false;
+
+        foreach (MonitorStatusAlert monitorStatusAlert in monitorStatusAlerts)
+        {
+
+            bool noAlertSentStored = alertProcess.UpdateAlertSentList.FirstOrDefault(w => w.ID == monitorStatusAlert.ID) == null;
+            if (monitorStatusAlert.AlertFlag = true && monitorStatusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(monitorStatusAlert);
+            string? userId = monitorStatusAlert.UserID;
+            var testUserInfo = userInfos.FirstOrDefault(u => u.UserID == userId);
+            if (testUserInfo == null)
+            {
+                _logger.LogWarning(" Warning : MonitorStatusAlert contains userId not present in UserInfos State store  .");
+                continue;
+            }
+            UserInfo userInfo = new UserInfo(testUserInfo);
+
+            if (userInfo.UserID == "default")
+            {
+                _emailProcessor.VerifyEmail(userInfo, monitorStatusAlert);
+                if (userInfo.Email == null) userInfo.Email = "missing@email";
+                userInfo.Name = userInfo.Email.Split('@')[0];
+                userId = userInfo.Email;
+                userInfo.UserID = userId;
+            }
+            else
+            {
+                if (!userInfo.DisableEmail)
+                {
+                    _emailProcessor.VerifyEmail(userInfo, monitorStatusAlert);
+                }
+            }
+
+            if (monitorStatusAlert.AddUserEmail == "delete") userInfo.DisableEmail = true;
+
+            monitorStatusAlert.UserName = userInfo.Name;
+            if (monitorStatusAlert.DownCount > alertProcess.AlertThreshold && monitorStatusAlert.AlertSent == false && noAlertSentStored)
+            {
+                // Its not the first messge for this user so we need to add a new line
+                if (alertProcess.AlertMessages.FirstOrDefault(a => a.UserID == userId) != null)
+                {
+                    var alertMessage = alertProcess.AlertMessages.FirstOrDefault(a => a.UserID == userId);
+                    if (alertMessage == null)
+                    {
+                        _logger.LogWarning($" Warning : No alert messages contains userId {userId} .");
+                        continue;
+                    }
+                    alertMessage.Message += "\n" + monitorStatusAlert.EndPointType!.ToUpper() + " Alert for host at address " + monitorStatusAlert.Address + " status message is " + monitorStatusAlert.Message + " . " +
+                                               "\nHost down count is " + monitorStatusAlert.DownCount + "\nThe time of this event is  " + monitorStatusAlert.EventTime + "\n" +
+                                               " The Processing server ID was " + monitorStatusAlert.AppID + " The timeout was set to " + monitorStatusAlert.Timeout + " ms. \n\n";
+                    alertMessage.AlertFlagObjs.Add(monitorStatusAlert);
+                }
+                // This is the first message for this user so we need to add a new AlertMessage.                   
+                else
+                {
+                    var alertMessage = new AlertMessage();
+                    alertMessage.UserInfo = userInfo; //  There is a problem this user is not in the database.
+                    if (userInfo == null)
+                    {
+                        resultStr += "Warning : UserID " + userId + " not found in UserInfo table";
+                    }
+                    else
+                    {
+                        // Add start message
+                        alertMessage.Message = "Alert message for " + monitorStatusAlert.UserName + " . ";
+                        alertMessage.Message += "\n" + monitorStatusAlert.EndPointType!.ToUpper() + " Alert for host at address " + monitorStatusAlert.Address + " status message is " + monitorStatusAlert.Message + " . " +
+                                  "\nHost down count is " + monitorStatusAlert.DownCount + "\nThe time of this event is  " + monitorStatusAlert.EventTime + "\n" +
+                                  " The Processing server ID was " + monitorStatusAlert.AppID + " The timeout was set to " + monitorStatusAlert.Timeout + " ms. \n\n";
+                        alertMessage.dontSend = userInfo.DisableEmail;
+                        alertMessage.AlertFlagObjs.Add(monitorStatusAlert);
+                        alertProcess.AlertMessages.Add(alertMessage);
+                    }
+                }
+                updateAlertFlagList.Add(monitorStatusAlert);
+                //monitorStatusAlert.AlertFlag = true;
+            }
+        }
+        if (publishAlertSentList.Count() != 0)
+        {
+            _logger.LogWarning("Warning republishing AlertSent List check coms. ");
+            if (alertProcess.PublishProcessor) await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorState.EnabledProcessorList);
+        }
+        if (alertProcess.PublishProcessor) await CheckAlerts(updateAlertFlagList, alertProcess);
+
+        if (updateAlertFlagList.Count() > 0)
+        {
+            alertProcess.Alert = true;
+            if (alertProcess.PublishProcessor) await PublishAlertsRepo.ProcessorAlertFlag(_logger, _rabbitRepo, updateAlertFlagList, _processorState.EnabledProcessorList);
+        }
+        else alertProcess.Alert = false;
+        return resultStr;
+    }
+    private async Task CheckAlerts(List<IAlertable> updateAlertFlagList, IAlertProcess alertProcess)
+    {
+        if (updateAlertFlagList == null || updateAlertFlagList.Count() == 0) return;
+        var pingParams = new PingParams();
+        var monitorPingInfos = new List<MonitorPingInfo>();
+        int maxTimeout = 0;
+        // exclude MonitorPingInfos that have EndPointType set to string values in ExcludeEndPointTypList
+        var excludeEndPoints = new ExcludeEndPointTypeList();
+        updateAlertFlagList.Where(w => !excludeEndPoints.Contains(w.EndPointType!)).ToList().ForEach(a =>
+        {
+            monitorPingInfos.Add(new MonitorPingInfo()
+            {
+                ID = a.ID,
+                MonitorIPID = a.ID,
+                Address = a.Address!,
+                AppID = a.AppID,
+                EndPointType = a.EndPointType!,
+                Timeout = a.Timeout,
+                Enabled = true
+            });
+            if (a.Timeout > maxTimeout) maxTimeout = a.Timeout;
+        });
+        _logger.LogInformation(" Checking " + monitorPingInfos.Count() + " Alerts ");
+       SemaphoreSlim semaphore = new SemaphoreSlim(1);
+        _netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams, true, false, semaphore).Wait();
+        var netConnects = _netConnectCollection.GetNonLongRunningNetConnects().ToList();
+        var pingConnectTasks = new List<Task>();
+        netConnects.Where(w => w.MpiStatic.Enabled == true).ToList().ForEach(
+            netConnect =>
+            {
+                pingConnectTasks.Add(netConnect.Connect());
+            }
+        );
+        Task.WhenAll(pingConnectTasks.ToArray()).Wait();
+        //new System.Threading.ManualResetEvent(false).WaitOne(maxTimeout);
+        var monitorIPDic = new Dictionary<string, List<int>>();
+        monitorPingInfos.Where(w => w.MonitorStatus.IsUp == true).ToList().ForEach(m =>
+       {
+           updateAlertFlagList.RemoveAll(r => r.ID == m.MonitorIPID);
+           _logger.LogWarning(" Warning : Overturned Alert with MonitorPingID = " + m.MonitorIPID + " . On Processor with AppID " + m.AppID + " . ");
+           alertProcess.AlertMessages.ForEach(a =>
+           {
+               a.AlertFlagObjs.RemoveAll(r => r.ID == m.MonitorIPID);
+           });
+           if (!monitorIPDic.ContainsKey(m.AppID!))
+           {
+               monitorIPDic.Add(m.AppID!, new List<int>() { m.MonitorIPID });
+           }
+           else
+           {
+               monitorIPDic[m.AppID!].Add(m.MonitorIPID);
+           }
+       });
+        alertProcess.AlertMessages.RemoveAll(r => r.AlertFlagObjs.Count() == 0);
+        await PublishAlertsRepo.ProcessorResetAlerts(_logger, _rabbitRepo, monitorIPDic);
+    }
+
+    public async Task<int> SendAlerts(IAlertProcess alertProcess)
+    {
+        int count = 0;
+        if (alertProcess.Alert)
+        {
+            var publishAlertSentList = new List<IAlertable>();
+            foreach (AlertMessage alertMessage in alertProcess.AlertMessages)
+            {
+                alertMessage.SendTrustPilot = _emailProcessor.SendTrustPilot;
+                alertMessage.Subject = "Network Monitor Alert you have a Host down";
+                if (!alertMessage.dontSend)
+                {
+                    alertMessage.VerifyLink = false;
+                    var result = new ResultObj();
+                    result = await _emailProcessor.SendAlert(alertMessage);
+
+                    if (result.Success)
+                    {
+                        result.Message += " Success : Sent alert message to " + alertMessage.EmailTo;
+                        UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList, alertProcess);
+                        _logger.LogInformation(result.Message);
+                    }
+                    else
+                    {
+                        _logger.LogError(result.Message);
+                    }
+
+                    count++;
+                }
+                else
+                {
+                    UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList, alertProcess);
+                }
+            }
+            await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorState.EnabledProcessorList);
+        }
+        return count;
+    }
+
+    private void UpdateAndPublishAlertSentList(AlertMessage alertMessage, List<IAlertable> publishAlertSentList, IAlertProcess alertProcess)
+    {
+        foreach (IAlertable alertFlagObj in alertMessage.AlertFlagObjs)
+        {
+            alertFlagObj.AlertSent = true;
+            publishAlertSentList.Add(alertFlagObj);
+            alertProcess.UpdateAlertSentList.Add(alertFlagObj);
+            //var updateMonitorStatusAlert = _monitorStatusAlerts.FirstOrDefault(w => w.ID == alertFlagObj.ID);
+            //if (updateMonitorStatusAlert != null) updateMonitorStatusAlert.AlertSent = true;
+        }
+    }
+
+    public List<ResultObj> ResetMonitorAlerts(List<AlertFlagObj> alertFlagObjs) {
+        return ResetAlerts(alertFlagObjs, _monitorAlertProcess);
+    }
+     public List<ResultObj> ResetPredictAlerts(List<AlertFlagObj> alertFlagObjs) {
+        return ResetAlerts(alertFlagObjs, _predictAlertProcess);
+    }
+       private List<ResultObj> ResetAlerts(List<AlertFlagObj> alertFlagObjs, IAlertProcess alertProcess)
+        {
+            var results = new List<ResultObj>();
+            var result = new ResultObj();
+            alertFlagObjs.ForEach(f =>
+            {
+                try
+                {
+                    while (alertProcess.IsAlertRunning)
+                    {
+                        result.Message += " Info : Waiting for Alert to stop running ";
+                        new System.Threading.ManualResetEvent(false).WaitOne(5000);
+                    }
+                    var updateMonitorStatusAlerts = alertProcess.Alerts.Where(w => w.ID == f.ID).ToList();
+                    if (updateMonitorStatusAlerts == null)
+                    {
+                        result.Success = false;
+                        result.Message += " Warning : Unable to find any MonitorStatusAlerts with ID " + f.ID;
+                    }
+                    else
+                    {
+                        foreach (var updateMonitorStatusAlert in updateMonitorStatusAlerts)
+                        {
+                            updateMonitorStatusAlert.AlertFlag = false;
+                            updateMonitorStatusAlert.AlertSent = false;
+                            updateMonitorStatusAlert.DownCount = 0;
+                            result.Success = true;
+                            result.Message += " Success : updated MonitorStatusAlert with ID " + f.ID + " with AppID " + f.AppID + " . ";
+
+                        }
+                        alertProcess.UpdateAlertSentList.RemoveAll(r => r.ID == f.ID);
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    result.Success = false;
+                    result.Message += " Error : Unable to reset alerts for MonitorStatusAlert with ID " + f.ID + " with AppID " + f.AppID + " Error was : " + e.Message + " . ";
+                }
+                results.Add(result);
+            });
+            return results;
+        }
+     
+
+}

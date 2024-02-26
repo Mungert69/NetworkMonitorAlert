@@ -10,7 +10,7 @@ namespace NetworkMonitor.Objects.Repository
 {
     public class PublishAlertsRepo
     {
-        public static async Task ProcessorAlertSent(ILogger logger, IRabbitRepo rabbitRepo, List<MonitorStatusAlert> publishAlertSentList, List<ProcessorObj> processorList)
+        public static async Task ProcessorAlertSent(ILogger logger, IRabbitRepo rabbitRepo, List<IAlertable> publishAlertSentList, List<ProcessorObj> processorList)
         {
             try
             {
@@ -29,7 +29,7 @@ namespace NetworkMonitor.Objects.Repository
                 logger.LogCritical("Error : Unable to send processorAlertSent message. Error was :  " + e.Message.ToString());
             }
         }
-        public static  async  Task ProcessorAlertFlag(ILogger logger,  IRabbitRepo rabbitRepo, List<MonitorStatusAlert> publishAlertFlagList, List<ProcessorObj> processorList)
+        public static  async  Task ProcessorAlertFlag(ILogger logger,  IRabbitRepo rabbitRepo, List<IAlertable> publishAlertFlagList, List<ProcessorObj> processorList)
         {
             foreach (var processorObj in processorList)
             {

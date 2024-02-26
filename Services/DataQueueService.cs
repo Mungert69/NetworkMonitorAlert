@@ -19,7 +19,7 @@ namespace NetworkMonitor.Alert.Services
 {
     public interface IDataQueueService
     {
-        Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<MonitorStatusAlert> monitorStatusAlerts);
+        Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<IAlertable> monitorStatusAlerts);
 
     }
     public class DataQueueService : IDataQueueService
@@ -32,13 +32,13 @@ namespace NetworkMonitor.Alert.Services
             _encryptKey = systemParamsHelper.GetSystemParams().EmailEncryptKey;
             _logger = logger;
         }
-        public Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<MonitorStatusAlert> monitorStatusAlerts)
+        public Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<IAlertable> monitorStatusAlerts)
         {
-            Func<string, List<MonitorStatusAlert>, Task<ResultObj>> func = CommitProcessorDataString;
+            Func<string, List<IAlertable>, Task<ResultObj>> func = CommitProcessorDataString;
             return taskQueue.EnqueueStatusString<ResultObj>(func, processorDataString, monitorStatusAlerts);
         }
 
-        private Task<ResultObj> CommitProcessorDataString(string processorDataString, List<MonitorStatusAlert> monitorStatusAlerts)
+        private Task<ResultObj> CommitProcessorDataString(string processorDataString, List<IAlertable> monitorStatusAlerts)
         {
             return Task<ResultObj>.Run(() =>
             {

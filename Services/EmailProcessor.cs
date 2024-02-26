@@ -8,7 +8,7 @@ using MimeKit;
 using NetworkMonitor.Objects;
 using NetworkMonitor.Utils;
 using Microsoft.Extensions.Logging;
-
+using System.Text.RegularExpressions;
 
 namespace NetworkMonitor.Alert.Services;
 
@@ -29,6 +29,9 @@ public class EmailProcessor
     private SpamFilter _spamFilter;
     private ILogger _logger;
     private bool _disableEmailAlert;
+    private bool _sendTrustPilot;
+
+    public bool SendTrustPilot { get => _sendTrustPilot; set => _sendTrustPilot = value; }
 
     public EmailProcessor(SystemParams systemParams, ILogger logger, bool disableEmailAlert)
     {
@@ -44,6 +47,7 @@ public class EmailProcessor
         _trustPilotReviewEmail = systemParams.TrustPilotReviewEmail;
         _thisSystemUrl = systemParams.ThisSystemUrl;
         _publicIPAddress = systemParams.PublicIPAddress;
+        _sendTrustPilot = systemParams.SendTrustPilot;
         _spamFilter = new SpamFilter(logger);
         _logger = logger;
     }
@@ -454,4 +458,33 @@ private string BuildUrl(IGenericEmailObj genericEmailObj)
         }
         return sb.ToString();
     }
+
+     public void VerifyEmail(UserInfo userInfo, MonitorStatusAlert monitorStatusAlert)
+        {
+            // Validate email format
+            if (monitorStatusAlert.AddUserEmail != null)
+            {
+
+
+                var emailRegex = new Regex(@"^[\w-+]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$");
+                if (emailRegex.IsMatch(monitorStatusAlert.AddUserEmail))
+                {
+
+                    //_logger.LogInformation(" Success : Rewriting email address from " + userInfo.Email + " to " + monitorStatusAlert.AddUserEmail);
+                    userInfo.Email = monitorStatusAlert.AddUserEmail;
+                    userInfo.DisableEmail = !monitorStatusAlert.IsEmailVerified;
+                }
+                else
+                {
+                    userInfo.DisableEmail = true;
+                    // Handle invalid email format
+                    _logger.LogWarning(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
+                }
+            }
+            else
+            {
+                userInfo.DisableEmail = !userInfo.Email_verified;
+            }
+        }
+
 }

@@ -370,7 +370,7 @@ namespace NetworkMonitor.Alert.Services
             try
             {
 
-                var results = _alertMessageService.ResetAlerts(alertServiceAlertObj.AlertFlagObjs);
+                var results = _alertMessageService.ResetMonitorAlerts(alertServiceAlertObj.AlertFlagObjs);
                 results.ForEach(f => result.Message += f.Message);
                 result.Success = results.All(a => a.Success == true) && results.Count() != 0;
                 result.Data = results;
@@ -440,7 +440,7 @@ namespace NetworkMonitor.Alert.Services
             result.Message = "MessageAPI : MonitorAlert : ";
             try
             {
-                result = await _alertMessageService.Alert();
+                result = await _alertMessageService.MonitorAlert();
                 _logger.LogInformation(result.Message);
             }
             catch (Exception e)

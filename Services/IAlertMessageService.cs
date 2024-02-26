@@ -10,8 +10,8 @@ namespace NetworkMonitor.Alert.Services
     public Task InitService(AlertServiceInitObj alertObj);
     public Task Init();
 
-    List<MonitorStatusAlert> MonitorStatusAlerts { get; set; }
-    List<ResultObj> ResetAlerts(List<AlertFlagObj> alertFlagObjs);
+    List<IAlertable> MonitorStatusAlerts { get; set; }
+    List<ResultObj> ResetMonitorAlerts(List<AlertFlagObj> alertFlagObjs);
 
     //ResultObj QueueRemoveFromAlertSentList(AlertFlagObj alertFlagObj);
     Task<ResultObj> UpdateUserInfo(UserInfo userInfo);
@@ -20,7 +20,8 @@ namespace NetworkMonitor.Alert.Services
     bool IsAlertRunning { get; set; }
     bool Awake { get; set; }
 
-    Task<ResultObj> Alert();
+    Task<ResultObj> MonitorAlert();
+    Task<ResultObj> PredictAlert();
     Task<ResultObj> Send(AlertMessage alertMessage);
     Task<ResultObj> SendGenericEmail(GenericEmailObj genericEmail);
     Task<List<ResultObj>> UserHostExpire(List<GenericEmailObj> userInfos);
