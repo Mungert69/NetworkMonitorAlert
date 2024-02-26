@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 using HostInitActions;
 
 
-namespace NetworkMonitor.Service
+namespace NetworkMonitor.Alert
 {
     public class Startup
     {
