@@ -29,7 +29,6 @@ public class AlertTestData
             EndPointType = "icmp",
             Timeout = 10000,
             AddUserEmail = "support@mahadeva.co.uk",
-            IsEmailVerified = true,
             // Assuming these properties come from StatusObj and are relevant
             AlertFlag = false,
             AlertSent = false,
@@ -48,8 +47,6 @@ public class AlertTestData
             AppID = "test",
             EndPointType = "icmp",
             Timeout = 10000,
-            AddUserEmail = "support@mahadeva.co.uk",
-            IsEmailVerified = true,
             // Assuming these properties come from StatusObj and are relevant
             AlertFlag = true,
             AlertSent = false,
@@ -69,7 +66,6 @@ public class AlertTestData
             EndPointType = "icmp",
             Timeout = 10000,
             AddUserEmail = "support@mahadeva.co.uk",
-            IsEmailVerified = true,
             // Assuming these properties come from StatusObj and are relevant
             AlertFlag = false,
             AlertSent = false,
@@ -78,6 +74,25 @@ public class AlertTestData
             IsUp = false,
             Message = "Timeout",
             MonitorPingInfoID = 3,
+        });
+         alerts.Add(new MonitorStatusAlert()
+        {
+            ID = 4,
+            UserID = "default",
+            Address = "2.2.2.2",
+            UserName = "",
+            AppID = "test",
+            EndPointType = "icmp",
+            Timeout = 10000,
+            AddUserEmail = "bademail@bademail",
+            // Assuming these properties come from StatusObj and are relevant
+            AlertFlag = true,
+            AlertSent = false,
+            DownCount = 5,
+            EventTime = DateTime.UtcNow,
+            IsUp = false,
+            Message = "Timeout",
+            MonitorPingInfoID = 4,
         });
         return alerts;
     }
@@ -107,6 +122,14 @@ public class AlertTestData
             Email_verified=true,
             DisableEmail=false,
             Name="test user"
+
+        });
+        userInfos.Add(new UserInfo() {
+            UserID = "default",
+            Email="support@mahadeva.co.uk",
+            Email_verified=true,
+            DisableEmail=false,
+            Name="default"
 
         });
         return userInfos;

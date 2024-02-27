@@ -12,16 +12,16 @@ using System.Text.RegularExpressions;
 
 namespace NetworkMonitor.Alert.Services;
 public interface IEmailProcessor
-    {
-        bool SendTrustPilot { get; set; }
+{
+    bool SendTrustPilot { get; set; }
 
-        Task<ResultObj> SendAlert(AlertMessage alertMessage);
-        Task<ResultObj> SendHostReport(HostReportObj hostReport);
-        Task<ResultObj> SendGenericEmail(GenericEmailObj emailObj);
-        Task<List<ResultObj>> UserHostExpire(List<GenericEmailObj> emailObjs);
-        Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> emailObjs);
-    void VerifyEmail(UserInfo userInfo, MonitorStatusAlert monitorStatusAlert);
-    }
+    Task<ResultObj> SendAlert(AlertMessage alertMessage);
+    Task<ResultObj> SendHostReport(HostReportObj hostReport);
+    Task<ResultObj> SendGenericEmail(GenericEmailObj emailObj);
+    Task<List<ResultObj>> UserHostExpire(List<GenericEmailObj> emailObjs);
+    Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> emailObjs);
+    bool VerifyEmail(UserInfo userInfo, IAlertable monitorStatusAlert);
+}
 public class EmailProcessor : IEmailProcessor
 {
     private string _emailEncryptKey;
@@ -240,7 +240,7 @@ public class EmailProcessor : IEmailProcessor
         var result = new ResultObj();
         var report = hostReport.Report;
         var user = hostReport.UserInfo;
-        var headerImageUrl=BuildUrl(hostReport);
+        var headerImageUrl = BuildUrl(hostReport);
         string? template = null;
         try
         {
@@ -372,10 +372,10 @@ public class EmailProcessor : IEmailProcessor
             else
             {
                 var urls = GetUrls(emailObj.UserInfo.UserID, emailObj.UserInfo.Email);
-                    var contentMap = new Dictionary<string, string>
+                var contentMap = new Dictionary<string, string>
             {
                  { "EmailTitle", "Action Required: Your Free Network Monitor Account"},
-                { "HeaderImageUrl",  BuildUrl(emailObj as IGenericEmailObj)}, 
+                { "HeaderImageUrl",  BuildUrl(emailObj as IGenericEmailObj)},
                 { "HeaderImageAlt", emailObj.HeaderImageAlt },
                  { "MainHeading", "We Miss You at Free Network Monitor!" },
                   { "MainContent", "Hello! We've noticed that you haven't logged in for a while. To keep our services efficient, we've paused the monitoring of your hosts. Don't worry, you can easily resume monitoring by logging back in. Remember, active monitoring is key to staying informed! <br><br>Prefer not to log in every three months? Upgrade to our standard plan, only $1 a month, for uninterrupted monitoring and many additional features." },
@@ -387,7 +387,7 @@ public class EmailProcessor : IEmailProcessor
 
 
                 var populatedTemplate = PopulateTemplate(template, contentMap);
-                   // Dont send to fast.
+                // Dont send to fast.
                 await Task.Delay(5000);
                 results.Add(await SendTemplate(emailObj.UserInfo.UserID, emailObj.UserInfo.Email, contentMap["EmailTitle"], populatedTemplate, urls));
 
@@ -397,7 +397,7 @@ public class EmailProcessor : IEmailProcessor
 
     }
 
-     public async Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> emailObjs)
+    public async Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> emailObjs)
     {
         var results = new List<ResultObj>();
         var result = new ResultObj();
@@ -431,10 +431,10 @@ public class EmailProcessor : IEmailProcessor
             else
             {
                 var urls = GetUrls(emailObj.UserInfo.UserID, emailObj.UserInfo.Email);
-                    var contentMap = new Dictionary<string, string>
+                var contentMap = new Dictionary<string, string>
             {
                  { "EmailTitle", "Complimentary 6-Month Standard Plan Upgrade from Free Network Monitor"},
-                { "HeaderImageUrl",  BuildUrl(emailObj as IGenericEmailObj)}, 
+                { "HeaderImageUrl",  BuildUrl(emailObj as IGenericEmailObj)},
                 { "HeaderImageAlt", emailObj.HeaderImageAlt },
                  { "MainHeading", "Our Apology and a Special Offer from Free Network Monitor" },
                   { "MainContent", "<p>We've noticed an issue where our reminder email for inactive accounts failed to send. Consequently, the monitoring of your hosts was inadvertently paused, and we deeply apologize for any inconvenience this may have caused.</p><p>To rectify this, we're offering you a complimentary upgrade to our Standard Plan for 6 months. This upgrade includes:</p><ul><li>Monitoring for up to 50 hosts</li><li>Enhanced capabilities: ICMP, Http, Dns, Raw Connect, Smtp Ping, and Quantum Ready checks</li><li>Email support</li><li>6-month full response data retention</li></ul><p>To take advantage of this upgrade and resume monitoring, please log in to your account and re-enable the hosts you wish to monitor. You can also add new hosts to fully utilize the features of the Standard Plan.</p><p>We sincerely hope this gesture underscores our commitment to your satisfaction and trust in our services. If you have any questions or require assistance, please feel free to contact us.</p><p>Thank you for your understanding, and we look forward to serving your network monitoring needs.</p><p>Warm regards,</p><p>Mahadeva<br>Tech Support<br>Free Network Monitor Team</p>" },
@@ -446,7 +446,7 @@ public class EmailProcessor : IEmailProcessor
 
 
                 var populatedTemplate = PopulateTemplate(template, contentMap);
-                   // Dont send to fast.
+                // Dont send to fast.
                 await Task.Delay(5000);
                 results.Add(await SendTemplate(emailObj.UserInfo.UserID, emailObj.UserInfo.Email, contentMap["EmailTitle"], populatedTemplate, urls));
 
@@ -455,7 +455,7 @@ public class EmailProcessor : IEmailProcessor
         return results;
 
     }
-private string BuildUrl(IGenericEmailObj genericEmailObj)
+    private string BuildUrl(IGenericEmailObj genericEmailObj)
     {
         StringBuilder sb = new StringBuilder(genericEmailObj.HeaderImageUri);
         sb.TrimEnd(new char[] { ':', '/' });
@@ -464,37 +464,38 @@ private string BuildUrl(IGenericEmailObj genericEmailObj)
         sb.Append("?id=");
         if (genericEmailObj != null && !string.IsNullOrEmpty(genericEmailObj.ID.ToString()))
         {
-            sb.Append(EncryptionHelper.EncryptStr(_emailEncryptKey,genericEmailObj.ID.ToString()));
+            sb.Append(EncryptionHelper.EncryptStr(_emailEncryptKey, genericEmailObj.ID.ToString()));
         }
         return sb.ToString();
     }
 
-     public void VerifyEmail(UserInfo userInfo, MonitorStatusAlert monitorStatusAlert)
+    public bool VerifyEmail(UserInfo userInfo, IAlertable monitorStatusAlert)
+    {
+        bool isValid = false;
+        // Validate email format
+        
+        if (!String.IsNullOrEmpty(monitorStatusAlert.AddUserEmail) )
         {
-            // Validate email format
-            if (monitorStatusAlert.AddUserEmail != null)
+
+            var emailRegex = new Regex(@"^[\w-+]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$");
+            if (emailRegex.IsMatch(monitorStatusAlert.AddUserEmail) && monitorStatusAlert.IsEmailVerified)
             {
-
-
-                var emailRegex = new Regex(@"^[\w-+]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$");
-                if (emailRegex.IsMatch(monitorStatusAlert.AddUserEmail))
-                {
-
-                    //_logger.LogInformation(" Success : Rewriting email address from " + userInfo.Email + " to " + monitorStatusAlert.AddUserEmail);
-                    userInfo.Email = monitorStatusAlert.AddUserEmail;
-                    userInfo.DisableEmail = !monitorStatusAlert.IsEmailVerified;
-                }
-                else
-                {
-                    userInfo.DisableEmail = true;
-                    // Handle invalid email format
-                    _logger.LogWarning(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
-                }
+                //_logger.LogInformation(" Success : Rewriting email address from " + userInfo.Email + " to " + monitorStatusAlert.AddUserEmail);
+                userInfo.Email = monitorStatusAlert.AddUserEmail;
+                isValid = true;
             }
             else
             {
-                userInfo.DisableEmail = !userInfo.Email_verified;
+
+                _logger.LogWarning(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
             }
         }
+        else
+        {
+            isValid = userInfo.Email_verified;
+        }
+
+        return isValid;
+    }
 
 }

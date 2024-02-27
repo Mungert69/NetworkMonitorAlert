@@ -83,6 +83,7 @@ public class AlertProcessor
                 result.Message += "Info : Message sent was to :" + count + " users";
             }
             result.Success = true;
+            result.Data = count;
             _logger.LogInformation(result.Message);
         }
         catch (Exception e)
@@ -138,6 +139,7 @@ public class AlertProcessor
         foreach (MonitorStatusAlert monitorStatusAlert in monitorStatusAlerts)
         {
 
+            // If the previoud publish of AlertSent failed then need to republish.
             bool noAlertSentStored = alertProcess.UpdateAlertSentList.FirstOrDefault(w => w.ID == monitorStatusAlert.ID) == null;
             if (monitorStatusAlert.AlertFlag = true && monitorStatusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(monitorStatusAlert);
             string? userId = monitorStatusAlert.UserID;
@@ -149,21 +151,16 @@ public class AlertProcessor
             }
             UserInfo userInfo = new UserInfo(testUserInfo);
 
+            bool disableEmail = !_emailProcessor.VerifyEmail(userInfo, monitorStatusAlert);
             if (userInfo.UserID == "default")
             {
-                _emailProcessor.VerifyEmail(userInfo, monitorStatusAlert);
                 if (userInfo.Email == null) userInfo.Email = "missing@email";
                 userInfo.Name = userInfo.Email.Split('@')[0];
                 userId = userInfo.Email;
                 userInfo.UserID = userId;
             }
-            else
-            {
-                if (!userInfo.DisableEmail)
-                {
-                    _emailProcessor.VerifyEmail(userInfo, monitorStatusAlert);
-                }
-            }
+           
+            userInfo.DisableEmail = disableEmail;
 
             if (monitorStatusAlert.AddUserEmail == "delete") userInfo.DisableEmail = true;
 
@@ -224,63 +221,6 @@ public class AlertProcessor
         else alertProcess.Alert = false;
         return resultStr;
     }
-    private async Task CheckAlerts(List<IAlertable> updateAlertFlagList, IAlertProcess alertProcess)
-    {
-        if (updateAlertFlagList == null || updateAlertFlagList.Count() == 0) return;
-        var pingParams = new PingParams();
-        var monitorPingInfos = new List<MonitorPingInfo>();
-        int maxTimeout = 0;
-        // exclude MonitorPingInfos that have EndPointType set to string values in ExcludeEndPointTypList
-        var excludeEndPoints = new ExcludeEndPointTypeList();
-        updateAlertFlagList.Where(w => !excludeEndPoints.Contains(w.EndPointType!)).ToList().ForEach(a =>
-        {
-            monitorPingInfos.Add(new MonitorPingInfo()
-            {
-                ID = a.ID,
-                MonitorIPID = a.ID,
-                Address = a.Address!,
-                AppID = a.AppID,
-                EndPointType = a.EndPointType!,
-                Timeout = a.Timeout,
-                Enabled = true
-            });
-            if (a.Timeout > maxTimeout) maxTimeout = a.Timeout;
-        });
-        _logger.LogInformation(" Checking " + monitorPingInfos.Count() + " Alerts ");
-        SemaphoreSlim semaphore = new SemaphoreSlim(1);
-        _netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams, true, false, semaphore).Wait();
-        var netConnects = _netConnectCollection.GetNonLongRunningNetConnects().ToList();
-        var pingConnectTasks = new List<Task>();
-        netConnects.Where(w => w.MpiStatic.Enabled == true).ToList().ForEach(
-            netConnect =>
-            {
-                pingConnectTasks.Add(netConnect.Connect());
-            }
-        );
-        Task.WhenAll(pingConnectTasks.ToArray()).Wait();
-        //new System.Threading.ManualResetEvent(false).WaitOne(maxTimeout);
-        var monitorIPDic = new Dictionary<string, List<int>>();
-        monitorPingInfos.Where(w => w.MonitorStatus.IsUp == true).ToList().ForEach(m =>
-       {
-           updateAlertFlagList.RemoveAll(r => r.ID == m.MonitorIPID);
-           _logger.LogWarning(" Warning : Overturned Alert with MonitorPingID = " + m.MonitorIPID + " . On Processor with AppID " + m.AppID + " . ");
-           alertProcess.AlertMessages.ForEach(a =>
-           {
-               a.AlertFlagObjs.RemoveAll(r => r.ID == m.MonitorIPID);
-           });
-           if (!monitorIPDic.ContainsKey(m.AppID!))
-           {
-               monitorIPDic.Add(m.AppID!, new List<int>() { m.MonitorIPID });
-           }
-           else
-           {
-               monitorIPDic[m.AppID!].Add(m.MonitorIPID);
-           }
-       });
-        alertProcess.AlertMessages.RemoveAll(r => r.AlertFlagObjs.Count() == 0);
-        await PublishAlertsRepo.ProcessorResetAlerts(_logger, _rabbitRepo, monitorIPDic);
-    }
-
     public async Task<int> SendAlerts(IAlertProcess alertProcess)
     {
         int count = 0;
@@ -320,6 +260,7 @@ public class AlertProcessor
         return count;
     }
 
+  
     private void UpdateAndPublishAlertSentList(AlertMessage alertMessage, List<IAlertable> publishAlertSentList, IAlertProcess alertProcess)
     {
         foreach (IAlertable alertFlagObj in alertMessage.AlertFlagObjs)
@@ -390,4 +331,62 @@ public class AlertProcessor
         });
         return results;
     }
+      private async Task CheckAlerts(List<IAlertable> updateAlertFlagList, IAlertProcess alertProcess)
+    {
+        if (updateAlertFlagList == null || updateAlertFlagList.Count() == 0) return;
+        var pingParams = new PingParams();
+        var monitorPingInfos = new List<MonitorPingInfo>();
+        int maxTimeout = 0;
+        // exclude MonitorPingInfos that have EndPointType set to string values in ExcludeEndPointTypList
+        var excludeEndPoints = new ExcludeEndPointTypeList();
+        updateAlertFlagList.Where(w => !excludeEndPoints.Contains(w.EndPointType!)).ToList().ForEach(a =>
+        {
+            monitorPingInfos.Add(new MonitorPingInfo()
+            {
+                ID = a.ID,
+                MonitorIPID = a.ID,
+                Address = a.Address!,
+                AppID = a.AppID,
+                EndPointType = a.EndPointType!,
+                Timeout = a.Timeout,
+                Enabled = true
+            });
+            if (a.Timeout > maxTimeout) maxTimeout = a.Timeout;
+        });
+        _logger.LogInformation(" Checking " + monitorPingInfos.Count() + " Alerts ");
+        SemaphoreSlim semaphore = new SemaphoreSlim(1);
+        _netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams, true, false, semaphore).Wait();
+        var netConnects = _netConnectCollection.GetNonLongRunningNetConnects().ToList();
+        var pingConnectTasks = new List<Task>();
+        netConnects.Where(w => w.MpiStatic.Enabled == true).ToList().ForEach(
+            netConnect =>
+            {
+                pingConnectTasks.Add(netConnect.Connect());
+            }
+        );
+        Task.WhenAll(pingConnectTasks.ToArray()).Wait();
+        //new System.Threading.ManualResetEvent(false).WaitOne(maxTimeout);
+        var monitorIPDic = new Dictionary<string, List<int>>();
+        monitorPingInfos.Where(w => w.MonitorStatus.IsUp == true).ToList().ForEach(m =>
+       {
+           updateAlertFlagList.RemoveAll(r => r.ID == m.MonitorIPID);
+           _logger.LogWarning(" Warning : Overturned Alert with MonitorPingID = " + m.MonitorIPID + " . On Processor with AppID " + m.AppID + " . ");
+           alertProcess.AlertMessages.ForEach(a =>
+           {
+               a.AlertFlagObjs.RemoveAll(r => r.ID == m.MonitorIPID);
+           });
+           if (!monitorIPDic.ContainsKey(m.AppID!))
+           {
+               monitorIPDic.Add(m.AppID!, new List<int>() { m.MonitorIPID });
+           }
+           else
+           {
+               monitorIPDic[m.AppID!].Add(m.MonitorIPID);
+           }
+       });
+        alertProcess.AlertMessages.RemoveAll(r => r.AlertFlagObjs.Count() == 0);
+        await PublishAlertsRepo.ProcessorResetAlerts(_logger, _rabbitRepo, monitorIPDic);
+    }
+
+  
 }
