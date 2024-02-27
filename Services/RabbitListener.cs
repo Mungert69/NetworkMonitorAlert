@@ -80,8 +80,20 @@ namespace NetworkMonitor.Alert.Services
             });
             _rabbitMQObjs.Add(new RabbitMQObj()
             {
+                ExchangeName = "predictAlert",
+                FuncName = "predictAlert",
+                MessageTimeout = 60000
+            });
+            _rabbitMQObjs.Add(new RabbitMQObj()
+            {
                 ExchangeName = "alertUpdateMonitorStatusAlerts",
                 FuncName = "alertUpdateMonitorStatusAlerts",
+                MessageTimeout = 60000
+            });
+             _rabbitMQObjs.Add(new RabbitMQObj()
+            {
+                ExchangeName = "alertUpdatePredictStatusAlerts",
+                FuncName = "alertUpdatePredictStatusAlerts",
                 MessageTimeout = 60000
             });
             _rabbitMQObjs.Add(new RabbitMQObj()
@@ -213,6 +225,21 @@ namespace NetworkMonitor.Alert.Services
                             }
                         };
                             break;
+                         case "predictAlert":
+                            rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+                            rabbitMQObj.Consumer.Received += async (model, ea) =>
+                        {
+                            try
+                            {
+                                result = await PredictAlert();
+                                rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.predictAlert " + ex.Message);
+                            }
+                        };
+                            break;
                         case "alertUpdateMonitorStatusAlerts":
                             rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
                             rabbitMQObj.Consumer.Received += async (model, ea) =>
@@ -225,6 +252,21 @@ namespace NetworkMonitor.Alert.Services
                             catch (Exception ex)
                             {
                                 _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertUpdateMonitorStatusAlerts " + ex.Message);
+                            }
+                        };
+                            break;
+                         case "alertUpdatePredictStatusAlerts":
+                            rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
+                            rabbitMQObj.Consumer.Received += async (model, ea) =>
+                        {
+                            try
+                            {
+                                result = await AlertUpdatePredictStatusAlerts(ConvertToString(model, ea));
+                                rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertUpdatePredictStatusAlerts " + ex.Message);
                             }
                         };
                             break;
@@ -452,6 +494,25 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
+          public async Task<ResultObj> PredictAlert()
+        {
+            ResultObj result = new ResultObj();
+            result.Success = false;
+            result.Message = "MessageAPI : PredictAlert : ";
+            try
+            {
+                result = await _alertMessageService.PredictAlert();
+                _logger.LogInformation(result.Message);
+            }
+            catch (Exception e)
+            {
+                result.Data = null;
+                result.Success = false;
+                result.Message += "Error : Failed to run PredictAlert : Error was : " + e.Message + " ";
+                _logger.LogError("Error : Failed to run PredictAlert : Error was : " + e.Message + " ");
+            }
+            return result;
+        }
         public async Task<ResultObj> AlertUpdateMonitorStatusAlerts(string? monitorStatusAlertString)
         {
             var result = new ResultObj();
@@ -464,18 +525,18 @@ namespace NetworkMonitor.Alert.Services
             }
             try
             {
-                while (_alertMessageService.IsAlertRunning)
+                while (_alertMessageService.IsMonitorAlertRunning)
                 {
                     result.Message += "Info : Waiting for Alert to stop running ";
                     new System.Threading.ManualResetEvent(false).WaitOne(5000);
                 }
-                _alertMessageService.IsAlertRunning = true;
-                var returnResult = await _dataQueueService.AddProcessorDataStringToQueue(monitorStatusAlertString, _alertMessageService.MonitorStatusAlerts);
-                _alertMessageService.IsAlertRunning = false;
+                _alertMessageService.IsMonitorAlertRunning = true;
+                var returnResult = await _dataQueueService.AddProcessorDataStringToQueue(monitorStatusAlertString, _alertMessageService.MonitorAlerts);
+                _alertMessageService.IsMonitorAlertRunning = false;
                 result.Message += returnResult.Message;
                 result.Success = returnResult.Success;
                 result.Data = null;
-                _logger.LogDebug("AlertMonitorStatusAlerts : " + JsonUtils.WriteJsonObjectToString(_alertMessageService.MonitorStatusAlerts.ToList()));
+                _logger.LogDebug("AlertMonitorStatusAlerts : " + JsonUtils.WriteJsonObjectToString(_alertMessageService.MonitorAlerts.ToList()));
             }
             catch (Exception e)
             {
@@ -486,6 +547,40 @@ namespace NetworkMonitor.Alert.Services
             return result;
         }
 
+
+public async Task<ResultObj> AlertUpdatePredictStatusAlerts(string? predictStatusAlertString)
+        {
+            var result = new ResultObj();
+            result.Success = false;
+            result.Message = "MessageAPI : alertUpdatePredictStatusAlerts : ";
+            if (predictStatusAlertString == null)
+            {
+                result.Message += " Error : predictStatusAlertString is Null ";
+                return result;
+            }
+            try
+            {
+                while (_alertMessageService.IsPredictAlertRunning)
+                {
+                    result.Message += "Info : Waiting for Alert to stop running ";
+                    new System.Threading.ManualResetEvent(false).WaitOne(5000);
+                }
+                _alertMessageService.IsPredictAlertRunning = true;
+                var returnResult = await _dataQueueService.AddPredictDataStringToQueue(predictStatusAlertString, _alertMessageService.PredictAlerts);
+                _alertMessageService.IsPredictAlertRunning = false;
+                result.Message += returnResult.Message;
+                result.Success = returnResult.Success;
+                result.Data = null;
+                _logger.LogDebug("AlertPredictStatusAlerts : " + JsonUtils.WriteJsonObjectToString(_alertMessageService.PredictAlerts.ToList()));
+            }
+            catch (Exception e)
+            {
+                result.Success = false;
+                result.Message += "Error : Failed to set AlertPredictStatusAlerts : Error was : " + e.Message + " ";
+                _logger.LogError("Error : Failed to set AlertPredictStatusAlerts : Error was : " + e.Message + " ");
+            }
+            return result;
+        }
         public async Task<ResultObj> UserHostExpire(List<GenericEmailObj>? emailObjs)
         {
             ResultObj result = new ResultObj();

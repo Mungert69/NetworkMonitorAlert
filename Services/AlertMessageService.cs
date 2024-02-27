@@ -15,18 +15,46 @@ using NetworkMonitor.Connection;
 
 namespace NetworkMonitor.Alert.Services
 {
+
+     public interface IAlertMessageService
+  {
+    public Task InitService(AlertServiceInitObj alertObj);
+    public Task Init();
+
+    List<MonitorStatusAlert> MonitorAlerts { get; set; }
+    List<PredictStatusAlert> PredictAlerts { get; set; }
+    List<ResultObj> ResetMonitorAlerts(List<AlertFlagObj> alertFlagObjs);
+
+    //ResultObj QueueRemoveFromAlertSentList(AlertFlagObj alertFlagObj);
+    Task<ResultObj> UpdateUserInfo(UserInfo userInfo);
+    Task <ResultObj> WakeUp();
+
+    bool IsMonitorAlertRunning { get; set; }
+     bool IsPredictAlertRunning { get; set; }
+
+    Task<ResultObj> MonitorAlert();
+    Task<ResultObj> PredictAlert();
+    Task<ResultObj> Send(AlertMessage alertMessage);
+    Task<ResultObj> SendGenericEmail(GenericEmailObj genericEmail);
+    Task<List<ResultObj>> UserHostExpire(List<GenericEmailObj> userInfos);
+    Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> userInfos);
+    
+    Task<ResultObj> SendHostReport(HostReportObj hostReport);
+    bool IsBadAuthKey(string authKey, string appID);
+
+  }
     public class AlertMessageService : IAlertMessageService
     {
         private IConfiguration _config;
 
         private List<UserInfo> _userInfos = new List<UserInfo>();
 
-        private int _alertThreshold;
+        //private int _alertThreshold;
         //private bool _sendTrustPilot;
-        private bool _alert;
-        private bool _isAlertRunning = false;
-        private bool _awake;
-        private bool _checkAlerts;
+
+
+        //private bool _awake;
+
         private bool _disableEmailAlert = false;
         private ILogger _logger;
 
@@ -45,9 +73,42 @@ namespace NetworkMonitor.Alert.Services
         private CancellationToken _token;
         private SystemParams _systemParams;
         public IRabbitRepo RabbitRepo { get => _rabbitRepo; }
-        public bool IsAlertRunning { get => _isAlertRunning; set => _isAlertRunning = value; }
-        public bool Awake { get => _awake; set => _awake = value; }
-        public List<IAlertable> MonitorStatusAlerts { get => _alertProcessor.MonitorAlertProcess.Alerts; set => _alertProcessor.MonitorAlertProcess.Alerts = value; }
+        public bool IsMonitorAlertRunning { get => _alertProcessor.MonitorAlertProcess.IsAlertRunning; set => _alertProcessor.MonitorAlertProcess.IsAlertRunning = value; }
+        public bool IsPredictAlertRunning { get => _alertProcessor.PredictAlertProcess.IsAlertRunning; set => _alertProcessor.PredictAlertProcess.IsAlertRunning = value; }
+       
+        //public bool Awake { get => _awake; set => _awake = value; }
+        public List<MonitorStatusAlert> MonitorAlerts
+        {
+            get
+            {
+                // Use OfType<MonitorStatusAlert>() to filter and safely cast to non-nullable MonitorStatusAlert
+                return _alertProcessor.MonitorAlertProcess.Alerts
+                    .OfType<MonitorStatusAlert>()
+                    .ToList();
+            }
+            set
+            {
+                // Cast each MonitorStatusAlert to IAlertable and assign the list
+                _alertProcessor.MonitorAlertProcess.Alerts = value.Cast<IAlertable>().ToList();
+            }
+        }
+
+        public List<PredictStatusAlert> PredictAlerts
+        {
+            get
+            {
+                // Use OfType<PredictStatusAlert>() to filter and safely cast to non-nullable PredictStatusAlert
+                return _alertProcessor.PredictAlertProcess.Alerts
+                    .OfType<PredictStatusAlert>()
+                    .ToList();
+            }
+            set
+            {
+                // Cast each PredictStatusAlert to IAlertable and assign the list
+                _alertProcessor.MonitorAlertProcess.Alerts = value.Cast<IAlertable>().ToList();
+            }
+        }
+
         public AlertMessageService(ILogger<AlertMessageService> logger, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo, IRabbitRepo rabbitRepo, ISystemParamsHelper systemParamsHelper, IProcessorState processorState)
         {
             _dataQueueService = dataQueueService;
@@ -118,12 +179,9 @@ namespace NetworkMonitor.Alert.Services
             try
             {
 
-                
+
                 _systemParams = _systemParamsHelper.GetSystemParams();
                 _logger.LogDebug("SystemParams: " + JsonUtils.WriteJsonObjectToString(_systemParams));
-                _logger.LogDebug("PingAlertThreshold: " + _alertThreshold);
-
-
                 _emailProcessor = new EmailProcessor(_systemParams, _logger, _disableEmailAlert);
                 _logger.LogInformation("Got config");
             }
@@ -198,7 +256,7 @@ namespace NetworkMonitor.Alert.Services
             }
             try
             {
-                var alertParams= _systemParamsHelper.GetAlertParams();
+                var alertParams = _systemParamsHelper.GetAlertParams();
                 var netConnectConfig = new NetConnectConfig(_config);
                 var connectFactory = new ConnectFactory(_logger, false);
                 var netConnectCollection = new NetConnectCollection(_logger, netConnectConfig, connectFactory);
@@ -258,7 +316,7 @@ namespace NetworkMonitor.Alert.Services
             result.Message = "SERVICE : AlertMessageService.WakeUp() ";
             try
             {
-                if (_awake)
+                if (_alertProcessor.MonitorAlertProcess.Awake)
                 {
                     result.Message += "Received WakeUp but Alert is currently running";
                     result.Success = false;
@@ -314,7 +372,7 @@ namespace NetworkMonitor.Alert.Services
         {
             return _alertProcessor.ResetMonitorAlerts(alertFlagObjs);
         }
-         public List<ResultObj> ResetPredictAlerts(List<AlertFlagObj> alertFlagObjs)
+        public List<ResultObj> ResetPredictAlerts(List<AlertFlagObj> alertFlagObjs)
         {
             return _alertProcessor.ResetPredictAlerts(alertFlagObjs);
         }

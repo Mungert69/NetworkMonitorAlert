@@ -19,7 +19,8 @@ namespace NetworkMonitor.Alert.Services
 {
     public interface IDataQueueService
     {
-        Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<IAlertable> monitorStatusAlerts);
+        Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<MonitorStatusAlert> monitorStatusAlerts);
+        Task<ResultObj> AddPredictDataStringToQueue(string processorDataString, List<PredictStatusAlert> predictStatusAlerts);
 
     }
     public class DataQueueService : IDataQueueService
@@ -32,13 +33,13 @@ namespace NetworkMonitor.Alert.Services
             _encryptKey = systemParamsHelper.GetSystemParams().EmailEncryptKey;
             _logger = logger;
         }
-        public Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<IAlertable> monitorStatusAlerts)
+        public Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<MonitorStatusAlert> monitorStatusAlerts)
         {
-            Func<string, List<IAlertable>, Task<ResultObj>> func = CommitProcessorDataString;
+            Func<string, List<MonitorStatusAlert>, Task<ResultObj>> func = CommitProcessorDataString;
             return taskQueue.EnqueueStatusString<ResultObj>(func, processorDataString, monitorStatusAlerts);
         }
 
-        private Task<ResultObj> CommitProcessorDataString(string processorDataString, List<IAlertable> monitorStatusAlerts)
+        private Task<ResultObj> CommitProcessorDataString(string processorDataString, List<MonitorStatusAlert> monitorStatusAlerts)
         {
             return Task<ResultObj>.Run(() =>
             {
@@ -62,7 +63,7 @@ namespace NetworkMonitor.Alert.Services
                         _logger.LogError(result.Message);
                         return result;
                     }
-                     if (processorDataObj.AuthKey== null)
+                    if (processorDataObj.AuthKey == null)
                     {
                         result.Success = false;
                         result.Message = $" Error : Failed CommitProcessorDataBytes processorDataObj.AppKey is null for AppID {processorDataObj.AppID}";
@@ -86,7 +87,7 @@ namespace NetworkMonitor.Alert.Services
 
                     processorDataObj = ProcessorDataBuilder.MergeMonitorStatusAlerts(processorDataObj, monitorStatusAlerts);
 
-                    if (processorDataObj == null )
+                    if (processorDataObj == null)
                     {
                         result.Success = false;
                         result.Message = " Error : Failed CommitProcessorDataBytes no ProcessorDataObj data";
@@ -109,5 +110,84 @@ namespace NetworkMonitor.Alert.Services
                 return result;
             });
         }
+
+        public Task<ResultObj> AddPredictDataStringToQueue(string processorDataString, List<PredictStatusAlert> predictStatusAlerts)
+        {
+            Func<string, List<PredictStatusAlert>, Task<ResultObj>> func = CommitPredictDataString;
+            return taskQueue.EnqueuePredictString<ResultObj>(func, processorDataString, predictStatusAlerts);
+        }
+
+        private Task<ResultObj> CommitPredictDataString(string processorDataString, List<PredictStatusAlert> predictStatusAlerts)
+        {
+            return Task<ResultObj>.Run(() =>
+            {
+                _logger.LogInformation("Started CommitProcessorDataBytes at " + DateTime.UtcNow);
+                var result = new ResultObj();
+                try
+                {
+                    ProcessorDataObj? processorDataObj = ProcessorDataBuilder.ExtractFromZString<ProcessorDataObj>(processorDataString);
+
+                    if (processorDataObj == null)
+                    {
+                        result.Success = false;
+                        result.Message = " Error : Failed CommitProcessorDataBytes processorDataObj is null.";
+                        _logger.LogError(result.Message);
+                        return result;
+                    }
+                    if (processorDataObj.AppID == null)
+                    {
+                        result.Success = false;
+                        result.Message = " Error : Failed CommitProcessorDataBytes processorDataObj.AppID is null.";
+                        _logger.LogError(result.Message);
+                        return result;
+                    }
+                    if (processorDataObj.AuthKey == null)
+                    {
+                        result.Success = false;
+                        result.Message = $" Error : Failed CommitProcessorDataBytes processorDataObj.AppKey is null for AppID {processorDataObj.AppID}";
+                        _logger.LogError(result.Message);
+                        return result;
+                    }
+                    if (EncryptionHelper.IsBadKey(_encryptKey, processorDataObj.AuthKey, processorDataObj.AppID))
+                    {
+                        result.Success = false;
+                        result.Message = $" Error : Failed CommitProcessorDataBytes bad AuthKey for AppID {processorDataObj.AppID}";
+                        _logger.LogError(result.Message);
+                        return result;
+                    }
+                    if (processorDataObj.PredictStatusAlerts.Where(w => w.AppID != processorDataObj.AppID).Count() > 0)
+                    {
+                        result.Success = false;
+                        result.Message = $" Error : Failed CommitProcessorDataBytes invalid AppID in data for AppID {processorDataObj.AppID}";
+                        _logger.LogError(result.Message);
+                        return result;
+                    }
+
+                    processorDataObj = ProcessorDataBuilder.MergePredictStatusAlerts(processorDataObj, predictStatusAlerts);
+
+                    if (processorDataObj == null)
+                    {
+                        result.Success = false;
+                        result.Message = " Error : Failed CommitProcessorDataBytes no ProcessorDataObj data";
+                        _logger.LogError(result.Message);
+
+                    }
+                    else
+                    {
+                        result.Success = true;
+                        result.Message = " Success : Finshed CommitProcessorDataBytes at " + DateTime.UtcNow + " for Processor AppID " + processorDataObj.AppID + ". ";
+                        _logger.LogInformation(result.Message);
+                    }
+                }
+                catch (Exception e)
+                {
+                    result.Success = false;
+                    result.Message += "Error : failed to process Data. Error was : " + e.Message.ToString();
+                    _logger.LogError(result.Message);
+                }
+                return result;
+            });
+        }
+
     }
 }

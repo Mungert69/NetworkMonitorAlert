@@ -16,7 +16,7 @@ public class AlertTestData
         processorList.Add(new ProcessorObj() { AppID = "test" });
         return processorList;
     }
-    public static List<IAlertable> GetAlerts()
+    public static List<IAlertable> GetMonitorAlerts()
     {
         var alerts = new List<IAlertable>();
         alerts.Add(new MonitorStatusAlert()
@@ -96,6 +96,95 @@ public class AlertTestData
         });
         return alerts;
     }
+
+    public static DetectionResult GetDetectionResult(bool flag) {
+        return new DetectionResult() { 
+            IsIssueDetected=flag
+        };
+    }
+    public static List<IAlertable> GetPredictAlerts()
+    {
+        var alerts = new List<IAlertable>();
+        alerts.Add(new PredictStatusAlert()
+        {
+            ID = 1,
+            UserID = "test",
+            Address = "1.1.1.1",
+            UserName = "",
+            AppID = "test",
+            EndPointType = "icmp",
+            Timeout = 10000,
+            AddUserEmail = "support@mahadeva.co.uk",
+            // Assuming these properties come from StatusObj and are relevant
+            AlertFlag = false,
+            AlertSent = false,
+            ChangeDetectionResult =  GetDetectionResult(false) ,
+            SpikeDetectionResult = GetDetectionResult(false),
+            EventTime = DateTime.UtcNow,
+
+            Message = "Timeout",
+            MonitorPingInfoID = 1,
+        });
+         alerts.Add(new PredictStatusAlert()
+        {
+            ID = 2,
+            UserID = "test",
+            Address = "2.2.2.2",
+            UserName = "",
+            AppID = "test",
+            EndPointType = "icmp",
+            Timeout = 10000,
+            // Assuming these properties come from StatusObj and are relevant
+            AlertFlag = true,
+            AlertSent = false,
+            ChangeDetectionResult =  GetDetectionResult(true) ,
+            SpikeDetectionResult = GetDetectionResult(true),
+            EventTime = DateTime.UtcNow,
+  
+            Message = "Timeout",
+            MonitorPingInfoID = 2,
+        });
+        alerts.Add(new PredictStatusAlert()
+        {
+            ID = 3,
+            UserID = "nonuser",
+            Address = "2.2.2.2",
+            UserName = "",
+            AppID = "test",
+            EndPointType = "icmp",
+            Timeout = 10000,
+            AddUserEmail = "support@mahadeva.co.uk",
+            // Assuming these properties come from StatusObj and are relevant
+            AlertFlag = false,
+            AlertSent = false,
+             ChangeDetectionResult =  GetDetectionResult(true) ,
+            SpikeDetectionResult = GetDetectionResult(true),
+            EventTime = DateTime.UtcNow,
+            Message = "Timeout",
+            MonitorPingInfoID = 3,
+        });
+         alerts.Add(new PredictStatusAlert()
+        {
+            ID = 4,
+            UserID = "default",
+            Address = "2.2.2.2",
+            UserName = "",
+            AppID = "test",
+            EndPointType = "icmp",
+            Timeout = 10000,
+            AddUserEmail = "bademail@bademail",
+            // Assuming these properties come from StatusObj and are relevant
+            AlertFlag = true,
+            AlertSent = false,
+
+            EventTime = DateTime.UtcNow,
+              ChangeDetectionResult =  GetDetectionResult(true) ,
+            SpikeDetectionResult = GetDetectionResult(true),
+            Message = "Timeout",
+            MonitorPingInfoID = 4,
+        });
+        return alerts;
+    }
     public static AlertParams GetAlertParams()
     {
         return new AlertParams()
@@ -109,9 +198,17 @@ public class AlertTestData
     public static AlertProcess GetMonitorAlertProcess()
     {
         var monitorAlertProcess = new AlertProcess();
-        monitorAlertProcess.Alerts = GetAlerts();
+        monitorAlertProcess.Alerts = GetMonitorAlerts();
         monitorAlertProcess.AlertThreshold = 2;
         return monitorAlertProcess;
+    }
+
+    public static AlertProcess GetPredictAlertProcess()
+    {
+        var predictAlertProcess = new AlertProcess();
+        predictAlertProcess.Alerts = GetPredictAlerts();
+        predictAlertProcess.AlertThreshold = 2;
+        return predictAlertProcess;
     }
 
     public static List<UserInfo> GetUserInfos() { 
