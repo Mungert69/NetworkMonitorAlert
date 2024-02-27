@@ -5,6 +5,8 @@ using NetworkMonitor.Objects;
 using NetworkMonitor.Objects.Repository;
 using NetworkMonitor.Connection;
 using NetworkMonitor.Objects.ServiceMessage;
+using NetworkMonitor.Utils.Helpers;
+using NetworkMonitor.Utils;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
@@ -15,27 +17,32 @@ namespace NetworkMonitor.Alert.Tests
 {
     public class MonitorAlertTests
     {
-        private readonly Mock<ILogger<AlertMessageService>> _loggerMock;
+        private readonly Mock<ILogger<AlertMessageService>> _loggerAlertProcessorMock;
+        private readonly Mock<ILogger<DataQueueService>> _loggerDataQueueMock;
         private readonly Mock<IRabbitRepo> _rabbitRepoMock;
         private readonly Mock<IEmailProcessor> _emailProcessorMock;
         private readonly Mock<IProcessorState> _processorStateMock;
         private readonly Mock<INetConnectCollection> _netConnectCollectionMock;
+        private readonly Mock<ISystemParamsHelper> _systemParamsHelperMock;
+        private readonly Mock<SystemParams> _systemParamsMock;
 
 
         public MonitorAlertTests()
         {
-            _loggerMock = new Mock<ILogger<AlertMessageService>>();
+            _loggerAlertProcessorMock = new Mock<ILogger<AlertMessageService>>();
+            _loggerDataQueueMock = new Mock<ILogger<DataQueueService>>();
             _rabbitRepoMock = new Mock<IRabbitRepo>();
             _emailProcessorMock = new Mock<IEmailProcessor>();
             _processorStateMock = new Mock<IProcessorState>();
             _netConnectCollectionMock = new Mock<INetConnectCollection>();
+            _systemParamsHelperMock = new Mock<ISystemParamsHelper>();
+            _systemParamsMock = new Mock<SystemParams>();
         }
 
 
 
-
         [Fact]
-        public async Task MonitorAlert_TestMonitorAlert()
+        public async Task MonitorAlert_TestSuccess()
         {
             //_rabbitRepoMock.Setup(repo => repo.PublishAsync<AlertServiceInitObj>("alertServiceReady", It.IsAny<AlertServiceInitObj>())).ReturnsAsync();
             _processorStateMock.Setup(p => p.EnabledProcessorList)
@@ -43,16 +50,16 @@ namespace NetworkMonitor.Alert.Tests
             _emailProcessorMock.Setup(p => p.SendAlert(It.IsAny<AlertMessage>()))
                                              .ReturnsAsync(new ResultObj() { Success = true });
             _emailProcessorMock.Setup(p => p.VerifyEmail(It.IsAny<UserInfo>(), It.IsAny<IAlertable>())).Returns(true);
-            _emailProcessorMock.Setup(p => p.VerifyEmail(It.Is<UserInfo>(u => u.UserID == "default"), It.Is<IAlertable>(a => a.ID==4))).Returns(false);
+            _emailProcessorMock.Setup(p => p.VerifyEmail(It.Is<UserInfo>(u => u.UserID == "default"), It.Is<IAlertable>(a => a.ID == 4))).Returns(false);
 
-            var alertProcessor = new AlertProcessor(_loggerMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
+            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
             // Act
             alertProcessor.MonitorAlertProcess.Alerts = AlertTestData.GetMonitorAlerts();
 
             var result = await alertProcessor.MonitorAlert();
 
             // Assert
-            Assert.True(result.Success, " Call to MonitorAlert did not compete with success.");
+            Assert.True(result.Success, $" Call to MonitorAlert did not compete with success. {result.Message}");
             Assert.True(!alertProcessor.MonitorAlertProcess.Alerts[0].AlertFlag, " Alert has been flagged for first line of data it.");
             Assert.True(!alertProcessor.MonitorAlertProcess.Alerts[0].AlertSent, " Alert has been sent for first line of data");
 
@@ -70,13 +77,15 @@ namespace NetworkMonitor.Alert.Tests
             Assert.True(count == 1, " First call of MonitorAlert has not sent only one email");
 
             result = await alertProcessor.MonitorAlert();
+             Assert.True(result.Success, $" 2nd Call to MonitorAlert did not compete with success. {result.Message}");
+            
             count = (int)result.Data!;
             // Assert
             Assert.True(count == 0, " Second call of MonitorAlert has sent a second email for same alert.");
 
         }
-[Fact]
-          public async Task MonitorAlert_TestPredictAlert()
+        [Fact]
+        public async Task PredictAlert_TestSuccess()
         {
             //_rabbitRepoMock.Setup(repo => repo.PublishAsync<AlertServiceInitObj>("alertServiceReady", It.IsAny<AlertServiceInitObj>())).ReturnsAsync();
             _processorStateMock.Setup(p => p.EnabledProcessorList)
@@ -84,16 +93,16 @@ namespace NetworkMonitor.Alert.Tests
             _emailProcessorMock.Setup(p => p.SendAlert(It.IsAny<AlertMessage>()))
                                              .ReturnsAsync(new ResultObj() { Success = true });
             _emailProcessorMock.Setup(p => p.VerifyEmail(It.IsAny<UserInfo>(), It.IsAny<IAlertable>())).Returns(true);
-            _emailProcessorMock.Setup(p => p.VerifyEmail(It.Is<UserInfo>(u => u.UserID == "default"), It.Is<IAlertable>(a => a.ID==4))).Returns(false);
+            _emailProcessorMock.Setup(p => p.VerifyEmail(It.Is<UserInfo>(u => u.UserID == "default"), It.Is<IAlertable>(a => a.ID == 4))).Returns(false);
 
-            var alertProcessor = new AlertProcessor(_loggerMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
+            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
             // Act
             alertProcessor.PredictAlertProcess.Alerts = AlertTestData.GetPredictAlerts();
 
             var result = await alertProcessor.PredictAlert();
 
             // Assert
-            Assert.True(result.Success, " Call to MonitorAlert did not compete with success.");
+            Assert.True(result.Success, $" Call to PredictAlert did not compete with success. {result.Message}");
             Assert.True(!alertProcessor.PredictAlertProcess.Alerts[0].AlertFlag, " Alert has been flagged for first line of data it.");
             Assert.True(!alertProcessor.PredictAlertProcess.Alerts[0].AlertSent, " Alert has been sent for first line of data");
 
@@ -108,12 +117,88 @@ namespace NetworkMonitor.Alert.Tests
 
             Assert.True(alertProcessor.PredictAlertProcess.UpdateAlertSentList.Count() == 2, " There is not only two sent alerts in the UpdateSentAlertList ");
             int count = (int)result.Data!;
-            Assert.True(count == 1, " First call of MonitorAlert has not sent only one email");
+            Assert.True(count == 1, " First call of PredictAlert has not sent only one email");
 
             result = await alertProcessor.PredictAlert();
+              Assert.True(result.Success, $" 2nd Call to PredictAlert did not compete with success. {result.Message}");
+          
             count = (int)result.Data!;
             // Assert
-            Assert.True(count == 0, " Second call of MonitorAlert has sent a second email for same alert.");
+            Assert.True(count == 0, " Second call of PredictAlert has sent a second email for same alert.");
+
+        }
+        [Fact]
+        public async Task DataQueue_TestBadAuthKey()
+        {
+            //_rabbitRepoMock.Setup(repo => repo.PublishAsync<AlertServiceInitObj>("alertServiceReady", It.IsAny<AlertServiceInitObj>())).ReturnsAsync();
+
+            // Setup _systemParamsHelperMock to return the mocked SystemParams object from GetSystemParams()
+            _systemParamsHelperMock.Setup(p => p.GetSystemParams()).Returns(AlertTestData.GetSystemParams());
+
+            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object);
+
+            _processorStateMock.Setup(p => p.EnabledProcessorList)
+                                             .Returns(new List<ProcessorObj>());
+
+            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
+            // Act
+            alertProcessor.PredictAlertProcess.Alerts = AlertTestData.GetPredictAlerts();
+            var fileRepo = new FileRepo();
+
+
+            var predictStatusAlerts = alertProcessor.PredictAlerts;
+             var processorDataObj = new ProcessorDataObj();
+            processorDataObj.PredictStatusAlerts = predictStatusAlerts;
+            processorDataObj.AppID = "test";
+            processorDataObj.AuthKey = "";
+            var predictDataString = await fileRepo.SaveStateStringJsonZAsync<ProcessorDataObj>("TestProcessorDataObj", processorDataObj);
+            var result = await dataQueueService.AddPredictDataStringToQueue(predictDataString, predictStatusAlerts);
+            // Assert
+            Assert.True(!result.Success, " Result was success with a bad auth key.");
+
+         
+
+        }
+        [Fact]
+  public async Task DataQueue_TestPredictInput()
+        {
+            //_rabbitRepoMock.Setup(repo => repo.PublishAsync<AlertServiceInitObj>("alertServiceReady", It.IsAny<AlertServiceInitObj>())).ReturnsAsync();
+            var systemParams=AlertTestData.GetSystemParams();
+            // Setup _systemParamsHelperMock to return the mocked SystemParams object from GetSystemParams()
+            _systemParamsHelperMock.Setup(p => p.GetSystemParams()).Returns(systemParams);
+
+            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object);
+
+            _processorStateMock.Setup(p => p.EnabledProcessorList)
+                                             .Returns(new List<ProcessorObj>());
+
+            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
+            // Act
+            alertProcessor.PredictAlertProcess.Alerts = AlertTestData.GetPredictAlerts();
+            var fileRepo = new FileRepo();
+
+
+            var predictStatusAlerts = alertProcessor.PredictAlerts;
+            var originalPredictStatusAlerts = alertProcessor.PredictAlerts.Select(alert => new PredictStatusAlert(alert)).ToList();
+            predictStatusAlerts = new List<PredictStatusAlert>();
+            var processorDataObj = new ProcessorDataObj();
+            processorDataObj.PredictStatusAlerts = predictStatusAlerts;
+            processorDataObj.AppID = "test";
+            processorDataObj.AuthKey  = AesOperation.EncryptString(systemParams.EmailEncryptKey, processorDataObj.AppID);
+                    
+            var predictDataString = await fileRepo.SaveStateStringJsonZAsync<ProcessorDataObj>("TestProcessorDataObj", processorDataObj);
+            var result = await dataQueueService.AddPredictDataStringToQueue(predictDataString, predictStatusAlerts);
+            // Assert
+            Assert.True(result.Success, $" Result.Success was false. {result.Message}");
+
+            Assert.Equal(originalPredictStatusAlerts, predictStatusAlerts, new PredictStatusAlertComparer());
+// Now create empty data to fill
+            predictStatusAlerts = new List<PredictStatusAlert>();
+             result = await dataQueueService.AddPredictDataStringToQueue(predictDataString, predictStatusAlerts);
+            Assert.True(result.Success, $" Result.Success was false. {result.Message}");
+
+            Assert.Equal(originalPredictStatusAlerts, predictStatusAlerts, new PredictStatusAlertComparer());
+
 
         }
 

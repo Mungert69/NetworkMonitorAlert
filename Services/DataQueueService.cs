@@ -111,13 +111,13 @@ namespace NetworkMonitor.Alert.Services
             });
         }
 
-        public Task<ResultObj> AddPredictDataStringToQueue(string processorDataString, List<PredictStatusAlert> predictStatusAlerts)
+        public Task<ResultObj> AddPredictDataStringToQueue(string predictDataString, List<PredictStatusAlert> predictStatusAlerts)
         {
             Func<string, List<PredictStatusAlert>, Task<ResultObj>> func = CommitPredictDataString;
-            return taskQueue.EnqueuePredictString<ResultObj>(func, processorDataString, predictStatusAlerts);
+            return taskQueue.EnqueuePredictString<ResultObj>(func, predictDataString, predictStatusAlerts);
         }
 
-        private Task<ResultObj> CommitPredictDataString(string processorDataString, List<PredictStatusAlert> predictStatusAlerts)
+        private Task<ResultObj> CommitPredictDataString(string predictDataString, List<PredictStatusAlert> predictStatusAlerts)
         {
             return Task<ResultObj>.Run(() =>
             {
@@ -125,7 +125,7 @@ namespace NetworkMonitor.Alert.Services
                 var result = new ResultObj();
                 try
                 {
-                    ProcessorDataObj? processorDataObj = ProcessorDataBuilder.ExtractFromZString<ProcessorDataObj>(processorDataString);
+                    ProcessorDataObj? processorDataObj = ProcessorDataBuilder.ExtractFromZString<ProcessorDataObj>(predictDataString);
 
                     if (processorDataObj == null)
                     {

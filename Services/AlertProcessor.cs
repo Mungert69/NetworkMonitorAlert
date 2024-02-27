@@ -46,6 +46,37 @@ public class AlertProcessor
 
 
     }
+public List<MonitorStatusAlert> MonitorAlerts
+        {
+            get
+            {
+                // Use OfType<MonitorStatusAlert>() to filter and safely cast to non-nullable MonitorStatusAlert
+                return _monitorAlertProcess.Alerts
+                    .OfType<MonitorStatusAlert>()
+                    .ToList();
+            }
+            set
+            {
+                // Cast each MonitorStatusAlert to IAlertable and assign the list
+                _monitorAlertProcess.Alerts = value.Cast<IAlertable>().ToList();
+            }
+        }
+
+        public List<PredictStatusAlert> PredictAlerts
+        {
+            get
+            {
+                // Use OfType<PredictStatusAlert>() to filter and safely cast to non-nullable PredictStatusAlert
+                return _predictAlertProcess.Alerts
+                    .OfType<PredictStatusAlert>()
+                    .ToList();
+            }
+            set
+            {
+                // Cast each PredictStatusAlert to IAlertable and assign the list
+                _predictAlertProcess.Alerts = value.Cast<IAlertable>().ToList();
+            }
+        }
 
 
     public async Task<ResultObj> MonitorAlert()

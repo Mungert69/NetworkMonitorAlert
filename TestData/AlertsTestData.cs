@@ -10,6 +10,16 @@ using System.Collections.Generic;
 namespace NetworkMonitor.Alert.Tests;
 public class AlertTestData
 {
+
+    public static SystemParams GetSystemParams()
+    {
+        var systemParams = new SystemParams
+        {
+            EmailEncryptKey = "testkey",
+            // Set other properties as needed
+        };
+        return systemParams;
+    }
     public static List<ProcessorObj> GetProcesorList()
     {
         var processorList = new List<ProcessorObj>();
@@ -38,7 +48,7 @@ public class AlertTestData
             Message = "Timeout",
             MonitorPingInfoID = 1,
         });
-         alerts.Add(new MonitorStatusAlert()
+        alerts.Add(new MonitorStatusAlert()
         {
             ID = 2,
             UserID = "test",
@@ -75,7 +85,7 @@ public class AlertTestData
             Message = "Timeout",
             MonitorPingInfoID = 3,
         });
-         alerts.Add(new MonitorStatusAlert()
+        alerts.Add(new MonitorStatusAlert()
         {
             ID = 4,
             UserID = "default",
@@ -97,9 +107,11 @@ public class AlertTestData
         return alerts;
     }
 
-    public static DetectionResult GetDetectionResult(bool flag) {
-        return new DetectionResult() { 
-            IsIssueDetected=flag
+    public static DetectionResult GetDetectionResult(bool flag)
+    {
+        return new DetectionResult()
+        {
+            IsIssueDetected = flag
         };
     }
     public static List<IAlertable> GetPredictAlerts()
@@ -118,14 +130,14 @@ public class AlertTestData
             // Assuming these properties come from StatusObj and are relevant
             AlertFlag = false,
             AlertSent = false,
-            ChangeDetectionResult =  GetDetectionResult(false) ,
+            ChangeDetectionResult = GetDetectionResult(false),
             SpikeDetectionResult = GetDetectionResult(false),
             EventTime = DateTime.UtcNow,
 
             Message = "Timeout",
             MonitorPingInfoID = 1,
         });
-         alerts.Add(new PredictStatusAlert()
+        alerts.Add(new PredictStatusAlert()
         {
             ID = 2,
             UserID = "test",
@@ -137,10 +149,10 @@ public class AlertTestData
             // Assuming these properties come from StatusObj and are relevant
             AlertFlag = true,
             AlertSent = false,
-            ChangeDetectionResult =  GetDetectionResult(true) ,
+            ChangeDetectionResult = GetDetectionResult(true),
             SpikeDetectionResult = GetDetectionResult(true),
             EventTime = DateTime.UtcNow,
-  
+
             Message = "Timeout",
             MonitorPingInfoID = 2,
         });
@@ -157,13 +169,13 @@ public class AlertTestData
             // Assuming these properties come from StatusObj and are relevant
             AlertFlag = false,
             AlertSent = false,
-             ChangeDetectionResult =  GetDetectionResult(true) ,
+            ChangeDetectionResult = GetDetectionResult(true),
             SpikeDetectionResult = GetDetectionResult(true),
             EventTime = DateTime.UtcNow,
             Message = "Timeout",
             MonitorPingInfoID = 3,
         });
-         alerts.Add(new PredictStatusAlert()
+        alerts.Add(new PredictStatusAlert()
         {
             ID = 4,
             UserID = "default",
@@ -178,7 +190,7 @@ public class AlertTestData
             AlertSent = false,
 
             EventTime = DateTime.UtcNow,
-              ChangeDetectionResult =  GetDetectionResult(true) ,
+            ChangeDetectionResult = GetDetectionResult(true),
             SpikeDetectionResult = GetDetectionResult(true),
             Message = "Timeout",
             MonitorPingInfoID = 4,
@@ -211,22 +223,25 @@ public class AlertTestData
         return predictAlertProcess;
     }
 
-    public static List<UserInfo> GetUserInfos() { 
-        var userInfos=new List<UserInfo>();
-        userInfos.Add(new UserInfo() {
+    public static List<UserInfo> GetUserInfos()
+    {
+        var userInfos = new List<UserInfo>();
+        userInfos.Add(new UserInfo()
+        {
             UserID = "test",
-            Email="support@mahadeva.co.uk",
-            Email_verified=true,
-            DisableEmail=false,
-            Name="test user"
+            Email = "support@mahadeva.co.uk",
+            Email_verified = true,
+            DisableEmail = false,
+            Name = "test user"
 
         });
-        userInfos.Add(new UserInfo() {
+        userInfos.Add(new UserInfo()
+        {
             UserID = "default",
-            Email="support@mahadeva.co.uk",
-            Email_verified=true,
-            DisableEmail=false,
-            Name="default"
+            Email = "support@mahadeva.co.uk",
+            Email_verified = true,
+            DisableEmail = false,
+            Name = "default"
 
         });
         return userInfos;

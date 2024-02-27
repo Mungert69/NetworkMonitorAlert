@@ -16,33 +16,33 @@ using NetworkMonitor.Connection;
 namespace NetworkMonitor.Alert.Services
 {
 
-     public interface IAlertMessageService
-  {
-    public Task InitService(AlertServiceInitObj alertObj);
-    public Task Init();
+    public interface IAlertMessageService
+    {
+        public Task InitService(AlertServiceInitObj alertObj);
+        public Task Init();
 
-    List<MonitorStatusAlert> MonitorAlerts { get; set; }
-    List<PredictStatusAlert> PredictAlerts { get; set; }
-    List<ResultObj> ResetMonitorAlerts(List<AlertFlagObj> alertFlagObjs);
+        List<MonitorStatusAlert> MonitorAlerts { get; set; }
+        List<PredictStatusAlert> PredictAlerts { get; set; }
+        List<ResultObj> ResetMonitorAlerts(List<AlertFlagObj> alertFlagObjs);
 
-    //ResultObj QueueRemoveFromAlertSentList(AlertFlagObj alertFlagObj);
-    Task<ResultObj> UpdateUserInfo(UserInfo userInfo);
-    Task <ResultObj> WakeUp();
+        //ResultObj QueueRemoveFromAlertSentList(AlertFlagObj alertFlagObj);
+        Task<ResultObj> UpdateUserInfo(UserInfo userInfo);
+        Task<ResultObj> WakeUp();
 
-    bool IsMonitorAlertRunning { get; set; }
-     bool IsPredictAlertRunning { get; set; }
+        bool IsMonitorAlertRunning { get; set; }
+        bool IsPredictAlertRunning { get; set; }
 
-    Task<ResultObj> MonitorAlert();
-    Task<ResultObj> PredictAlert();
-    Task<ResultObj> Send(AlertMessage alertMessage);
-    Task<ResultObj> SendGenericEmail(GenericEmailObj genericEmail);
-    Task<List<ResultObj>> UserHostExpire(List<GenericEmailObj> userInfos);
-    Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> userInfos);
-    
-    Task<ResultObj> SendHostReport(HostReportObj hostReport);
-    bool IsBadAuthKey(string authKey, string appID);
+        Task<ResultObj> MonitorAlert();
+        Task<ResultObj> PredictAlert();
+        Task<ResultObj> Send(AlertMessage alertMessage);
+        Task<ResultObj> SendGenericEmail(GenericEmailObj genericEmail);
+        Task<List<ResultObj>> UserHostExpire(List<GenericEmailObj> userInfos);
+        Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> userInfos);
 
-  }
+        Task<ResultObj> SendHostReport(HostReportObj hostReport);
+        bool IsBadAuthKey(string authKey, string appID);
+
+    }
     public class AlertMessageService : IAlertMessageService
     {
         private IConfiguration _config;
@@ -75,39 +75,10 @@ namespace NetworkMonitor.Alert.Services
         public IRabbitRepo RabbitRepo { get => _rabbitRepo; }
         public bool IsMonitorAlertRunning { get => _alertProcessor.MonitorAlertProcess.IsAlertRunning; set => _alertProcessor.MonitorAlertProcess.IsAlertRunning = value; }
         public bool IsPredictAlertRunning { get => _alertProcessor.PredictAlertProcess.IsAlertRunning; set => _alertProcessor.PredictAlertProcess.IsAlertRunning = value; }
-       
-        //public bool Awake { get => _awake; set => _awake = value; }
-        public List<MonitorStatusAlert> MonitorAlerts
-        {
-            get
-            {
-                // Use OfType<MonitorStatusAlert>() to filter and safely cast to non-nullable MonitorStatusAlert
-                return _alertProcessor.MonitorAlertProcess.Alerts
-                    .OfType<MonitorStatusAlert>()
-                    .ToList();
-            }
-            set
-            {
-                // Cast each MonitorStatusAlert to IAlertable and assign the list
-                _alertProcessor.MonitorAlertProcess.Alerts = value.Cast<IAlertable>().ToList();
-            }
-        }
 
-        public List<PredictStatusAlert> PredictAlerts
-        {
-            get
-            {
-                // Use OfType<PredictStatusAlert>() to filter and safely cast to non-nullable PredictStatusAlert
-                return _alertProcessor.PredictAlertProcess.Alerts
-                    .OfType<PredictStatusAlert>()
-                    .ToList();
-            }
-            set
-            {
-                // Cast each PredictStatusAlert to IAlertable and assign the list
-                _alertProcessor.MonitorAlertProcess.Alerts = value.Cast<IAlertable>().ToList();
-            }
-        }
+        public List<MonitorStatusAlert> MonitorAlerts { get => _alertProcessor.MonitorAlerts; set => _alertProcessor.MonitorAlerts = value; }
+        public List<PredictStatusAlert> PredictAlerts { get => _alertProcessor.PredictAlerts; set => _alertProcessor.PredictAlerts = value; }
+
 
         public AlertMessageService(ILogger<AlertMessageService> logger, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo, IRabbitRepo rabbitRepo, ISystemParamsHelper systemParamsHelper, IProcessorState processorState)
         {
