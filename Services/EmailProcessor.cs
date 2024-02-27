@@ -11,8 +11,18 @@ using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
 
 namespace NetworkMonitor.Alert.Services;
+public interface IEmailProcessor
+    {
+        bool SendTrustPilot { get; set; }
 
-public class EmailProcessor
+        Task<ResultObj> SendAlert(AlertMessage alertMessage);
+        Task<ResultObj> SendHostReport(HostReportObj hostReport);
+        Task<ResultObj> SendGenericEmail(GenericEmailObj emailObj);
+        Task<List<ResultObj>> UserHostExpire(List<GenericEmailObj> emailObjs);
+        Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> emailObjs);
+    void VerifyEmail(UserInfo userInfo, MonitorStatusAlert monitorStatusAlert);
+    }
+public class EmailProcessor : IEmailProcessor
 {
     private string _emailEncryptKey;
     private string _systemEmail;

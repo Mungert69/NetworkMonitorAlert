@@ -30,7 +30,7 @@ namespace NetworkMonitor.Alert.Services
         private bool _disableEmailAlert = false;
         private ILogger _logger;
 
-        private EmailProcessor _emailProcessor;
+        private IEmailProcessor _emailProcessor;
         private AlertProcessor _alertProcessor;
 
         private IDataQueueService _dataQueueService;
@@ -118,9 +118,7 @@ namespace NetworkMonitor.Alert.Services
             try
             {
 
-                _alertThreshold = _config.GetValue<int>("PingAlertThreshold");
-                _checkAlerts = _config.GetValue<bool>("CheckAlerts");
-                _disableEmailAlert = _config.GetValue<bool>("DisableEmailAlert");
+                
                 _systemParams = _systemParamsHelper.GetSystemParams();
                 _logger.LogDebug("SystemParams: " + JsonUtils.WriteJsonObjectToString(_systemParams));
                 _logger.LogDebug("PingAlertThreshold: " + _alertThreshold);
@@ -200,11 +198,12 @@ namespace NetworkMonitor.Alert.Services
             }
             try
             {
+                var alertParams= _systemParamsHelper.GetAlertParams();
                 var netConnectConfig = new NetConnectConfig(_config);
                 var connectFactory = new ConnectFactory(_logger, false);
                 var netConnectCollection = new NetConnectCollection(_logger, netConnectConfig, connectFactory);
 
-                _alertProcessor = new AlertProcessor(_logger, _rabbitRepo, _emailProcessor, _processorState, netConnectCollection);
+                _alertProcessor = new AlertProcessor(_logger, _rabbitRepo, _emailProcessor, _processorState, netConnectCollection, alertParams, _userInfos);
 
             }
             catch (Exception e)

@@ -16,24 +16,35 @@ public class AlertProcessor
     private IRabbitRepo _rabbitRepo;
     private ILogger _logger;
     private List<UserInfo> _userInfos = new List<UserInfo>();
-    private EmailProcessor _emailProcessor;
+    private IEmailProcessor _emailProcessor;
     private IProcessorState _processorState;
-    private NetConnectCollection _netConnectCollection;
+    private INetConnectCollection _netConnectCollection;
+    private AlertParams _alertParams;
 
 
-    private IAlertProcess _monitorAlertProcess = new AlertProcess() {  PublishProcessor= true };
-    private IAlertProcess _predictAlertProcess = new AlertProcess() { PublishPredict= true };
+    private IAlertProcess _monitorAlertProcess = new AlertProcess() { PublishProcessor = true, CheckAlerts = true };
+    private IAlertProcess _predictAlertProcess = new AlertProcess() { PublishPredict = true, CheckAlerts = false };
 
     public IAlertProcess MonitorAlertProcess { get => _monitorAlertProcess; set => _monitorAlertProcess = value; }
     public IAlertProcess PredictAlertProcess { get => _predictAlertProcess; set => _predictAlertProcess = value; }
 
-    public AlertProcessor( ILogger logger,IRabbitRepo rabbitRepo,EmailProcessor emailProcessor, IProcessorState processorState,NetConnectCollection netConnectCollection)
+    public AlertProcessor(ILogger logger, IRabbitRepo rabbitRepo, IEmailProcessor emailProcessor, IProcessorState processorState, INetConnectCollection netConnectCollection, AlertParams alertParmas, List<UserInfo> userInfos)
     {
         _rabbitRepo = rabbitRepo;
         _logger = logger;
         _emailProcessor = emailProcessor;
-        _processorState=processorState;
-        _netConnectCollection=netConnectCollection;
+        _processorState = processorState;
+        _netConnectCollection = netConnectCollection;
+        _alertParams = alertParmas;
+        _monitorAlertProcess.AlertThreshold = alertParmas.AlertThreshold;
+        _predictAlertProcess.AlertThreshold = alertParmas.PredictThreshold;
+        _monitorAlertProcess.CheckAlerts = alertParmas.CheckAlerts;
+          _monitorAlertProcess.DisableEmailAlert = alertParmas.DisableEmailAlert;
+        _predictAlertProcess.DisableEmailAlert = alertParmas.DisableEmailAlert;
+        _userInfos = userInfos;
+
+
+
     }
 
 
@@ -48,7 +59,7 @@ public class AlertProcessor
     public async Task<ResultObj> Alert(IAlertProcess alertProcess)
     {
         alertProcess.Awake = true;
-        AlertServiceInitObj alertObj=new AlertServiceInitObj();
+        AlertServiceInitObj alertObj = new AlertServiceInitObj();
         ResultObj result = new ResultObj();
         result.Message = $"SERVICE : AlertProcessor.Alert({alertProcess.PublishPrefix}) ";
         result.Success = false;
@@ -203,7 +214,7 @@ public class AlertProcessor
             _logger.LogWarning("Warning republishing AlertSent List check coms. ");
             if (alertProcess.PublishProcessor) await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorState.EnabledProcessorList);
         }
-        if (alertProcess.PublishProcessor) await CheckAlerts(updateAlertFlagList, alertProcess);
+        if (alertProcess.CheckAlerts) await CheckAlerts(updateAlertFlagList, alertProcess);
 
         if (updateAlertFlagList.Count() > 0)
         {
@@ -236,7 +247,7 @@ public class AlertProcessor
             if (a.Timeout > maxTimeout) maxTimeout = a.Timeout;
         });
         _logger.LogInformation(" Checking " + monitorPingInfos.Count() + " Alerts ");
-       SemaphoreSlim semaphore = new SemaphoreSlim(1);
+        SemaphoreSlim semaphore = new SemaphoreSlim(1);
         _netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams, true, false, semaphore).Wait();
         var netConnects = _netConnectCollection.GetNonLongRunningNetConnects().ToList();
         var pingConnectTasks = new List<Task>();
@@ -313,63 +324,70 @@ public class AlertProcessor
     {
         foreach (IAlertable alertFlagObj in alertMessage.AlertFlagObjs)
         {
-            alertFlagObj.AlertSent = true;
-            publishAlertSentList.Add(alertFlagObj);
-            alertProcess.UpdateAlertSentList.Add(alertFlagObj);
+            var updateAlert=alertProcess.Alerts.Where(w => w.ID == alertFlagObj.ID).FirstOrDefault();
+            if (updateAlert != null)
+            {
+                updateAlert.AlertSent = true;
+                publishAlertSentList.Add(alertFlagObj);
+                alertProcess.UpdateAlertSentList.Add(alertFlagObj);
+            }
+            else{
+                _logger.LogError($" Error : can not find Alert with ID {alertFlagObj.ID} It is present in AlertMessages but not in Alerts. This should not be possible.");
+            }
             //var updateMonitorStatusAlert = _monitorStatusAlerts.FirstOrDefault(w => w.ID == alertFlagObj.ID);
             //if (updateMonitorStatusAlert != null) updateMonitorStatusAlert.AlertSent = true;
         }
     }
 
-    public List<ResultObj> ResetMonitorAlerts(List<AlertFlagObj> alertFlagObjs) {
+    public List<ResultObj> ResetMonitorAlerts(List<AlertFlagObj> alertFlagObjs)
+    {
         return ResetAlerts(alertFlagObjs, _monitorAlertProcess);
     }
-     public List<ResultObj> ResetPredictAlerts(List<AlertFlagObj> alertFlagObjs) {
+    public List<ResultObj> ResetPredictAlerts(List<AlertFlagObj> alertFlagObjs)
+    {
         return ResetAlerts(alertFlagObjs, _predictAlertProcess);
     }
-       private List<ResultObj> ResetAlerts(List<AlertFlagObj> alertFlagObjs, IAlertProcess alertProcess)
+    private List<ResultObj> ResetAlerts(List<AlertFlagObj> alertFlagObjs, IAlertProcess alertProcess)
+    {
+        var results = new List<ResultObj>();
+        var result = new ResultObj();
+        alertFlagObjs.ForEach(f =>
         {
-            var results = new List<ResultObj>();
-            var result = new ResultObj();
-            alertFlagObjs.ForEach(f =>
+            try
             {
-                try
+                while (alertProcess.IsAlertRunning)
                 {
-                    while (alertProcess.IsAlertRunning)
-                    {
-                        result.Message += " Info : Waiting for Alert to stop running ";
-                        new System.Threading.ManualResetEvent(false).WaitOne(5000);
-                    }
-                    var updateMonitorStatusAlerts = alertProcess.Alerts.Where(w => w.ID == f.ID).ToList();
-                    if (updateMonitorStatusAlerts == null)
-                    {
-                        result.Success = false;
-                        result.Message += " Warning : Unable to find any MonitorStatusAlerts with ID " + f.ID;
-                    }
-                    else
-                    {
-                        foreach (var updateMonitorStatusAlert in updateMonitorStatusAlerts)
-                        {
-                            updateMonitorStatusAlert.AlertFlag = false;
-                            updateMonitorStatusAlert.AlertSent = false;
-                            updateMonitorStatusAlert.DownCount = 0;
-                            result.Success = true;
-                            result.Message += " Success : updated MonitorStatusAlert with ID " + f.ID + " with AppID " + f.AppID + " . ";
-
-                        }
-                        alertProcess.UpdateAlertSentList.RemoveAll(r => r.ID == f.ID);
-                    }
-
+                    result.Message += " Info : Waiting for Alert to stop running ";
+                    new System.Threading.ManualResetEvent(false).WaitOne(5000);
                 }
-                catch (Exception e)
+                var updateMonitorStatusAlerts = alertProcess.Alerts.Where(w => w.ID == f.ID).ToList();
+                if (updateMonitorStatusAlerts == null)
                 {
                     result.Success = false;
-                    result.Message += " Error : Unable to reset alerts for MonitorStatusAlert with ID " + f.ID + " with AppID " + f.AppID + " Error was : " + e.Message + " . ";
+                    result.Message += " Warning : Unable to find any MonitorStatusAlerts with ID " + f.ID;
                 }
-                results.Add(result);
-            });
-            return results;
-        }
-     
+                else
+                {
+                    foreach (var updateMonitorStatusAlert in updateMonitorStatusAlerts)
+                    {
+                        updateMonitorStatusAlert.AlertFlag = false;
+                        updateMonitorStatusAlert.AlertSent = false;
+                        updateMonitorStatusAlert.DownCount = 0;
+                        result.Success = true;
+                        result.Message += " Success : updated MonitorStatusAlert with ID " + f.ID + " with AppID " + f.AppID + " . ";
 
+                    }
+                    alertProcess.UpdateAlertSentList.RemoveAll(r => r.ID == f.ID);
+                }
+
+            }
+            catch (Exception e)
+            {
+                result.Success = false;
+                result.Message += " Error : Unable to reset alerts for MonitorStatusAlert with ID " + f.ID + " with AppID " + f.AppID + " Error was : " + e.Message + " . ";
+            }
+            results.Add(result);
+        });
+        return results;
+    }
 }
