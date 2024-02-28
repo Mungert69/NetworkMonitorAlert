@@ -158,7 +158,7 @@ namespace NetworkMonitor.Alert.Services
                     if (processorDataObj.PredictStatusAlerts.Where(w => w.AppID != processorDataObj.AppID).Count() > 0)
                     {
                         result.Success = false;
-                        result.Message = $" Error : Failed CommitProcessorDataBytes invalid AppID in data for AppID {processorDataObj.AppID}";
+                        result.Message = $" Error : Failed CommitPredictDataBytes invalid AppID in data for AppID {processorDataObj.AppID}";
                         _logger.LogError(result.Message);
                         return result;
                     }

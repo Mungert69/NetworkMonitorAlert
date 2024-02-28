@@ -197,6 +197,30 @@ public class AlertTestData
         });
         return alerts;
     }
+
+    public static void AddDataPredictAlerts(List<IAlertable> alerts)
+    {
+        alerts.Add(new PredictStatusAlert()
+        {
+            ID = 4,
+            UserID = "default",
+            Address = "2.2.2.2",
+            UserName = "",
+            AppID = "badappid",
+            EndPointType = "icmp",
+            Timeout = 10000,
+            AddUserEmail = "bademail@bademail",
+            // Assuming these properties come from StatusObj and are relevant
+            AlertFlag = true,
+            AlertSent = false,
+
+            EventTime = DateTime.UtcNow,
+            ChangeDetectionResult = GetDetectionResult(true),
+            SpikeDetectionResult = GetDetectionResult(true),
+            Message = "Timeout",
+            MonitorPingInfoID = 5,
+        });
+    }
     public static AlertParams GetAlertParams()
     {
         return new AlertParams()
