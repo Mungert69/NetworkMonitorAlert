@@ -130,7 +130,7 @@ namespace NetworkMonitor.Alert.Tests
         [Fact]
         public async Task DataQueue_TestBadAuthKey()
         {
-               var systemParams = AlertTestData.GetSystemParams();
+            var systemParams = AlertTestData.GetSystemParams();
             // Setup _systemParamsHelperMock to return the mocked SystemParams object from GetSystemParams()
             _systemParamsHelperMock.Setup(p => p.GetSystemParams()).Returns(systemParams);
 
@@ -145,9 +145,9 @@ namespace NetworkMonitor.Alert.Tests
             var fileRepo = new FileRepo();
 
 
-            var predictStatusAlerts = alertProcessor.PredictAlerts;
+            var predictStatusAlerts = alertProcessor.PredictAlertProcess.Alerts;
             var processorDataObj = new ProcessorDataObj();
-            processorDataObj.PredictStatusAlerts = predictStatusAlerts;
+            processorDataObj.PredictStatusAlerts = alertProcessor.PredictAlerts;
             processorDataObj.AppID = "test";
             processorDataObj.AuthKey = "";
             var predictDataString = await fileRepo.SaveStateStringJsonZAsync<ProcessorDataObj>("TestProcessorDataObj", processorDataObj);
@@ -158,10 +158,10 @@ namespace NetworkMonitor.Alert.Tests
 
 
         }
-[Fact]
-           public async Task DataQueue_TestInvalidAppIDInData()
+        [Fact]
+        public async Task DataQueue_TestInvalidAppIDInData()
         {
-              var systemParams = AlertTestData.GetSystemParams();
+            var systemParams = AlertTestData.GetSystemParams();
             // Setup _systemParamsHelperMock to return the mocked SystemParams object from GetSystemParams()
             _systemParamsHelperMock.Setup(p => p.GetSystemParams()).Returns(systemParams);
 
@@ -178,11 +178,11 @@ namespace NetworkMonitor.Alert.Tests
             var fileRepo = new FileRepo();
 
 
-            var predictStatusAlerts = alertProcessor.PredictAlerts;
+            var predictStatusAlerts = alertProcessor.PredictAlertProcess.Alerts;
             var processorDataObj = new ProcessorDataObj();
-            processorDataObj.PredictStatusAlerts = predictStatusAlerts;
+            processorDataObj.PredictStatusAlerts = alertProcessor.PredictAlerts;
             processorDataObj.AppID = "test";
-             processorDataObj.AuthKey = AesOperation.EncryptString(systemParams.EmailEncryptKey, processorDataObj.AppID);
+            processorDataObj.AuthKey = AesOperation.EncryptString(systemParams.EmailEncryptKey, processorDataObj.AppID);
 
             var predictDataString = await fileRepo.SaveStateStringJsonZAsync<ProcessorDataObj>("TestProcessorDataObj", processorDataObj);
             var result = await dataQueueService.AddPredictDataStringToQueue(predictDataString, predictStatusAlerts);
@@ -209,10 +209,10 @@ namespace NetworkMonitor.Alert.Tests
             var fileRepo = new FileRepo();
 
 
-            var predictStatusAlerts = alertProcessor.PredictAlerts;
             var originalPredictStatusAlerts = alertProcessor.PredictAlerts.Select(alert => new PredictStatusAlert(alert)).ToList();
+            var predictStatusAlerts = alertProcessor.PredictAlertProcess.Alerts;
             var processorDataObj = new ProcessorDataObj();
-            processorDataObj.PredictStatusAlerts = predictStatusAlerts;
+            processorDataObj.PredictStatusAlerts = alertProcessor.PredictAlerts;
             processorDataObj.AppID = "test";
             processorDataObj.AuthKey = AesOperation.EncryptString(systemParams.EmailEncryptKey, processorDataObj.AppID);
 
@@ -220,19 +220,21 @@ namespace NetworkMonitor.Alert.Tests
             var result = await dataQueueService.AddPredictDataStringToQueue(predictDataString, predictStatusAlerts);
             // Assert
             Assert.True(result.Success, $" Result.Success was false. {result.Message}");
+            var newPredictStatusAlerts = predictStatusAlerts.Select(alert => new PredictStatusAlert(alert)).ToList();
 
-            Assert.Equal(originalPredictStatusAlerts, predictStatusAlerts, new PredictStatusAlertComparer());
+            Assert.Equal(originalPredictStatusAlerts, newPredictStatusAlerts, new PredictStatusAlertComparer());
             // Now create empty data to fill
-            predictStatusAlerts = new List<PredictStatusAlert>();
+            predictStatusAlerts = new List<IAlertable>();
             result = await dataQueueService.AddPredictDataStringToQueue(predictDataString, predictStatusAlerts);
             Assert.True(result.Success, $" Result.Success was false. {result.Message}");
+            newPredictStatusAlerts = predictStatusAlerts.Select(alert => new PredictStatusAlert(alert)).ToList();
 
-            Assert.Equal(originalPredictStatusAlerts, predictStatusAlerts, new PredictStatusAlertComparer());
+            Assert.Equal(originalPredictStatusAlerts, newPredictStatusAlerts, new PredictStatusAlertComparer());
 
 
         }
 
-         [Fact]
+        [Fact]
         public async Task DataQueue_TestMonitorInput()
         {
             //_rabbitRepoMock.Setup(repo => repo.PublishAsync<AlertServiceInitObj>("alertServiceReady", It.IsAny<AlertServiceInitObj>())).ReturnsAsync();
@@ -251,10 +253,10 @@ namespace NetworkMonitor.Alert.Tests
             var fileRepo = new FileRepo();
 
 
-            var monitorStatusAlerts = alertProcessor.MonitorAlerts;
             var originalMonitorStatusAlerts = alertProcessor.MonitorAlerts.Select(alert => new MonitorStatusAlert(alert)).ToList();
+            var monitorStatusAlerts = alertProcessor.MonitorAlertProcess.Alerts;
             var processorDataObj = new ProcessorDataObj();
-            processorDataObj.MonitorStatusAlerts = monitorStatusAlerts;
+            processorDataObj.MonitorStatusAlerts = alertProcessor.MonitorAlerts;
             processorDataObj.AppID = "test";
             processorDataObj.AuthKey = AesOperation.EncryptString(systemParams.EmailEncryptKey, processorDataObj.AppID);
 
@@ -262,14 +264,15 @@ namespace NetworkMonitor.Alert.Tests
             var result = await dataQueueService.AddProcessorDataStringToQueue(monitorDataString, monitorStatusAlerts);
             // Assert
             Assert.True(result.Success, $" Result.Success was false. {result.Message}");
-
-            Assert.Equal(originalMonitorStatusAlerts, monitorStatusAlerts, new MonitorStatusAlertComparer());
+            var newMonitorStatusAlerts = monitorStatusAlerts.Select(alert => new MonitorStatusAlert(alert)).ToList();
+            Assert.Equal(originalMonitorStatusAlerts, newMonitorStatusAlerts, new MonitorStatusAlertComparer());
             // Now create empty data to fill
-            monitorStatusAlerts = new List<MonitorStatusAlert>();
+            monitorStatusAlerts = new List<IAlertable>();
             result = await dataQueueService.AddProcessorDataStringToQueue(monitorDataString, monitorStatusAlerts);
             Assert.True(result.Success, $" Result.Success was false. {result.Message}");
+            newMonitorStatusAlerts = monitorStatusAlerts.Select(alert => new MonitorStatusAlert(alert)).ToList();
 
-            Assert.Equal(originalMonitorStatusAlerts, monitorStatusAlerts, new MonitorStatusAlertComparer());
+            Assert.Equal(originalMonitorStatusAlerts, newMonitorStatusAlerts, new MonitorStatusAlertComparer());
 
 
         }

@@ -19,8 +19,8 @@ namespace NetworkMonitor.Alert.Services
 {
     public interface IDataQueueService
     {
-        Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<MonitorStatusAlert> monitorStatusAlerts);
-        Task<ResultObj> AddPredictDataStringToQueue(string processorDataString, List<PredictStatusAlert> predictStatusAlerts);
+        Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<IAlertable> monitorStatusAlerts);
+        Task<ResultObj> AddPredictDataStringToQueue(string processorDataString, List<IAlertable> predictStatusAlerts);
 
     }
     public class DataQueueService : IDataQueueService
@@ -33,13 +33,13 @@ namespace NetworkMonitor.Alert.Services
             _encryptKey = systemParamsHelper.GetSystemParams().EmailEncryptKey;
             _logger = logger;
         }
-        public Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<MonitorStatusAlert> monitorStatusAlerts)
+        public Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<IAlertable> monitorStatusAlerts)
         {
-            Func<string, List<MonitorStatusAlert>, Task<ResultObj>> func = CommitProcessorDataString;
+            Func<string, List<IAlertable>, Task<ResultObj>> func = CommitProcessorDataString;
             return taskQueue.EnqueueStatusString<ResultObj>(func, processorDataString, monitorStatusAlerts);
         }
 
-        private Task<ResultObj> CommitProcessorDataString(string processorDataString, List<MonitorStatusAlert> monitorStatusAlerts)
+        private Task<ResultObj> CommitProcessorDataString(string processorDataString, List<IAlertable> monitorStatusAlerts)
         {
             return Task<ResultObj>.Run(() =>
             {
@@ -111,13 +111,13 @@ namespace NetworkMonitor.Alert.Services
             });
         }
 
-        public Task<ResultObj> AddPredictDataStringToQueue(string predictDataString, List<PredictStatusAlert> predictStatusAlerts)
+        public Task<ResultObj> AddPredictDataStringToQueue(string predictDataString, List<IAlertable> predictStatusAlerts)
         {
-            Func<string, List<PredictStatusAlert>, Task<ResultObj>> func = CommitPredictDataString;
-            return taskQueue.EnqueuePredictString<ResultObj>(func, predictDataString, predictStatusAlerts);
+            Func<string, List<IAlertable>, Task<ResultObj>> func = CommitPredictDataString;
+            return taskQueue.EnqueueStatusString<ResultObj>(func, predictDataString, predictStatusAlerts);
         }
 
-        private Task<ResultObj> CommitPredictDataString(string predictDataString, List<PredictStatusAlert> predictStatusAlerts)
+        private Task<ResultObj> CommitPredictDataString(string predictDataString, List<IAlertable> predictStatusAlerts)
         {
             return Task<ResultObj>.Run(() =>
             {

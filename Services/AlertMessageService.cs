@@ -21,8 +21,8 @@ namespace NetworkMonitor.Alert.Services
         public Task InitService(AlertServiceInitObj alertObj);
         public Task Init();
 
-        List<MonitorStatusAlert> MonitorAlerts { get; set; }
-        List<PredictStatusAlert> PredictAlerts { get; set; }
+        List<IAlertable> MonitorAlerts { get; set; }
+        List<IAlertable> PredictAlerts { get; set; }
         List<ResultObj> ResetMonitorAlerts(List<AlertFlagObj> alertFlagObjs);
 
         //ResultObj QueueRemoveFromAlertSentList(AlertFlagObj alertFlagObj);
@@ -76,8 +76,8 @@ namespace NetworkMonitor.Alert.Services
         public bool IsMonitorAlertRunning { get => _alertProcessor.MonitorAlertProcess.IsAlertRunning; set => _alertProcessor.MonitorAlertProcess.IsAlertRunning = value; }
         public bool IsPredictAlertRunning { get => _alertProcessor.PredictAlertProcess.IsAlertRunning; set => _alertProcessor.PredictAlertProcess.IsAlertRunning = value; }
 
-        public List<MonitorStatusAlert> MonitorAlerts { get => _alertProcessor.MonitorAlerts; set => _alertProcessor.MonitorAlerts = value; }
-        public List<PredictStatusAlert> PredictAlerts { get => _alertProcessor.PredictAlerts; set => _alertProcessor.PredictAlerts = value; }
+        public List<IAlertable> MonitorAlerts { get => _alertProcessor.MonitorAlertProcess.Alerts; set => _alertProcessor.MonitorAlertProcess.Alerts = value; }
+        public List<IAlertable> PredictAlerts { get => _alertProcessor.MonitorAlertProcess.Alerts; set => _alertProcessor.MonitorAlertProcess.Alerts = value; }
 
 
         public AlertMessageService(ILogger<AlertMessageService> logger, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo, IRabbitRepo rabbitRepo, ISystemParamsHelper systemParamsHelper, IProcessorState processorState)

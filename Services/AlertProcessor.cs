@@ -22,7 +22,7 @@ public class AlertProcessor
     private AlertParams _alertParams;
 
 
-    private IAlertProcess _monitorAlertProcess = new AlertProcess() { PublishProcessor = true, CheckAlerts = true };
+    private IAlertProcess _monitorAlertProcess = new AlertProcess() { PublishProcessor = true, CheckAlerts = true,  };
     private IAlertProcess _predictAlertProcess = new AlertProcess() { PublishPredict = true, CheckAlerts = false };
 
     public IAlertProcess MonitorAlertProcess { get => _monitorAlertProcess; set => _monitorAlertProcess = value; }

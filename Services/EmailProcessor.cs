@@ -473,22 +473,21 @@ public class EmailProcessor : IEmailProcessor
     {
         bool isValid = false;
         // Validate email format
-        
-        if (!String.IsNullOrEmpty(monitorStatusAlert.AddUserEmail) )
+
+        if (!String.IsNullOrEmpty(monitorStatusAlert.AddUserEmail))
         {
 
-            var emailRegex = new Regex(@"^[\w-+]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$");
-            if (emailRegex.IsMatch(monitorStatusAlert.AddUserEmail) && monitorStatusAlert.IsEmailVerified)
+            try
             {
-                //_logger.LogInformation(" Success : Rewriting email address from " + userInfo.Email + " to " + monitorStatusAlert.AddUserEmail);
+                var mailAddress = new System.Net.Mail.MailAddress(monitorStatusAlert.AddUserEmail);
+                isValid = monitorStatusAlert.IsEmailVerified;
                 userInfo.Email = monitorStatusAlert.AddUserEmail;
-                isValid = true;
             }
-            else
+            catch (FormatException)
             {
-
                 _logger.LogWarning(" Warning : Invalid email format: " + monitorStatusAlert.AddUserEmail);
             }
+
         }
         else
         {
