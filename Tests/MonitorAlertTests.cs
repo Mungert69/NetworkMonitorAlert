@@ -72,7 +72,7 @@ namespace NetworkMonitor.Alert.Tests
             Assert.True(alertProcessor.MonitorAlertProcess.Alerts[3].AlertFlag, " Alert Flag has been reset but user has bad email");
             Assert.True(alertProcessor.MonitorAlertProcess.Alerts[3].AlertSent, " Alert Sent has not been set for a user that has bad email");
 
-            Assert.True(alertProcessor.MonitorAlertProcess.UpdateAlertSentList.Count() == 2, " There is not only two sent alerts in the UpdateSentAlertList ");
+            Assert.True(alertProcessor.MonitorAlertProcess.UpdateAlertSentList.Count() == 4, " There is not only two sent alerts in the UpdateSentAlertList ");
             int count = (int)result.Data!;
             Assert.True(count == 1, " First call of MonitorAlert has not sent only one email");
 
@@ -115,9 +115,9 @@ namespace NetworkMonitor.Alert.Tests
             Assert.True(alertProcessor.PredictAlertProcess.Alerts[3].AlertFlag, " Alert Flag has been reset but user has bad email");
             Assert.True(alertProcessor.PredictAlertProcess.Alerts[3].AlertSent, " Alert Sent has not been set for a user that has bad email");
 
-            Assert.True(alertProcessor.PredictAlertProcess.UpdateAlertSentList.Count() == 2, " There is not only two sent alerts in the UpdateSentAlertList ");
+            Assert.True(alertProcessor.PredictAlertProcess.UpdateAlertSentList.Count() == 3, " There is not only two sent alerts in the UpdateSentAlertList ");
             int count = (int)result.Data!;
-            Assert.True(count == 1, " First call of PredictAlert has not sent only one email");
+            Assert.True(count == 1, $" First call of PredictAlert has not sent only one email, count is {count}");
 
             result = await alertProcessor.PredictAlert();
             Assert.True(result.Success, $" 2nd Call to PredictAlert did not compete with success. {result.Message}");
@@ -127,6 +127,33 @@ namespace NetworkMonitor.Alert.Tests
             Assert.True(count == 0, " Second call of PredictAlert has sent a second email for same alert.");
 
         }
+
+        [Fact]
+        public async Task MonitorEmailOff_TestSuccess()
+        {
+            //_rabbitRepoMock.Setup(repo => repo.PublishAsync<AlertServiceInitObj>("alertServiceReady", It.IsAny<AlertServiceInitObj>())).ReturnsAsync();
+            _processorStateMock.Setup(p => p.EnabledProcessorList)
+                                              .Returns(new List<ProcessorObj>());
+            _emailProcessorMock.Setup(p => p.SendAlert(It.IsAny<AlertMessage>()))
+                                             .ReturnsAsync(new ResultObj() { Success = true });
+            _emailProcessorMock.Setup(p => p.VerifyEmail(It.IsAny<UserInfo>(), It.IsAny<IAlertable>())).Returns(true);
+            _emailProcessorMock.Setup(p => p.VerifyEmail(It.Is<UserInfo>(u => u.UserID == "default"), It.Is<IAlertable>(a => a.ID == 4))).Returns(false);
+            var alertParams=AlertTestData.GetAlertParams();
+            alertParams.DisableEmailAlert=true;
+            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, alertParams, AlertTestData.GetUserInfos());
+            // Act
+            alertProcessor.MonitorAlertProcess.Alerts = AlertTestData.GetMonitorAlerts();
+
+            var result = await alertProcessor.MonitorAlert();
+
+            // Assert
+            Assert.True(result.Success, $" Call to MonitorAlert check email off did not compete with success. {result.Message}");
+            int count = (int)result.Data!;
+            Assert.True(count == 0, $" Email sending is on. Count of send email was {count}");
+
+           
+        }
+
         [Fact]
         public async Task DataQueue_TestBadAuthKey()
         {

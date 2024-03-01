@@ -22,7 +22,7 @@ public class AlertProcessor
     private AlertParams _alertParams;
 
 
-    private IAlertProcess _monitorAlertProcess = new AlertProcess() { PublishProcessor = true, CheckAlerts = true,  };
+    private IAlertProcess _monitorAlertProcess = new AlertProcess() { PublishProcessor = true, CheckAlerts = true, };
     private IAlertProcess _predictAlertProcess = new AlertProcess() { PublishPredict = true, CheckAlerts = false };
 
     public IAlertProcess MonitorAlertProcess { get => _monitorAlertProcess; set => _monitorAlertProcess = value; }
@@ -39,44 +39,44 @@ public class AlertProcessor
         _monitorAlertProcess.AlertThreshold = alertParmas.AlertThreshold;
         _predictAlertProcess.AlertThreshold = alertParmas.PredictThreshold;
         _monitorAlertProcess.CheckAlerts = alertParmas.CheckAlerts;
-          _monitorAlertProcess.DisableEmailAlert = alertParmas.DisableEmailAlert;
+        _monitorAlertProcess.DisableEmailAlert = alertParmas.DisableEmailAlert;
         _predictAlertProcess.DisableEmailAlert = alertParmas.DisableEmailAlert;
         _userInfos = userInfos;
 
 
 
     }
-public List<MonitorStatusAlert> MonitorAlerts
+    public List<MonitorStatusAlert> MonitorAlerts
+    {
+        get
         {
-            get
-            {
-                // Use OfType<MonitorStatusAlert>() to filter and safely cast to non-nullable MonitorStatusAlert
-                return _monitorAlertProcess.Alerts
-                    .OfType<MonitorStatusAlert>()
-                    .ToList();
-            }
-            set
-            {
-                // Cast each MonitorStatusAlert to IAlertable and assign the list
-                _monitorAlertProcess.Alerts = value.Cast<IAlertable>().ToList();
-            }
+            // Use OfType<MonitorStatusAlert>() to filter and safely cast to non-nullable MonitorStatusAlert
+            return _monitorAlertProcess.Alerts
+                .OfType<MonitorStatusAlert>()
+                .ToList();
         }
+        set
+        {
+            // Cast each MonitorStatusAlert to IAlertable and assign the list
+            _monitorAlertProcess.Alerts = value.Cast<IAlertable>().ToList();
+        }
+    }
 
-        public List<PredictStatusAlert> PredictAlerts
+    public List<PredictStatusAlert> PredictAlerts
+    {
+        get
         {
-            get
-            {
-                // Use OfType<PredictStatusAlert>() to filter and safely cast to non-nullable PredictStatusAlert
-                return _predictAlertProcess.Alerts
-                    .OfType<PredictStatusAlert>()
-                    .ToList();
-            }
-            set
-            {
-                // Cast each PredictStatusAlert to IAlertable and assign the list
-                _predictAlertProcess.Alerts = value.Cast<IAlertable>().ToList();
-            }
+            // Use OfType<PredictStatusAlert>() to filter and safely cast to non-nullable PredictStatusAlert
+            return _predictAlertProcess.Alerts
+                .OfType<PredictStatusAlert>()
+                .ToList();
         }
+        set
+        {
+            // Cast each PredictStatusAlert to IAlertable and assign the list
+            _predictAlertProcess.Alerts = value.Cast<IAlertable>().ToList();
+        }
+    }
 
 
     public async Task<ResultObj> MonitorAlert()
@@ -164,39 +164,58 @@ public List<MonitorStatusAlert> MonitorAlerts
             new System.Threading.ManualResetEvent(false).WaitOne(1000);
         }
         alertProcess.IsAlertRunning = true;
-        var monitorStatusAlerts = alertProcess.Alerts.ConvertAll(c => new MonitorStatusAlert(c));
+       List<IAlertable> statusAlerts;
+    if (alertProcess.Alerts.Any(a => a is MonitorStatusAlert))
+    {
+        statusAlerts = alertProcess.Alerts.Where(a => a is MonitorStatusAlert)
+                                           .Select(a => new MonitorStatusAlert(a))
+                                           .ToList<IAlertable>();
+    }
+    else if (alertProcess.Alerts.Any(a => a is PredictStatusAlert))
+    {
+        statusAlerts = alertProcess.Alerts.Where(a => a is PredictStatusAlert)
+                                           .Select(a => new PredictStatusAlert(a))
+                                           .ToList<IAlertable>();
+    }
+    else
+    {
+        // Handle other types of alerts if necessary
+        statusAlerts = new List<IAlertable>();
+    }
         alertProcess.IsAlertRunning = false;
 
-        foreach (MonitorStatusAlert monitorStatusAlert in monitorStatusAlerts)
+        foreach (IAlertable statusAlert in statusAlerts)
         {
 
             // If the previoud publish of AlertSent failed then need to republish.
-            bool noAlertSentStored = alertProcess.UpdateAlertSentList.FirstOrDefault(w => w.ID == monitorStatusAlert.ID) == null;
-            if (monitorStatusAlert.AlertFlag = true && monitorStatusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(monitorStatusAlert);
-            string? userId = monitorStatusAlert.UserID;
+            bool noAlertSentStored = alertProcess.UpdateAlertSentList.FirstOrDefault(w => w.ID == statusAlert.ID) == null;
+            if (statusAlert.AlertFlag = true && statusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(statusAlert);
+            string? userId = statusAlert.UserID;
             var testUserInfo = userInfos.FirstOrDefault(u => u.UserID == userId);
             if (testUserInfo == null)
             {
-                _logger.LogWarning(" Warning : MonitorStatusAlert contains userId not present in UserInfos State store  .");
+                _logger.LogWarning(" Warning : StatusAlert contains userId not present in UserInfos State store  .");
                 continue;
             }
             UserInfo userInfo = new UserInfo(testUserInfo);
 
-            bool disableEmail = !_emailProcessor.VerifyEmail(userInfo, monitorStatusAlert);
+            bool disableEmail = !_emailProcessor.VerifyEmail(userInfo, statusAlert);
             if (userInfo.UserID == "default")
             {
                 if (userInfo.Email == null) userInfo.Email = "missing@email";
                 userInfo.Name = userInfo.Email.Split('@')[0];
                 userId = userInfo.Email;
                 userInfo.UserID = userId;
+                userInfo.MonitorAlertEnabled = true;
+                userInfo.PredictAlertEnabled = false;
             }
-           
-            userInfo.DisableEmail = disableEmail;
 
-            if (monitorStatusAlert.AddUserEmail == "delete") userInfo.DisableEmail = true;
+            if (disableEmail) userInfo.DisableEmail = true;
 
-            monitorStatusAlert.UserName = userInfo.Name;
-            if (monitorStatusAlert.DownCount > alertProcess.AlertThreshold && monitorStatusAlert.AlertSent == false && noAlertSentStored)
+            if (statusAlert.AddUserEmail == "delete") userInfo.DisableEmail = true;
+
+            statusAlert.UserName = userInfo.Name;
+            if (statusAlert.DownCount > alertProcess.AlertThreshold && statusAlert.AlertSent == false && noAlertSentStored)
             {
                 // Its not the first messge for this user so we need to add a new line
                 if (alertProcess.AlertMessages.FirstOrDefault(a => a.UserID == userId) != null)
@@ -207,10 +226,10 @@ public List<MonitorStatusAlert> MonitorAlerts
                         _logger.LogWarning($" Warning : No alert messages contains userId {userId} .");
                         continue;
                     }
-                    alertMessage.Message += "\n" + monitorStatusAlert.EndPointType!.ToUpper() + " Alert for host at address " + monitorStatusAlert.Address + " status message is " + monitorStatusAlert.Message + " . " +
-                                               "\nHost down count is " + monitorStatusAlert.DownCount + "\nThe time of this event is  " + monitorStatusAlert.EventTime + "\n" +
-                                               " The Processing server ID was " + monitorStatusAlert.AppID + " The timeout was set to " + monitorStatusAlert.Timeout + " ms. \n\n";
-                    alertMessage.AlertFlagObjs.Add(monitorStatusAlert);
+                    alertMessage.Message += "\n" + statusAlert.EndPointType!.ToUpper() + " Alert for host at address " + statusAlert.Address + " status message is " + statusAlert.Message + " . " +
+                                               "\nHost down count is " + statusAlert.DownCount + "\nThe time of this event is  " + statusAlert.EventTime + "\n" +
+                                               " The Processing server ID was " + statusAlert.AppID + " The timeout was set to " + statusAlert.Timeout + " ms. \n\n";
+                    alertMessage.AlertFlagObjs.Add(statusAlert);
                 }
                 // This is the first message for this user so we need to add a new AlertMessage.                   
                 else
@@ -224,17 +243,25 @@ public List<MonitorStatusAlert> MonitorAlerts
                     else
                     {
                         // Add start message
-                        alertMessage.Message = "Alert message for " + monitorStatusAlert.UserName + " . ";
-                        alertMessage.Message += "\n" + monitorStatusAlert.EndPointType!.ToUpper() + " Alert for host at address " + monitorStatusAlert.Address + " status message is " + monitorStatusAlert.Message + " . " +
-                                  "\nHost down count is " + monitorStatusAlert.DownCount + "\nThe time of this event is  " + monitorStatusAlert.EventTime + "\n" +
-                                  " The Processing server ID was " + monitorStatusAlert.AppID + " The timeout was set to " + monitorStatusAlert.Timeout + " ms. \n\n";
-                        alertMessage.dontSend = userInfo.DisableEmail;
-                        alertMessage.AlertFlagObjs.Add(monitorStatusAlert);
+                        alertMessage.Message = "Alert message for " + statusAlert.UserName + " . ";
+                        alertMessage.Message += "\n" + statusAlert.EndPointType!.ToUpper() + " Alert for host at address " + statusAlert.Address + " status message is " + statusAlert.Message + " . " +
+                                  "\nHost down count is " + statusAlert.DownCount + "\nThe time of this event is  " + statusAlert.EventTime + "\n" +
+                                  " The Processing server ID was " + statusAlert.AppID + " The timeout was set to " + statusAlert.Timeout + " ms. \n\n";
+                       if (statusAlert is PredictStatusAlert)
+{
+    alertMessage.dontSend = userInfo.DisableEmail || !userInfo.PredictAlertEnabled;
+}
+else if (statusAlert is MonitorStatusAlert)
+{
+    alertMessage.dontSend = userInfo.DisableEmail || !userInfo.MonitorAlertEnabled;
+}
+
+                        alertMessage.AlertFlagObjs.Add(statusAlert);
                         alertProcess.AlertMessages.Add(alertMessage);
                     }
                 }
-                updateAlertFlagList.Add(monitorStatusAlert);
-                //monitorStatusAlert.AlertFlag = true;
+                updateAlertFlagList.Add(statusAlert);
+                //statusAlert.AlertFlag = true;
             }
         }
         if (publishAlertSentList.Count() != 0)
@@ -262,7 +289,7 @@ public List<MonitorStatusAlert> MonitorAlerts
             {
                 alertMessage.SendTrustPilot = _emailProcessor.SendTrustPilot;
                 alertMessage.Subject = "Network Monitor Alert you have a Host down";
-                if (!alertMessage.dontSend)
+                if (!alertMessage.dontSend && !alertProcess.DisableEmailAlert)
                 {
                     alertMessage.VerifyLink = false;
                     var result = new ResultObj();
@@ -291,19 +318,20 @@ public List<MonitorStatusAlert> MonitorAlerts
         return count;
     }
 
-  
+
     private void UpdateAndPublishAlertSentList(AlertMessage alertMessage, List<IAlertable> publishAlertSentList, IAlertProcess alertProcess)
     {
         foreach (IAlertable alertFlagObj in alertMessage.AlertFlagObjs)
         {
-            var updateAlert=alertProcess.Alerts.Where(w => w.ID == alertFlagObj.ID).FirstOrDefault();
+            var updateAlert = alertProcess.Alerts.Where(w => w.ID == alertFlagObj.ID).FirstOrDefault();
             if (updateAlert != null)
             {
                 updateAlert.AlertSent = true;
                 publishAlertSentList.Add(alertFlagObj);
                 alertProcess.UpdateAlertSentList.Add(alertFlagObj);
             }
-            else{
+            else
+            {
                 _logger.LogError($" Error : can not find Alert with ID {alertFlagObj.ID} It is present in AlertMessages but not in Alerts. This should not be possible.");
             }
             //var updateMonitorStatusAlert = _monitorStatusAlerts.FirstOrDefault(w => w.ID == alertFlagObj.ID);
@@ -332,19 +360,19 @@ public List<MonitorStatusAlert> MonitorAlerts
                     result.Message += " Info : Waiting for Alert to stop running ";
                     new System.Threading.ManualResetEvent(false).WaitOne(5000);
                 }
-                var updateMonitorStatusAlerts = alertProcess.Alerts.Where(w => w.ID == f.ID).ToList();
-                if (updateMonitorStatusAlerts == null)
+                var updateStatusAlerts = alertProcess.Alerts.Where(w => w.ID == f.ID).ToList();
+                if (updateStatusAlerts == null)
                 {
                     result.Success = false;
                     result.Message += " Warning : Unable to find any MonitorStatusAlerts with ID " + f.ID;
                 }
                 else
                 {
-                    foreach (var updateMonitorStatusAlert in updateMonitorStatusAlerts)
+                    foreach (var updateStatusAlert in updateStatusAlerts)
                     {
-                        updateMonitorStatusAlert.AlertFlag = false;
-                        updateMonitorStatusAlert.AlertSent = false;
-                        updateMonitorStatusAlert.DownCount = 0;
+                        updateStatusAlert.AlertFlag = false;
+                        updateStatusAlert.AlertSent = false;
+                        updateStatusAlert.DownCount = 0;
                         result.Success = true;
                         result.Message += " Success : updated MonitorStatusAlert with ID " + f.ID + " with AppID " + f.AppID + " . ";
 
@@ -362,7 +390,7 @@ public List<MonitorStatusAlert> MonitorAlerts
         });
         return results;
     }
-      private async Task CheckAlerts(List<IAlertable> updateAlertFlagList, IAlertProcess alertProcess)
+    private async Task CheckAlerts(List<IAlertable> updateAlertFlagList, IAlertProcess alertProcess)
     {
         if (updateAlertFlagList == null || updateAlertFlagList.Count() == 0) return;
         var pingParams = new PingParams();
@@ -419,5 +447,5 @@ public List<MonitorStatusAlert> MonitorAlerts
         await PublishAlertsRepo.ProcessorResetAlerts(_logger, _rabbitRepo, monitorIPDic);
     }
 
-  
+
 }

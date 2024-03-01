@@ -104,6 +104,44 @@ public class AlertTestData
             Message = "Timeout",
             MonitorPingInfoID = 4,
         });
+          alerts.Add(new MonitorStatusAlert()
+        {
+            ID = 5,
+            UserID = "testdisableemail",
+            Address = "2.2.2.2",
+            UserName = "",
+            AppID = "test",
+            EndPointType = "icmp",
+            Timeout = 10000,
+            AddUserEmail = "bademail@bademail",
+            // Assuming these properties come from StatusObj and are relevant
+            AlertFlag = true,
+            AlertSent = false,
+            DownCount = 5,
+            EventTime = DateTime.UtcNow,
+            IsUp = false,
+            Message = "Timeout",
+            MonitorPingInfoID = 4,
+        });
+          alerts.Add(new MonitorStatusAlert()
+        {
+            ID = 6,
+            UserID = "testdisablemonitor",
+            Address = "2.2.2.2",
+            UserName = "",
+            AppID = "test",
+            EndPointType = "icmp",
+            Timeout = 10000,
+            AddUserEmail = "contact@mahadeva.co.uk",
+            // Assuming these properties come from StatusObj and are relevant
+            AlertFlag = true,
+            AlertSent = false,
+            DownCount = 5,
+            EventTime = DateTime.UtcNow,
+            IsUp = false,
+            Message = "Timeout",
+            MonitorPingInfoID = 4,
+        });
         return alerts;
     }
 
@@ -195,6 +233,26 @@ public class AlertTestData
             Message = "Timeout",
             MonitorPingInfoID = 4,
         });
+        alerts.Add(new PredictStatusAlert()
+        {
+            ID = 5,
+            UserID = "testdisablepredict",
+            Address = "2.2.2.2",
+            UserName = "",
+            AppID = "test",
+            EndPointType = "icmp",
+            Timeout = 10000,
+            AddUserEmail = "contact@mahadeva.co.uk",
+            // Assuming these properties come from StatusObj and are relevant
+            AlertFlag = true,
+            AlertSent = false,
+
+            EventTime = DateTime.UtcNow,
+            ChangeDetectionResult = GetDetectionResult(true),
+            SpikeDetectionResult = GetDetectionResult(true),
+            Message = "Timeout",
+            MonitorPingInfoID = 4,
+        });
         return alerts;
     }
 
@@ -226,7 +284,7 @@ public class AlertTestData
         return new AlertParams()
         {
             CheckAlerts = true,
-            DisableEmailAlert = true,
+            DisableEmailAlert = false,
             AlertThreshold = 4,
             PredictThreshold = 0
         };
@@ -256,15 +314,48 @@ public class AlertTestData
             Email = "support@mahadeva.co.uk",
             Email_verified = true,
             DisableEmail = false,
+            PredictAlertEnabled=true,
+            MonitorAlertEnabled=true,
             Name = "test user"
 
         });
         userInfos.Add(new UserInfo()
         {
             UserID = "default",
+            Email = "bademailtest",
+            Email_verified = true,
+            DisableEmail = false,
+            PredictAlertEnabled=true,
+            MonitorAlertEnabled=true,
+            Name = "default"
+
+        });
+           userInfos.Add(new UserInfo()
+        {
+            UserID = "testdisableemail",
+            Email = "support@mahadeva.co.uk",
+            Email_verified = true,
+            DisableEmail = true,
+            Name = "test user"
+
+        });
+        userInfos.Add(new UserInfo()
+        {
+            UserID = "testdisablepredict",
             Email = "support@mahadeva.co.uk",
             Email_verified = true,
             DisableEmail = false,
+            PredictAlertEnabled=false,
+            Name = "default"
+
+        });
+         userInfos.Add(new UserInfo()
+        {
+            UserID = "testdisablemonitor",
+            Email = "support@mahadeva.co.uk",
+            Email_verified = true,
+            DisableEmail = false,
+            MonitorAlertEnabled=false,
             Name = "default"
 
         });
