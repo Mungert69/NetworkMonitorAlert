@@ -135,7 +135,7 @@ namespace NetworkMonitor.Alert.Tests
             _processorStateMock.Setup(p => p.EnabledProcessorList)
                                               .Returns(new List<ProcessorObj>());
             _emailProcessorMock.Setup(p => p.SendAlert(It.IsAny<AlertMessage>()))
-                                             .ReturnsAsync(new ResultObj() { Success = true });
+                                             .ReturnsAsync(new ResultObj() { Success = false });
             _emailProcessorMock.Setup(p => p.VerifyEmail(It.IsAny<UserInfo>(), It.IsAny<IAlertable>())).Returns(true);
             _emailProcessorMock.Setup(p => p.VerifyEmail(It.Is<UserInfo>(u => u.UserID == "default"), It.Is<IAlertable>(a => a.ID == 4))).Returns(false);
             var alertParams=AlertTestData.GetAlertParams();

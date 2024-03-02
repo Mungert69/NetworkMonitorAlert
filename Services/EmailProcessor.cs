@@ -76,18 +76,19 @@ public class EmailProcessor : IEmailProcessor
     public async Task<ResultObj> SendAlert(AlertMessage alertMessage)
     {
         ResultObj result = new ResultObj();
-        if (alertMessage.UserInfo == null || alertMessage.UserInfo.UserID == null)
-        {
-            result.Message = " Error : Missing UserInfo ";
-            result.Success = false;
-            return result;
-        }
         if (_disableEmailAlert)
         {
             result.Success = false;
             result.Message += " Error : Emails are disabled in appsettings.json (DisableEmailAlert=true) . ";
             return result;
         }
+        if (alertMessage.UserInfo == null || alertMessage.UserInfo.UserID == null)
+        {
+            result.Message = " Error : Missing UserInfo ";
+            result.Success = false;
+            return result;
+        }
+
 
 
         var urls = GetUrls(alertMessage.UserInfo.UserID, alertMessage.UserInfo.Email);
@@ -242,7 +243,7 @@ public class EmailProcessor : IEmailProcessor
         var user = hostReport.UserInfo;
         var headerImageUrl = BuildUrl(hostReport);
         string? template = null;
-          if (_disableEmailAlert)
+        if (_disableEmailAlert)
         {
             result.Success = false;
             result.Message += " Error : Emails are disabled in appsettings.json (DisableEmailAlert=true) . ";

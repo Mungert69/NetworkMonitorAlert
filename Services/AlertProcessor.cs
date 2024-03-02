@@ -41,7 +41,7 @@ public class AlertProcessor
         _monitorAlertProcess.CheckAlerts = alertParmas.CheckAlerts;
         _monitorAlertProcess.DisableEmailAlert = alertParmas.DisableMonitorEmailAlert;
         _predictAlertProcess.DisableEmailAlert = alertParmas.DisablePredictEmailAlert;
-        
+
         _userInfos = userInfos;
 
 
@@ -165,24 +165,24 @@ public class AlertProcessor
             new System.Threading.ManualResetEvent(false).WaitOne(1000);
         }
         alertProcess.IsAlertRunning = true;
-       List<IAlertable> statusAlerts;
-    if (alertProcess.IsMonitorProcess)
-    {
-        statusAlerts = alertProcess.Alerts.Where(a => a is MonitorStatusAlert)
-                                           .Select(a => new MonitorStatusAlert(a))
-                                           .ToList<IAlertable>();
-    }
-    else if (alertProcess.IsPredictProcess)
-    {
-        statusAlerts = alertProcess.Alerts.Where(a => a is PredictStatusAlert)
-                                           .Select(a => new PredictStatusAlert(a))
-                                           .ToList<IAlertable>();
-    }
-    else
-    {
-        // Handle other types of alerts if necessary
-        statusAlerts = new List<IAlertable>();
-    }
+        List<IAlertable> statusAlerts;
+        if (alertProcess.IsMonitorProcess)
+        {
+            statusAlerts = alertProcess.Alerts.Where(a => a is MonitorStatusAlert)
+                                               .Select(a => new MonitorStatusAlert(a))
+                                               .ToList<IAlertable>();
+        }
+        else if (alertProcess.IsPredictProcess)
+        {
+            statusAlerts = alertProcess.Alerts.Where(a => a is PredictStatusAlert)
+                                               .Select(a => new PredictStatusAlert(a))
+                                               .ToList<IAlertable>();
+        }
+        else
+        {
+            // Handle other types of alerts if necessary
+            statusAlerts = new List<IAlertable>();
+        }
         alertProcess.IsAlertRunning = false;
 
         foreach (IAlertable statusAlert in statusAlerts)
@@ -248,14 +248,14 @@ public class AlertProcessor
                         alertMessage.Message += "\n" + statusAlert.EndPointType!.ToUpper() + " Alert for host at address " + statusAlert.Address + " status message is " + statusAlert.Message + " . " +
                                   "\nNumber of events " + statusAlert.DownCount + "\nThe time of latest event is  " + statusAlert.EventTime + "\n" +
                                   " The Agents ID processing the host was " + statusAlert.AppID + " The timeout was set to " + statusAlert.Timeout + " ms. \n\n";
-                       if (statusAlert is PredictStatusAlert)
-{
-    alertMessage.dontSend = userInfo.DisableEmail || !userInfo.PredictAlertEnabled;
-}
-else if (statusAlert is MonitorStatusAlert)
-{
-    alertMessage.dontSend = userInfo.DisableEmail || !userInfo.MonitorAlertEnabled;
-}
+                        if (statusAlert is PredictStatusAlert)
+                        {
+                            alertMessage.dontSend = userInfo.DisableEmail || !userInfo.PredictAlertEnabled;
+                        }
+                        else if (statusAlert is MonitorStatusAlert)
+                        {
+                            alertMessage.dontSend = userInfo.DisableEmail || !userInfo.MonitorAlertEnabled;
+                        }
 
                         alertMessage.AlertFlagObjs.Add(statusAlert);
                         alertProcess.AlertMessages.Add(alertMessage);
@@ -292,10 +292,11 @@ else if (statusAlert is MonitorStatusAlert)
                 alertMessage.Subject = "Network Monitor Alert!";
                 if (!alertMessage.dontSend)
                 {
-                    if (alertProcess.DisableEmailAlert) {
-                        alertMessage.UserInfo.Email="support@mahadeva.co.uk";
-                        }
-                       
+                    if (alertProcess.DisableEmailAlert)
+                    {
+                        alertMessage.UserInfo.Email = "support@mahadeva.co.uk";
+                    }
+
                     alertMessage.VerifyLink = false;
                     var result = new ResultObj();
                     result = await _emailProcessor.SendAlert(alertMessage);
@@ -312,7 +313,7 @@ else if (statusAlert is MonitorStatusAlert)
                         _logger.LogError(result.Message);
                     }
 
-  
+
                 }
                 else
                 {
