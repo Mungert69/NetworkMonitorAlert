@@ -139,7 +139,7 @@ namespace NetworkMonitor.Alert.Tests
             _emailProcessorMock.Setup(p => p.VerifyEmail(It.IsAny<UserInfo>(), It.IsAny<IAlertable>())).Returns(true);
             _emailProcessorMock.Setup(p => p.VerifyEmail(It.Is<UserInfo>(u => u.UserID == "default"), It.Is<IAlertable>(a => a.ID == 4))).Returns(false);
             var alertParams=AlertTestData.GetAlertParams();
-            alertParams.DisableEmailAlert=true;
+            alertParams.DisableEmails=true;
             var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, alertParams, AlertTestData.GetUserInfos());
             // Act
             alertProcessor.MonitorAlertProcess.Alerts = AlertTestData.GetMonitorAlerts();

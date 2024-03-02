@@ -121,6 +121,7 @@ namespace NetworkMonitor.Alert.Services
         }
         public async Task InitService(AlertServiceInitObj alertObj)
         {
+            var alertParams = _systemParamsHelper.GetAlertParams();
             var processorList = new List<ProcessorObj>();
             try
             {
@@ -153,7 +154,7 @@ namespace NetworkMonitor.Alert.Services
 
                 _systemParams = _systemParamsHelper.GetSystemParams();
                 _logger.LogDebug("SystemParams: " + JsonUtils.WriteJsonObjectToString(_systemParams));
-                _emailProcessor = new EmailProcessor(_systemParams, _logger, _disableEmailAlert);
+                _emailProcessor = new EmailProcessor(_systemParams, _logger, alertParams.DisableEmails);
                 _logger.LogInformation("Got config");
             }
             catch (Exception e)
@@ -227,7 +228,7 @@ namespace NetworkMonitor.Alert.Services
             }
             try
             {
-                var alertParams = _systemParamsHelper.GetAlertParams();
+
                 var netConnectConfig = new NetConnectConfig(_config);
                 var connectFactory = new ConnectFactory(_logger, false);
                 var netConnectCollection = new NetConnectCollection(_logger, netConnectConfig, connectFactory);

@@ -284,7 +284,9 @@ public class AlertTestData
         return new AlertParams()
         {
             CheckAlerts = true,
-            DisableEmailAlert = false,
+            DisableEmails = false,
+             DisablePredictEmailAlert = true,
+              DisableMonitorEmailAlert = true,
             AlertThreshold = 4,
             PredictThreshold = 0
         };

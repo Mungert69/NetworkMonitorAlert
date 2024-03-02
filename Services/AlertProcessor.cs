@@ -39,8 +39,9 @@ public class AlertProcessor
         _monitorAlertProcess.AlertThreshold = alertParmas.AlertThreshold;
         _predictAlertProcess.AlertThreshold = alertParmas.PredictThreshold;
         _monitorAlertProcess.CheckAlerts = alertParmas.CheckAlerts;
-        _monitorAlertProcess.DisableEmailAlert = alertParmas.DisableEmailAlert;
-        _predictAlertProcess.DisableEmailAlert = alertParmas.DisableEmailAlert;
+        _monitorAlertProcess.DisableEmailAlert = alertParmas.DisableMonitorEmailAlert;
+        _predictAlertProcess.DisableEmailAlert = alertParmas.DisablePredictEmailAlert;
+        
         _userInfos = userInfos;
 
 
@@ -165,13 +166,13 @@ public class AlertProcessor
         }
         alertProcess.IsAlertRunning = true;
        List<IAlertable> statusAlerts;
-    if (alertProcess.Alerts.Any(a => a is MonitorStatusAlert))
+    if (alertProcess.IsMonitorProcess)
     {
         statusAlerts = alertProcess.Alerts.Where(a => a is MonitorStatusAlert)
                                            .Select(a => new MonitorStatusAlert(a))
                                            .ToList<IAlertable>();
     }
-    else if (alertProcess.Alerts.Any(a => a is PredictStatusAlert))
+    else if (alertProcess.IsPredictProcess)
     {
         statusAlerts = alertProcess.Alerts.Where(a => a is PredictStatusAlert)
                                            .Select(a => new PredictStatusAlert(a))
@@ -245,8 +246,8 @@ public class AlertProcessor
                         // Add start message
                         alertMessage.Message = "Alert message for " + statusAlert.UserName + " . ";
                         alertMessage.Message += "\n" + statusAlert.EndPointType!.ToUpper() + " Alert for host at address " + statusAlert.Address + " status message is " + statusAlert.Message + " . " +
-                                  "\nHost down count is " + statusAlert.DownCount + "\nThe time of this event is  " + statusAlert.EventTime + "\n" +
-                                  " The Processing server ID was " + statusAlert.AppID + " The timeout was set to " + statusAlert.Timeout + " ms. \n\n";
+                                  "\nNumber of events " + statusAlert.DownCount + "\nThe time of latest event is  " + statusAlert.EventTime + "\n" +
+                                  " The Agents ID processing the host was " + statusAlert.AppID + " The timeout was set to " + statusAlert.Timeout + " ms. \n\n";
                        if (statusAlert is PredictStatusAlert)
 {
     alertMessage.dontSend = userInfo.DisableEmail || !userInfo.PredictAlertEnabled;
@@ -288,9 +289,13 @@ else if (statusAlert is MonitorStatusAlert)
             foreach (AlertMessage alertMessage in alertProcess.AlertMessages)
             {
                 alertMessage.SendTrustPilot = _emailProcessor.SendTrustPilot;
-                alertMessage.Subject = "Network Monitor Alert you have a Host down";
-                if (!alertMessage.dontSend && !alertProcess.DisableEmailAlert)
+                alertMessage.Subject = "Network Monitor Alert!";
+                if (!alertMessage.dontSend)
                 {
+                    if (alertProcess.DisableEmailAlert) {
+                        alertMessage.UserInfo.Email="support@mahadeva.co.uk";
+                        }
+                       
                     alertMessage.VerifyLink = false;
                     var result = new ResultObj();
                     result = await _emailProcessor.SendAlert(alertMessage);
@@ -300,13 +305,14 @@ else if (statusAlert is MonitorStatusAlert)
                         result.Message += " Success : Sent alert message to " + alertMessage.EmailTo;
                         UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList, alertProcess);
                         _logger.LogInformation(result.Message);
+                        count++;
                     }
                     else
                     {
                         _logger.LogError(result.Message);
                     }
 
-                    count++;
+  
                 }
                 else
                 {

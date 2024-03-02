@@ -85,7 +85,7 @@ public class EmailProcessor : IEmailProcessor
         if (_disableEmailAlert)
         {
             result.Success = false;
-            result.Message += " Error : Alert emails are diabled in appsettings.json (DisableEmailAlert=true) . ";
+            result.Message += " Error : Emails are disabled in appsettings.json (DisableEmailAlert=true) . ";
             return result;
         }
 
@@ -179,7 +179,7 @@ public class EmailProcessor : IEmailProcessor
         if (_disableEmailAlert)
         {
             result.Success = false;
-            result.Message += " Error : Alert emails are diabled in appsettings.json (DisableEmailAlert=true) . ";
+            result.Message += " Error : Emails are disabled in appsettings.json (DisableEmailAlert=true) . ";
             return result;
         }
         try
@@ -242,6 +242,12 @@ public class EmailProcessor : IEmailProcessor
         var user = hostReport.UserInfo;
         var headerImageUrl = BuildUrl(hostReport);
         string? template = null;
+          if (_disableEmailAlert)
+        {
+            result.Success = false;
+            result.Message += " Error : Emails are disabled in appsettings.json (DisableEmailAlert=true) . ";
+            return result;
+        }
         try
         {
             template = File.ReadAllText("./templates/user-message-template.html");
@@ -294,6 +300,12 @@ public class EmailProcessor : IEmailProcessor
         var result = new ResultObj();
 
         string? template = null;
+        if (_disableEmailAlert)
+        {
+            result.Success = false;
+            result.Message += " Error : Emails are disabled in appsettings.json (DisableEmailAlert=true) . ";
+            return result;
+        }
         try
         {
             template = File.ReadAllText("./templates/user-message-template.html");
@@ -343,6 +355,13 @@ public class EmailProcessor : IEmailProcessor
         var results = new List<ResultObj>();
         var result = new ResultObj();
         string? template = null;
+        if (_disableEmailAlert)
+        {
+            result.Success = false;
+            result.Message += " Error : Emails are disabled in appsettings.json (DisableEmailAlert=true) . ";
+            results.Add(result);
+            return results;
+        }
         try
         {
             template = File.ReadAllText("./templates/user-message-template.html");
