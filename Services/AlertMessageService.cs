@@ -77,7 +77,7 @@ namespace NetworkMonitor.Alert.Services
         public bool IsPredictAlertRunning { get => _alertProcessor.PredictAlertProcess.IsAlertRunning; set => _alertProcessor.PredictAlertProcess.IsAlertRunning = value; }
 
         public List<IAlertable> MonitorAlerts { get => _alertProcessor.MonitorAlertProcess.Alerts; set => _alertProcessor.MonitorAlertProcess.Alerts = value; }
-        public List<IAlertable> PredictAlerts { get => _alertProcessor.MonitorAlertProcess.Alerts; set => _alertProcessor.MonitorAlertProcess.Alerts = value; }
+        public List<IAlertable> PredictAlerts { get => _alertProcessor.PredictAlertProcess.Alerts; set => _alertProcessor.PredictAlertProcess.Alerts = value; }
 
 
         public AlertMessageService(ILogger<AlertMessageService> logger, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo, IRabbitRepo rabbitRepo, ISystemParamsHelper systemParamsHelper, IProcessorState processorState)
