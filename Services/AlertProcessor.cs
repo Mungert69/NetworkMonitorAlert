@@ -208,7 +208,7 @@ public class AlertProcessor
                 userId = userInfo.Email;
                 userInfo.UserID = userId;
                 userInfo.MonitorAlertEnabled = true;
-                userInfo.PredictAlertEnabled = false;
+                userInfo.PredictAlertEnabled = true;
             }
 
             if (disableEmail) userInfo.DisableEmail = true;
