@@ -61,6 +61,11 @@ namespace NetworkMonitor.Alert.Services
                 ExchangeName = "alertMessageResetAlerts",
                 FuncName = "alertMessageResetAlerts"
             });
+             _rabbitMQObjs.Add(new RabbitMQObj()
+            {
+                ExchangeName = "alertMessageResetPredictAlerts",
+                FuncName = "alertMessageResetPredictAlerts"
+            });
             _rabbitMQObjs.Add(new RabbitMQObj()
             {
                 ExchangeName = "alertMessage",
@@ -177,6 +182,21 @@ namespace NetworkMonitor.Alert.Services
                             catch (Exception ex)
                             {
                                 _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessageResetAlerts " + ex.Message);
+                            }
+                        };
+                            break;
+                             case "alertMessageResetPredictAlerts":
+                            rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
+                            rabbitMQObj.Consumer.Received += (model, ea) =>
+                        {
+                            try
+                            {
+                                result = AlertMessageResetPredictAlerts(ConvertToObject<AlertServiceAlertObj>(model, ea));
+                                rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessageResetPredictAlerts " + ex.Message);
                             }
                         };
                             break;
@@ -413,6 +433,40 @@ namespace NetworkMonitor.Alert.Services
             {
 
                 var results = _alertMessageService.ResetMonitorAlerts(alertServiceAlertObj.AlertFlagObjs);
+                results.ForEach(f => result.Message += f.Message);
+                result.Success = results.All(a => a.Success == true) && results.Count() != 0;
+                result.Data = results;
+                _logger.LogInformation(result.Message);
+            }
+            catch (Exception e)
+            {
+                result.Data = null;
+                result.Success = false;
+                result.Message += "Error : Failed to receive message : Error was : " + e.Message + " ";
+                _logger.LogError(result.Message);
+            }
+            return result;
+        }
+
+        public ResultObj AlertMessageResetPredictAlerts(AlertServiceAlertObj? alertServiceAlertObj)
+        {
+            ResultObj result = new ResultObj();
+            result.Success = false;
+            result.Message = "MessageAPI : AlertMessageResetPredictAlerts : ";
+            if (alertServiceAlertObj == null)
+            {
+                result.Message += " Error : alertServiceAlertObj is Null ";
+                return result;
+            }
+            if (_alertMessageService.IsBadAuthKey(alertServiceAlertObj.AuthKey, alertServiceAlertObj.AppID))
+            {
+                result.Message += " Error : alertServiceAlertObj is invalid ";
+                return result;
+            }
+            try
+            {
+
+                var results = _alertMessageService.ResetPredictAlerts(alertServiceAlertObj.AlertFlagObjs);
                 results.ForEach(f => result.Message += f.Message);
                 result.Success = results.All(a => a.Success == true) && results.Count() != 0;
                 result.Data = results;

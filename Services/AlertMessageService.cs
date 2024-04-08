@@ -24,6 +24,7 @@ namespace NetworkMonitor.Alert.Services
         List<IAlertable> MonitorAlerts { get; set; }
         List<IAlertable> PredictAlerts { get; set; }
         List<ResultObj> ResetMonitorAlerts(List<AlertFlagObj> alertFlagObjs);
+        List<ResultObj> ResetPredictAlerts(List<AlertFlagObj> alertFlagObjs);
 
         //ResultObj QueueRemoveFromAlertSentList(AlertFlagObj alertFlagObj);
         Task<ResultObj> UpdateUserInfo(UserInfo userInfo);

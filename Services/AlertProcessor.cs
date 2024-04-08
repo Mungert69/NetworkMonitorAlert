@@ -269,6 +269,8 @@ public class AlertProcessor
         {
             _logger.LogWarning("Warning republishing AlertSent List check coms. ");
             if (alertProcess.PublishProcessor) await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorState.EnabledProcessorList);
+             if (alertProcess.PublishPredict) await PublishAlertsRepo.PredictAlertSent(_logger, _rabbitRepo, publishAlertSentList);
+         
         }
         if (alertProcess.CheckAlerts) await CheckAlerts(updateAlertFlagList, alertProcess);
 
@@ -276,6 +278,8 @@ public class AlertProcessor
         {
             alertProcess.Alert = true;
             if (alertProcess.PublishProcessor) await PublishAlertsRepo.ProcessorAlertFlag(_logger, _rabbitRepo, updateAlertFlagList, _processorState.EnabledProcessorList);
+            if (alertProcess.PublishPredict) await PublishAlertsRepo.PredictAlertFlag(_logger, _rabbitRepo, updateAlertFlagList);
+        
         }
         else alertProcess.Alert = false;
         return resultStr;

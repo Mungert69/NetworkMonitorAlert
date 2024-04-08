@@ -58,5 +58,49 @@ namespace NetworkMonitor.Objects.Repository
                 logger.LogError(" Error : failed to publish ProcessResetAlerts. Error was :" + e.ToString());
             }
         }
+         public static async Task PredictAlertSent(ILogger logger, IRabbitRepo rabbitRepo, List<IAlertable> publishAlertSentList)
+        {
+            try
+            {
+                  List<int> predictStatusAlertIDs = publishAlertSentList.Select(s => s.ID).ToList();
+                    if (predictStatusAlertIDs.Count != 0)
+                    {
+                        await rabbitRepo.PublishAsync<List<int>>("predictAlertSent" , predictStatusAlertIDs);
+                        logger.LogInformation("Sent event predictAlertSent ");
+                    }
+                
+            }
+            catch (Exception e)
+            {
+                logger.LogCritical("Error : Unable to send predictAlertSent message. Error was :  " + e.Message.ToString());
+            }
+        }
+        public static  async  Task PredictAlertFlag(ILogger logger,  IRabbitRepo rabbitRepo, List<IAlertable> publishAlertFlagList)
+        {
+           
+                List<int> predictStatusAlertIDs = publishAlertFlagList.Select(s => s.ID).ToList();
+                if (predictStatusAlertIDs.Count != 0)
+                {
+                    await rabbitRepo.PublishAsync<List<int>>( "predictAlertFlag" , predictStatusAlertIDs);
+                    logger.LogInformation("Sent event predictAlertFlag " );
+                }
+                publishAlertFlagList.ToList().ForEach(f => f.AlertFlag=true);
+            
+        }
+        public static async Task PredictResetAlerts(ILogger logger,  IRabbitRepo rabbitRepo, List<int> monitorIPIDs)
+        {
+            try
+            {
+                
+                    // Dont publish this at the moment as its causing alerts to refire?
+                    await rabbitRepo.PublishAsync<List<int>>( "predictResetAlerts" , monitorIPIDs);
+                
+            }
+            catch (Exception e)
+            {
+                logger.LogError(" Error : failed to publish PredictResetAlerts. Error was :" + e.ToString());
+            }
+        }
+ 
     }
 }
