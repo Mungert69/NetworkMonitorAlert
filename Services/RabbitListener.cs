@@ -107,6 +107,12 @@ namespace NetworkMonitor.Alert.Services
                 FuncName = "userHostExpire",
                 MessageTimeout = 86300000
             });
+            _rabbitMQObjs.Add(new RabbitMQObj()
+            {
+                ExchangeName = "userProcessorExpire",
+                FuncName = "userProcessorExpire",
+                MessageTimeout = 86300000
+            });
              _rabbitMQObjs.Add(new RabbitMQObj()
             {
                 ExchangeName = "userUpgrade",
@@ -305,6 +311,22 @@ namespace NetworkMonitor.Alert.Services
                             }
                         };
                             break;
+                              case "userProcessorExpire":
+                            rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
+                            rabbitMQObj.Consumer.Received += async (model, ea) =>
+                        {
+                            try
+                            {
+                                result = await UserProccesorExpire(ConvertToList<List<GenericEmailObj>>(model, ea));
+                                rabbitMQObj.ConnectChannel.BasicAck(ea.DeliveryTag, false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.userProcessorExpire " + ex.Message);
+                            }
+                        };
+                            break;
+                      
                          case "userUpgrade":
                             rabbitMQObj.ConnectChannel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
                             rabbitMQObj.Consumer.Received += async (model, ea) =>
@@ -670,6 +692,43 @@ public async Task<ResultObj> AlertUpdatePredictStatusAlerts(string? predictStatu
             }
             return result;
         }
+
+        public async Task<ResultObj> UserProccesorExpire(List<GenericEmailObj>? emailObjs)
+        {
+            ResultObj result = new ResultObj();
+            result.Success = false;
+            result.Message = "MessageAPI : UserProcessorExpire : ";
+            if (emailObjs == null)
+            {
+                result.Message += " Error : emailObjs is Null ";
+                return result;
+            }
+            try
+            {
+                var results = await _alertMessageService.UserProcessorExpire(emailObjs);
+                results.ForEach(f => result.Message += f.Message);
+                result.Success = results.All(a => a.Success == true) && results.Count() != 0;
+                result.Data = results;
+                if (result.Success)
+                {
+                    _logger.LogInformation(result.Message);
+                }
+                else
+                {
+                    _logger.LogError(result.Message);
+                }
+
+            }
+            catch (Exception e)
+            {
+                result.Data = null;
+                result.Success = false;
+                result.Message += "Error : Failed to receive message : Error was : " + e.Message + " ";
+                _logger.LogError(result.Message);
+            }
+            return result;
+        }
+
 
          public async Task<ResultObj> UserUpgrade(List<GenericEmailObj>? emailObjs)
         {

@@ -38,6 +38,7 @@ namespace NetworkMonitor.Alert.Services
         Task<ResultObj> Send(AlertMessage alertMessage);
         Task<ResultObj> SendGenericEmail(GenericEmailObj genericEmail);
         Task<List<ResultObj>> UserHostExpire(List<GenericEmailObj> userInfos);
+        Task<List<ResultObj>> UserProcessorExpire(List<GenericEmailObj> emailObjs);
         Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> userInfos);
 
         Task<ResultObj> SendHostReport(HostReportObj hostReport);
@@ -277,6 +278,10 @@ namespace NetworkMonitor.Alert.Services
         public async Task<List<ResultObj>> UserHostExpire(List<GenericEmailObj> emailObjs)
         {
             return await _emailProcessor.UserHostExpire(emailObjs);
+        }
+         public async Task<List<ResultObj>> UserProcessorExpire(List<GenericEmailObj> emailObjs)
+        {
+            return await _emailProcessor.UserProcessorExpire(emailObjs);
         }
         public async Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> emailObjs)
         {

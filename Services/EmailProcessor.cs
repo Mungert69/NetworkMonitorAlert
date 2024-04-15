@@ -19,6 +19,7 @@ public interface IEmailProcessor
     Task<ResultObj> SendHostReport(HostReportObj hostReport);
     Task<ResultObj> SendGenericEmail(GenericEmailObj emailObj);
     Task<List<ResultObj>> UserHostExpire(List<GenericEmailObj> emailObjs);
+    Task<List<ResultObj>> UserProcessorExpire(List<GenericEmailObj> emailObjs);
     Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> emailObjs);
     bool VerifyEmail(UserInfo userInfo, IAlertable monitorStatusAlert);
 }
@@ -416,6 +417,73 @@ public class EmailProcessor : IEmailProcessor
         return results;
 
     }
+
+     public async Task<List<ResultObj>> UserProcessorExpire(List<GenericEmailObj> emailObjs)
+    {
+        var results = new List<ResultObj>();
+        var result = new ResultObj();
+        string? template = null;
+        if (_disableEmailAlert)
+        {
+            result.Success = false;
+            result.Message += " Error : Emails are disabled in appsettings.json (DisableEmailAlert=true) . ";
+            results.Add(result);
+            return results;
+        }
+        try
+        {
+            template = File.ReadAllText("./templates/user-message-template.html");
+        }
+        catch (Exception e)
+        {
+
+            result.Success = false;
+            result.Message = $" Error : Could not open file /templates/user-message-template.html : Error was : {e.Message} .";
+            results.Add(result);
+            return results;
+        }
+        if (template == null)
+        {
+            result.Success = false;
+            result.Message = " Error : file ./templates/user-message-template.html returns null .";
+            results.Add(result);
+            return results;
+        }
+
+        foreach (var emailObj in emailObjs)
+        {
+            if (emailObj.UserInfo.DisableEmail)
+            {
+                results.Add(new ResultObj { Success = false, Message = $" Warning : User Email Disabled {emailObj.UserInfo.UserID} {emailObj.UserInfo.Email} ." });
+            }
+            else
+            {
+                var urls = GetUrls(emailObj.UserInfo.UserID, emailObj.UserInfo.Email);
+                var contentMap = new Dictionary<string, string>
+                    {
+                        { "EmailTitle", "Action Required: Your Free Network Monitor Agent"},
+                        { "HeaderImageUrl",  BuildUrl(emailObj as IGenericEmailObj)},
+                        { "HeaderImageAlt", emailObj.HeaderImageAlt },
+                        { "MainHeading", "Free Network Monitor Agent inactive!" },
+                        { "MainContent", $"Hello! Your Free Network Monitor Agent has been temporarily paused on these hosts due to inactivity: {emailObj.ExtraMessage}. This action helps us allocate resources effectively to active agents. To ensure uninterrupted services and maintain security, please reactivate your agent by re-authenticating at your earliest convenience.<br></br><br></br>Instructions for reactivating your agent:<br></br>1. Open the Free Network Monitor Agent app on the device where it was originally installed, if you no longer have the agent instaled and want to continue using the service then download and install the app on the same, or a new, device using the same email address.<br></br>2. Follow the prompts to authorize your agent, similar to the initial setup process.<br></br>Once reactivated, monitoring will resume for the previously assigned hosts, and your full alerting service will be restored, ensuring your customers continue to receive optimal service.<br></br>If you prefer to avoid automatic deactivation, consider upgrading your plan. To keep your current plan, simply run the agent for at least six hours once every three months."},
+                        { "ButtonUrl", "https://freenetworkmonitor.click/dashboard" },
+                        { "ButtonText", "Login to Manage My Hosts" },
+                        { "CurrentYear", emailObj.CurrentYear },
+                        { "UnsubscribeUrl", urls.unsubscribeUrl }
+                     };
+
+
+                var populatedTemplate = PopulateTemplate(template, contentMap);
+                // Dont send to fast.
+                await Task.Delay(5000);
+                results.Add(await SendTemplate(emailObj.UserInfo.UserID, emailObj.UserInfo.Email, contentMap["EmailTitle"], populatedTemplate, urls));
+
+            }
+        }
+        return results;
+
+    }
+
 
     public async Task<List<ResultObj>> UpgradeAccounts(List<GenericEmailObj> emailObjs)
     {
