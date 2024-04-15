@@ -269,7 +269,7 @@ public class EmailProcessor : IEmailProcessor
         if (user.DisableEmail)
         {
             result.Success = false;
-            result.Message = $" Warning  : User has disabled email {user.UserID} .";
+            result.Message = $" Warning  : User has disabled email {user.UserID} {user.Email} .";
             return result;
         }
         var urls = GetUrls(user.UserID, user.Email);
@@ -327,7 +327,7 @@ public class EmailProcessor : IEmailProcessor
         if (emailObj.UserInfo.DisableEmail)
         {
             result.Success = false;
-            result.Message = $" Warning  : User has disabled email {emailObj.UserInfo.UserID} .";
+            result.Message = $" Warning  : User has disabled email {emailObj.UserInfo.UserID} {emailObj.UserInfo.Email}.";
             return result;
         }
 
@@ -387,7 +387,7 @@ public class EmailProcessor : IEmailProcessor
         {
             if (emailObj.UserInfo.DisableEmail)
             {
-                results.Add(new ResultObj { Success = false, Message = $" Warning : User Email Disabled {emailObj.UserInfo.UserID} ." });
+                results.Add(new ResultObj { Success = false, Message = $" Warning : User Email Disabled {emailObj.UserInfo.UserID} {emailObj.UserInfo.Email} ." });
             }
             else
             {
@@ -446,7 +446,7 @@ public class EmailProcessor : IEmailProcessor
         {
             if (emailObj.UserInfo.DisableEmail)
             {
-                results.Add(new ResultObj { Success = false, Message = $" Warning : User Email Disabled {emailObj.UserInfo.UserID} ." });
+                results.Add(new ResultObj { Success = false, Message = $" Warning : User Email Disabled {emailObj.UserInfo.UserID} {emailObj.UserInfo.Email}." });
             }
             else
             {
