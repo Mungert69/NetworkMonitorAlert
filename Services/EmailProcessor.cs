@@ -393,7 +393,7 @@ public class EmailProcessor : IEmailProcessor
             {
                 var urls = GetUrls(emailObj.UserInfo.UserID, emailObj.UserInfo.Email);
                 var contentMap = new Dictionary<string, string>
-            {
+                    {
                  { "EmailTitle", "Action Required: Your Free Network Monitor Account"},
                 { "HeaderImageUrl",  BuildUrl(emailObj as IGenericEmailObj)},
                 { "HeaderImageAlt", emailObj.HeaderImageAlt },
@@ -403,7 +403,7 @@ public class EmailProcessor : IEmailProcessor
                  { "ButtonText", "Reactivate My Hosts" },
                   { "CurrentYear", emailObj.CurrentYear },
                   { "UnsubscribeUrl", urls.unsubscribeUrl }
-            };
+                     };
 
 
                 var populatedTemplate = PopulateTemplate(template, contentMap);
