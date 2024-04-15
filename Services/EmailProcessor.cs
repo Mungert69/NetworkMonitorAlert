@@ -398,8 +398,8 @@ public class EmailProcessor : IEmailProcessor
                 { "HeaderImageUrl",  BuildUrl(emailObj as IGenericEmailObj)},
                 { "HeaderImageAlt", emailObj.HeaderImageAlt },
                  { "MainHeading", "We Miss You at Free Network Monitor!" },
-                  {"MainContent", $"Hello! We've noticed a lapse in your recent login activity, which has led to a temporary pause in the monitoring of your hosts to optimize our resource usage : {emailObj.ExtraMessage}. As someone dedicated to maintaining uptime, especially for your customer-facing services, we recognize the importance of continuous monitoring to keep your systems secure and efficient. To ensure your services remain operational and your customers satisfied, please log in as soon as possible to reactivate monitoring. Active engagement is crucial for seamless operations and maintaining customer trust!"},
-                  { "ButtonUrl", "https://freenetworkmonitor.click/dashboard" },
+                  {"MainContent", $"Hello! Your free plan has temporarily paused monitoring on these hosts due to inactivity: {emailObj.ExtraMessage}. This helps us manage resources for active users.To keep your services running smoothly, please log in as soon as possible and reactivate monitoring. Consistent monitoring is important for security and customer satisfaction! "},
+                   { "ButtonUrl", "https://freenetworkmonitor.click/dashboard" },
                  { "ButtonText", "Reactivate My Hosts" },
                   { "CurrentYear", emailObj.CurrentYear },
                   { "UnsubscribeUrl", urls.unsubscribeUrl }
