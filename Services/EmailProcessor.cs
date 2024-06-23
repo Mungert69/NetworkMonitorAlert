@@ -7,6 +7,7 @@ using MailKit.Net.Smtp;
 using MimeKit;
 using NetworkMonitor.Objects;
 using NetworkMonitor.Utils;
+using NetworkMonitor.Utils.Helpers;
 using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
 
@@ -162,8 +163,8 @@ public class EmailProcessor : IEmailProcessor
 
     private (string resubscribeUrl, string unsubscribeUrl, string encryptEmailAddressStr, string encryptUserID) GetUrls(string userId, string email)
     {
-        string encryptEmailAddressStr = EncryptionHelper.EncryptStr(_emailEncryptKey, email);
-        string encryptUserID = EncryptionHelper.EncryptStr(_emailEncryptKey, userId);
+        string encryptEmailAddressStr = EncryptHelper.EncryptStrUrlCoded(_emailEncryptKey, email);
+        string encryptUserID = EncryptHelper.EncryptStrUrlCoded(_emailEncryptKey, userId);
         string subscribeUrl = _emailSendServerName + "/email/unsubscribe?email=" + encryptEmailAddressStr + "&userid=" + encryptUserID;
         string resubscribeUrl = subscribeUrl + "&subscribe=true";
         string unsubscribeUrl = subscribeUrl + "&subscribe=false";
@@ -552,7 +553,7 @@ public class EmailProcessor : IEmailProcessor
         sb.Append("?id=");
         if (genericEmailObj != null && !string.IsNullOrEmpty(genericEmailObj.ID.ToString()))
         {
-            sb.Append(EncryptionHelper.EncryptStr(_emailEncryptKey, genericEmailObj.ID.ToString()));
+            sb.Append(EncryptHelper.EncryptStrUrlCoded(_emailEncryptKey, genericEmailObj.ID.ToString()));
         }
         return sb.ToString();
     }

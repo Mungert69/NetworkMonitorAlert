@@ -256,7 +256,7 @@ namespace NetworkMonitor.Alert.Services
 
         public bool IsBadAuthKey(string authKey, string appID)
         {
-            return EncryptionHelper.IsBadKey(_systemParams.EmailEncryptKey, authKey, appID);
+            return EncryptHelper.IsBadKey(_systemParams.EmailEncryptKey, authKey, appID);
         }
 
         public async Task<ResultObj> Send(AlertMessage alertMessage)
