@@ -148,7 +148,7 @@ namespace NetworkMonitor.Alert.Services
             {
                 _logger.LogInformation($" Success : Got {processorList.Count} processors from state . ");
             }
-            _processorState.ProcessorList = processorList;
+            _processorState.ResetConcurrentProcessorList(processorList);
 
             try
             {
