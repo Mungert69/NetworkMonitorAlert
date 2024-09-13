@@ -7,7 +7,7 @@
     <PublishProfile>DefaultContainer</PublishProfile>
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0</ContainerBaseImage>
     <ContainerImageName>mungert/networkmonitoralert</ContainerImageName>
-    <ContainerImageTag>1.9.4</ContainerImageTag>
+    <ContainerImageTag>1.9.5</ContainerImageTag>
     <Nullable>enable</Nullable>
     <StartupObject>NetworkMonitor.Alert.Program</StartupObject>
 

@@ -230,9 +230,10 @@ namespace NetworkMonitor.Alert.Services
             }
             try
             {
-
-                var netConnectConfig = new NetConnectConfig(_config);
-                var connectFactory = new ConnectFactory(_logger, false);
+string appDataDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+  
+                var netConnectConfig = new NetConnectConfig(_config,appDataDirectory);
+                var connectFactory = new ConnectFactory(_logger, netConfig : null);
                 var netConnectCollection = new NetConnectCollection(_logger, netConnectConfig, connectFactory);
 
                 _alertProcessor = new AlertProcessor(_logger, _rabbitRepo, _emailProcessor, _processorState, netConnectCollection, alertParams, _userInfos);
