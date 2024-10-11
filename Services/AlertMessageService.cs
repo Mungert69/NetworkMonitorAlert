@@ -88,7 +88,7 @@ namespace NetworkMonitor.Alert.Services
             _fileRepo = fileRepo;
             _rabbitRepo = rabbitRepo;
             _logger = logger;
-            _fileRepo.CheckFileExists("UserInfos", _logger);
+             _fileRepo.CheckFileExistsWithCreateObject<List<UserInfo>>("UserInfos",new List<UserInfo>(), _logger);
             _config = config;
             _token = cancellationTokenSource.Token;
             _token.Register(() => OnStopping());
@@ -127,7 +127,7 @@ namespace NetworkMonitor.Alert.Services
             var processorList = new List<ProcessorObj>();
             try
             {
-                _fileRepo.CheckFileExists("ProcessorList", _logger);
+                 _fileRepo.CheckFileExistsWithCreateObject<List<ProcessorObj>>("ProcessorList",new List<ProcessorObj>(), _logger);
                 processorList = _fileRepo.GetStateJson<List<ProcessorObj>>("ProcessorList");
 
 
