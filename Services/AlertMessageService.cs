@@ -88,7 +88,9 @@ namespace NetworkMonitor.Alert.Services
             _fileRepo = fileRepo;
             _rabbitRepo = rabbitRepo;
             _logger = logger;
-             _fileRepo.CheckFileExistsWithCreateObject<List<UserInfo>>("UserInfos",new List<UserInfo>(), _logger);
+              _fileRepo.CheckFileExistsWithCreateObject<List<ProcessorObj>>("ProcessorList",new List<ProcessorObj>(), _logger);
+              
+             _fileRepo.CheckFileExistsWithCreateJsonZObject<List<UserInfo>>("UserInfos",new List<UserInfo>(), _logger);
             _config = config;
             _token = cancellationTokenSource.Token;
             _token.Register(() => OnStopping());
@@ -127,8 +129,7 @@ namespace NetworkMonitor.Alert.Services
             var processorList = new List<ProcessorObj>();
             try
             {
-                 _fileRepo.CheckFileExistsWithCreateObject<List<ProcessorObj>>("ProcessorList",new List<ProcessorObj>(), _logger);
-                processorList = _fileRepo.GetStateJson<List<ProcessorObj>>("ProcessorList");
+                 processorList = _fileRepo.GetStateJson<List<ProcessorObj>>("ProcessorList");
 
 
             }
@@ -196,6 +197,7 @@ namespace NetworkMonitor.Alert.Services
                 {
                     try
                     {
+                        
                         var userInfos = _fileRepo.GetStateJsonZAsync<List<UserInfo>>("UserInfos").Result;
                         if (userInfos == null) _userInfos = new List<UserInfo>();
                         else
@@ -230,10 +232,10 @@ namespace NetworkMonitor.Alert.Services
             }
             try
             {
-string appDataDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                string appDataDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
   
                 var netConnectConfig = new NetConnectConfig(_config,appDataDirectory);
-                var connectFactory = new ConnectFactory(_logger, netConfig : null);
+                var connectFactory = new ConnectFactory(_logger, netConnectConfig);
                 var netConnectCollection = new NetConnectCollection(_logger, netConnectConfig, connectFactory);
 
                 _alertProcessor = new AlertProcessor(_logger, _rabbitRepo, _emailProcessor, _processorState, netConnectCollection, alertParams, _userInfos);

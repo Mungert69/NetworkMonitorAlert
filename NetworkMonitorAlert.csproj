@@ -7,7 +7,7 @@
     <PublishProfile>DefaultContainer</PublishProfile>
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0</ContainerBaseImage>
     <ContainerImageName>mungert/networkmonitoralert</ContainerImageName>
-    <ContainerImageTag>1.9.6</ContainerImageTag>
+    <ContainerImageTag>1.9.7</ContainerImageTag>
     <Nullable>enable</Nullable>
     <StartupObject>NetworkMonitor.Alert.Program</StartupObject>
 
@@ -44,5 +44,14 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\NetworkMonitorProcessor\openssl-3.3.1\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <TargetPath>openssl\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </Content>
+  </ItemGroup>
+
 
 </Project>
