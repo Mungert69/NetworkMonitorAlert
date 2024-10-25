@@ -45,7 +45,7 @@ namespace NetworkMonitor.Alert.Tests
         public async Task MonitorAlert_TestSuccess()
         {
             //_rabbitRepoMock.Setup(repo => repo.PublishAsync<AlertServiceInitObj>("alertServiceReady", It.IsAny<AlertServiceInitObj>())).ReturnsAsync();
-            _processorStateMock.Setup(p => p.EnabledProcessorList)
+            _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                               .Returns(new List<ProcessorObj>());
             _emailProcessorMock.Setup(p => p.SendAlert(It.IsAny<AlertMessage>()))
                                              .ReturnsAsync(new ResultObj() { Success = true });
@@ -88,7 +88,7 @@ namespace NetworkMonitor.Alert.Tests
         public async Task PredictAlert_TestSuccess()
         {
             //_rabbitRepoMock.Setup(repo => repo.PublishAsync<AlertServiceInitObj>("alertServiceReady", It.IsAny<AlertServiceInitObj>())).ReturnsAsync();
-            _processorStateMock.Setup(p => p.EnabledProcessorList)
+            _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                               .Returns(new List<ProcessorObj>());
             _emailProcessorMock.Setup(p => p.SendAlert(It.IsAny<AlertMessage>()))
                                              .ReturnsAsync(new ResultObj() { Success = true });
@@ -132,7 +132,7 @@ namespace NetworkMonitor.Alert.Tests
         public async Task MonitorEmailOff_TestSuccess()
         {
             //_rabbitRepoMock.Setup(repo => repo.PublishAsync<AlertServiceInitObj>("alertServiceReady", It.IsAny<AlertServiceInitObj>())).ReturnsAsync();
-            _processorStateMock.Setup(p => p.EnabledProcessorList)
+            _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                               .Returns(new List<ProcessorObj>());
             _emailProcessorMock.Setup(p => p.SendAlert(It.IsAny<AlertMessage>()))
                                              .ReturnsAsync(new ResultObj() { Success = false });
@@ -163,7 +163,7 @@ namespace NetworkMonitor.Alert.Tests
 
             var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object);
 
-            _processorStateMock.Setup(p => p.EnabledProcessorList)
+            _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
 
             var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
@@ -194,7 +194,7 @@ namespace NetworkMonitor.Alert.Tests
 
             var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object);
 
-            _processorStateMock.Setup(p => p.EnabledProcessorList)
+            _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
 
             var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
@@ -227,7 +227,7 @@ namespace NetworkMonitor.Alert.Tests
 
             var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object);
 
-            _processorStateMock.Setup(p => p.EnabledProcessorList)
+            _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
 
             var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
@@ -271,7 +271,7 @@ namespace NetworkMonitor.Alert.Tests
 
             var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object);
 
-            _processorStateMock.Setup(p => p.EnabledProcessorList)
+            _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
 
             var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());

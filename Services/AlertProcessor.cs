@@ -268,7 +268,7 @@ public class AlertProcessor
         if (publishAlertSentList.Count() != 0)
         {
             _logger.LogWarning("Warning republishing AlertSent List check coms. ");
-            if (alertProcess.PublishProcessor) await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorState.EnabledProcessorList);
+            if (alertProcess.PublishProcessor) await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorState.EnabledProcessorList(true));
              if (alertProcess.PublishPredict) await PublishAlertsRepo.PredictAlertSent(_logger, _rabbitRepo, publishAlertSentList);
          
         }
@@ -277,7 +277,7 @@ public class AlertProcessor
         if (updateAlertFlagList.Count() > 0)
         {
             alertProcess.Alert = true;
-            if (alertProcess.PublishProcessor) await PublishAlertsRepo.ProcessorAlertFlag(_logger, _rabbitRepo, updateAlertFlagList, _processorState.EnabledProcessorList);
+            if (alertProcess.PublishProcessor) await PublishAlertsRepo.ProcessorAlertFlag(_logger, _rabbitRepo, updateAlertFlagList, _processorState.EnabledProcessorList(true));
             if (alertProcess.PublishPredict) await PublishAlertsRepo.PredictAlertFlag(_logger, _rabbitRepo, updateAlertFlagList);
         
         }
@@ -324,7 +324,7 @@ public class AlertProcessor
                     UpdateAndPublishAlertSentList(alertMessage, publishAlertSentList, alertProcess);
                 }
             }
-            await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorState.EnabledProcessorList);
+            await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorState.EnabledProcessorList(true));
         }
         return count;
     }
