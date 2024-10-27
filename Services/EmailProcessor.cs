@@ -281,7 +281,7 @@ public class EmailProcessor : IEmailProcessor
                  { "HeaderImageUrl",  headerImageUrl}, // Assuming this is your logo URL
                 { "HeaderImageAlt", "Free Network Monitor Logo" },
               { "MainHeading", "Free Network Monitor Host Report" },
-                  { "ButtonUrl", "https://freenetworkmonitor.click/dashboard" },
+                  { "ButtonUrl", $"{AppConstants.FrontendUrl}/dashboard" },
                  { "ButtonText", "Login and View My Hosts" },
                   { "CurrentYear", DateTime.Now.Year.ToString() },
                 { "MainContent", report },
@@ -401,7 +401,7 @@ public class EmailProcessor : IEmailProcessor
                 { "HeaderImageAlt", emailObj.HeaderImageAlt },
                  { "MainHeading", "We Miss You at Free Network Monitor!" },
                   {"MainContent", $"Hello! Your free plan has temporarily paused monitoring on these hosts due to inactivity: {emailObj.ExtraMessage}. This helps us manage resources for active users.To keep your services running smoothly, please log in as soon as possible and reactivate monitoring. Consistent monitoring is important for security and customer satisfaction! <br></br><br></br>Instructions for re-enabling hosts:<br></br>Click Reactivate My Hosts below. This will take you to the Free Network Monitor Dashboard.<br></br>On the Free Network Monitor Dashboard Click the Login button, make sure to use this email address when logging in. You can login with Google, LinkedIn or create an email account<br></br>After you login you will see a list of your hosts {emailObj.ExtraMessage}. Tick enabled for all the hosts you want to enable<br></br>Click the save icon. Your hosts are now re-enabled. Your full alerting service is again active and you can rest assured your customers will always be served."},
-                   { "ButtonUrl", "https://freenetworkmonitor.click/dashboard" },
+                   { "ButtonUrl", $"{AppConstants.FrontendUrl}/dashboard" },
                  { "ButtonText", "Reactivate My Hosts" },
                   { "CurrentYear", emailObj.CurrentYear },
                   { "UnsubscribeUrl", urls.unsubscribeUrl }
@@ -467,7 +467,7 @@ public class EmailProcessor : IEmailProcessor
                         { "HeaderImageAlt", emailObj.HeaderImageAlt },
                         { "MainHeading", "Free Network Monitor Agent inactive!" },
                         { "MainContent", $"Hello! Your Free Network Monitor Agent has been temporarily paused on these hosts due to inactivity: {emailObj.ExtraMessage}. This action helps us allocate resources effectively to active agents. To ensure uninterrupted services and maintain security, please reactivate your agent by re-authenticating at your earliest convenience.<br></br><br></br>Instructions for reactivating your agent:<br></br>1. Open the Free Network Monitor Agent app on the device where it was originally installed, if you no longer have the agent instaled and want to continue using the service then download and install the app on the same, or a new, device using the same email address.<br></br>2. Follow the prompts to authorize your agent, similar to the initial setup process.<br></br>Once reactivated, monitoring will resume for the previously assigned hosts, and your full alerting service will be restored, ensuring your customers continue to receive optimal service.<br></br>If you prefer to avoid automatic deactivation, consider upgrading your plan. To keep your current plan, simply run the agent for at least six hours once every three months."},
-                        { "ButtonUrl", "https://freenetworkmonitor.click/dashboard" },
+                        { "ButtonUrl", $"{AppConstants.FrontendUrl}/dashboard" },
                         { "ButtonText", "Login to Manage My Hosts" },
                         { "CurrentYear", emailObj.CurrentYear },
                         { "UnsubscribeUrl", urls.unsubscribeUrl }
@@ -527,7 +527,7 @@ public class EmailProcessor : IEmailProcessor
                 { "HeaderImageAlt", emailObj.HeaderImageAlt },
                  { "MainHeading", "Our Apology and a Special Offer from Free Network Monitor" },
                   { "MainContent", "<p>We've noticed an issue where our reminder email for inactive accounts failed to send. Consequently, the monitoring of your hosts was inadvertently paused, and we deeply apologize for any inconvenience this may have caused.</p><p>To rectify this, we're offering you a complimentary upgrade to our Standard Plan for 6 months. This upgrade includes:</p><ul><li>Monitoring for up to 50 hosts</li><li>Enhanced capabilities: ICMP, Http, Dns, Raw Connect, Smtp Ping, and Quantum Ready checks</li><li>Email support</li><li>6-month full response data retention</li></ul><p>To take advantage of this upgrade and resume monitoring, please log in to your account and re-enable the hosts you wish to monitor. You can also add new hosts to fully utilize the features of the Standard Plan.</p><p>We sincerely hope this gesture underscores our commitment to your satisfaction and trust in our services. If you have any questions or require assistance, please feel free to contact us.</p><p>Thank you for your understanding, and we look forward to serving your network monitoring needs.</p><p>Warm regards,</p><p>Mahadeva<br>Tech Support<br>Free Network Monitor Team</p>" },
-                  { "ButtonUrl", "https://freenetworkmonitor.click/dashboard" },
+                  { "ButtonUrl", $"{AppConstants.FrontendUrl}/dashboard" },
                  { "ButtonText", "Use your email Address to Login" },
                   { "CurrentYear", emailObj.CurrentYear },
                   { "UnsubscribeUrl", urls.unsubscribeUrl }
