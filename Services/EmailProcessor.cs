@@ -187,7 +187,11 @@ public class EmailProcessor : IEmailProcessor
         }
         try
         {
-            var message = new MimeMessage();
+            var message = new MimeMessage
+            {
+                // Explicitly set UTF-8 encoding for headers
+                Headers = { { "Content-Transfer-Encoding", "8bit" } }
+            };
 
             message.Headers.Add("List-Unsubscribe", "<" + urls.unsubscribeUrl + ">, <mailto:" + _systemEmail + "?subject=unsubscribe>");
 
@@ -195,18 +199,19 @@ public class EmailProcessor : IEmailProcessor
             message.To.Add(new MailboxAddress("", email));
             message.Subject = subject;
 
-            var bodyBuilder = new BodyBuilder();
-            if (isBodyHtml)
+            // Configure BodyBuilder for UTF-8 encoding
+            var bodyBuilder = new BodyBuilder
             {
-                bodyBuilder.HtmlBody = body;
-            }
-            else
-            {
-                bodyBuilder.TextBody = body;
-            }
+                HtmlBody = isBodyHtml ? body : null,
+                TextBody = !isBodyHtml ? body : null,
+            };
 
+            // Use UTF-8 encoding for the message body
+            bodyBuilder.TextBody = bodyBuilder.TextBody != null ? Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(bodyBuilder.TextBody)) : null;
+            bodyBuilder.HtmlBody = bodyBuilder.HtmlBody != null ? Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(bodyBuilder.HtmlBody)) : null;
+
+            // Set the body with UTF-8 encoding
             message.Body = bodyBuilder.ToMessageBody();
-
             using (var client = new SmtpClient())
             {
                 client.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
@@ -419,7 +424,7 @@ public class EmailProcessor : IEmailProcessor
 
     }
 
-     public async Task<List<ResultObj>> UserProcessorExpire(List<GenericEmailObj> emailObjs)
+    public async Task<List<ResultObj>> UserProcessorExpire(List<GenericEmailObj> emailObjs)
     {
         var results = new List<ResultObj>();
         var result = new ResultObj();
