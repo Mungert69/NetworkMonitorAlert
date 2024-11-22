@@ -2,11 +2,11 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp8.0</TargetFramework>
+    <TargetFramework>netcoreapp9.0</TargetFramework>
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <PublishProfile>DefaultContainer</PublishProfile>
-    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0</ContainerBaseImage>
-    <ContainerImageTag>1.9.8</ContainerImageTag>
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:9.0</ContainerBaseImage>
+    <ContainerImageTag>1.10.0</ContainerImageTag>
     <Nullable>enable</Nullable>
     <StartupObject>NetworkMonitor.Alert.Program</StartupObject>
 
