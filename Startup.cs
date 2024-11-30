@@ -52,21 +52,25 @@ namespace NetworkMonitor.Alert
             services.AddSingleton<ISystemParamsHelper, SystemParamsHelper>();
             services.AddSingleton<IProcessorStateRabbitListner, ProcessorStateRabbitListner>();
             services.AddSingleton<IProcessorState, ProcessorState>();
-          
+
 
             services.AddSingleton<IFileRepo, FileRepo>();
             services.AddAsyncServiceInitialization()
-               .AddInitAction<IAlertMessageService>(async (alertMessageService) =>
+                .AddInitAction<IRabbitRepo>(async (rabbitRepo) =>
+                    {
+                        await rabbitRepo.ConnectAndSetUp();
+                    })
+                .AddInitAction<IAlertMessageService>(async (alertMessageService) =>
                     {
                         await alertMessageService.Init();
                     })
-                    .AddInitAction<IRabbitListener>((rabbitListener) =>
+                .AddInitAction<IRabbitListener>(async (rabbitListener) =>
                     {
-                        return Task.CompletedTask;
+                        await rabbitListener.Setup();
                     })
-                     .AddInitAction<IProcessorStateRabbitListner>((processorStateRabbitListener) =>
+                .AddInitAction<IProcessorStateRabbitListner>(async (processorStateRabbitListener) =>
                     {
-                        return Task.CompletedTask;
+                        await processorStateRabbitListener.Setup();
                     });
         }
 

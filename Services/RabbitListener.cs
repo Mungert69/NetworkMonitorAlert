@@ -24,6 +24,8 @@ namespace NetworkMonitor.Alert.Services
         Task<ResultObj> UpdateUserInfoAlertMessage(UserInfo userInfo);
         Task<ResultObj> MonitorAlert();
         Task<ResultObj> AlertUpdateMonitorStatusAlerts(string monitorStatusAlertString);
+        Task Shutdown();
+        Task<ResultObj> Setup();
     }
 
     public class RabbitListener : RabbitListenerBase, IRabbitListener
