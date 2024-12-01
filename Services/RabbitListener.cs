@@ -560,7 +560,7 @@ namespace NetworkMonitor.Alert.Services
             try
             {
                 result = await _alertMessageService.MonitorAlert();
-                _logger.LogInformation(result.Message);
+                //_logger.LogInformation(result.Message);
             }
             catch (Exception e)
             {
@@ -579,7 +579,7 @@ namespace NetworkMonitor.Alert.Services
             try
             {
                 result = await _alertMessageService.PredictAlert();
-                _logger.LogInformation(result.Message);
+                //_logger.LogInformation(result.Message);
             }
             catch (Exception e)
             {
