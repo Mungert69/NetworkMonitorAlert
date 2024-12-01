@@ -36,7 +36,6 @@ namespace NetworkMonitor.Alert.Services
         {
             _alertMessageService = alertMessageService;
             _dataQueueService = dataQueueService;
-            Setup();
         }
 
 
