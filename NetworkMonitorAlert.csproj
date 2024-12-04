@@ -6,7 +6,7 @@
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <PublishProfile>DefaultContainer</PublishProfile>
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:9.0</ContainerBaseImage>
-    <ContainerImageTag>1.11.0</ContainerImageTag>
+    <ContainerImageTag>1.11.1</ContainerImageTag>
     <Nullable>enable</Nullable>
     <StartupObject>NetworkMonitor.Alert.Program</StartupObject>
 
