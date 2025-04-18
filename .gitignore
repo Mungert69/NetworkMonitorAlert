@@ -349,3 +349,4 @@ https-freenetworkmonitor.pfx
 UserInfos
 ProcessorList
 .mono/
+.env
