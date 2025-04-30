@@ -138,11 +138,20 @@ namespace NetworkMonitor.Alert.Services
             var result = new ResultObj();
             try
             {
-               foreach (var rabbitMQObj in _rabbitMQObjs)
-            {
-                rabbitMQObj.Consumer = new AsyncEventingBasicConsumer(rabbitMQObj.ConnectChannel);
-                if (rabbitMQObj.ConnectChannel != null)
+                 await Parallel.ForEachAsync(_rabbitMQObjs, async (rabbitMQObj, cancellationToken) =>
                 {
+
+                    if (rabbitMQObj.ConnectChannel != null)
+                    {
+
+                        rabbitMQObj.Consumer = new AsyncEventingBasicConsumer(rabbitMQObj.ConnectChannel);
+                        await rabbitMQObj.ConnectChannel.BasicConsumeAsync(
+                                queue: rabbitMQObj.QueueName,
+                                autoAck: false,
+                                consumer: rabbitMQObj.Consumer
+                            );
+
+
                     switch (rabbitMQObj.FuncName)
                     {
                         case "serviceWakeUp":
@@ -375,7 +384,7 @@ namespace NetworkMonitor.Alert.Services
                             break;
                     }
                 }
-            }
+            });
                 result.Success = true;
                 result.Message += " Success : Declared all consumers ";
             }
