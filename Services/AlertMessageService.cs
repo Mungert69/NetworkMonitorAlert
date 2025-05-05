@@ -56,8 +56,7 @@ namespace NetworkMonitor.Alert.Services
 
 
         //private bool _awake;
-
-        private bool _disableEmailAlert = false;
+   
         private ILogger _logger;
 
         private IEmailProcessor _emailProcessor;
@@ -217,6 +216,7 @@ namespace NetworkMonitor.Alert.Services
                 }
                 else
                 {
+                    _userInfos=new List<UserInfo>();
                     _logger.LogWarning("Warning got no UserInfos from state file.");
                 }
             }

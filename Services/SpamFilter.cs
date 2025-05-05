@@ -18,7 +18,7 @@ namespace NetworkMonitor.Alert.Services
         public void UpdateAlertSentList(AlertMessage alertMessage)
         {
             var userEmailSent = new UserEmailSent();
-            userEmailSent.UserID = alertMessage.UserInfo.UserID;
+            userEmailSent.UserID = alertMessage.UserInfo!.UserID!;
             userEmailSent.DateSent = DateTime.UtcNow;
             if (alertMessage.VerifyLink)
             {

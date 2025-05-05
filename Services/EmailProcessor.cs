@@ -28,20 +28,19 @@ public class EmailProcessor : IEmailProcessor
 {
     private string _emailEncryptKey;
     private string _systemEmail;
-    private string _systemUrl;
     private string _systemPassword;
     private string _systemUser;
     private string _trustPilotReviewEmail;
     private string _mailServer;
     private int _mailServerPort;
     private bool _mailServerUseSSL;
-    private string _emailSendServerName;
     private SystemUrl _thisSystemUrl;
     private string _publicIPAddress;
     private SpamFilter _spamFilter;
     private ILogger _logger;
     private bool _disableEmailAlert;
     private bool _sendTrustPilot;
+    private string _emailSendServerName;
 
     public bool SendTrustPilot { get => _sendTrustPilot; set => _sendTrustPilot = value; }
 
@@ -49,16 +48,16 @@ public class EmailProcessor : IEmailProcessor
     {
         _disableEmailAlert = disableEmailAlert;
         _emailEncryptKey = systemParams.EmailEncryptKey;
-        _systemEmail = systemParams.SystemEmail;
-        _systemUser = systemParams.SystemUser;
-        _systemPassword = systemParams.SystemPassword;
-        _mailServer = systemParams.MailServer;
+        _systemEmail = systemParams.SystemEmail!;
+        _systemUser = systemParams.SystemUser!;
+        _systemPassword = systemParams.SystemPassword!;
+        _mailServer = systemParams.MailServer!;
         _mailServerPort = systemParams.MailServerPort;
         _mailServerUseSSL = systemParams.MailServerUseSSL;
-        _emailSendServerName = systemParams.EmailSendServerName;
-        _trustPilotReviewEmail = systemParams.TrustPilotReviewEmail;
+        _trustPilotReviewEmail = systemParams.TrustPilotReviewEmail!;
         _thisSystemUrl = systemParams.ThisSystemUrl;
-        _publicIPAddress = systemParams.PublicIPAddress;
+        _publicIPAddress = systemParams.PublicIPAddress!;
+        _emailSendServerName = systemParams.EmailSendServerName!;
         _sendTrustPilot = systemParams.SendTrustPilot;
         _spamFilter = new SpamFilter(logger);
         _logger = logger;
@@ -84,27 +83,19 @@ public class EmailProcessor : IEmailProcessor
             result.Message += " Error : Emails are disabled in appsettings.json (DisableEmailAlert=true) . ";
             return result;
         }
-        if (alertMessage.UserInfo == null || alertMessage.UserInfo.UserID == null)
-        {
-            result.Message = " Error : Missing UserInfo ";
-            result.Success = false;
-            return result;
-        }
-
-
-
-        var urls = GetUrls(alertMessage.UserInfo.UserID, alertMessage.UserInfo.Email);
+       
+        var urls = GetUrls(alertMessage.UserInfo);
+        if (!urls.Success) return new ResultObj(){Success=false, Message=urls.Message};
         if (alertMessage.VerifyLink)
         {
-            result = _spamFilter.IsVerifyLimit(alertMessage.UserInfo.UserID);
+            result = _spamFilter.IsVerifyLimit(alertMessage.UserInfo!.UserID!);
             if (!result.Success)
             {
                 return result;
             }
-            string verifyUrl = _emailSendServerName + "/email/verifyemail?email=" + urls.encryptEmailAddressStr + "&userid=" + urls.encryptUserID;
-            alertMessage.Message += "\n\nPlease click on this link to verify your email " + verifyUrl;
+            alertMessage.Message += "\n\nPlease click on this link to verify your email " + urls.VerifyUrl;
         }
-        alertMessage.Message += "\n\nThis message was sent by the messenger running at " + _emailSendServerName + " (" + _publicIPAddress.ToString() + ")\n\n To unsubscribe from receiving these messages, please click this link " + urls.unsubscribeUrl + "\n\n To re-subscribe to receiving these messages, please click this link " + urls.resubscribeUrl;
+        alertMessage.Message += "\n\nThis message was sent by the messenger running at " + _emailSendServerName + " (" + _publicIPAddress.ToString() + ")\n\n To unsubscribe from receiving these messages, please click this link " + urls.UnsubscribeUrl + "\n\n To re-subscribe to receiving these messages, please click this link " + urls.ResubscribeUrl;
         string emailFrom = _systemEmail;
         string systemPassword = _systemPassword;
         string systemUser = _systemUser;
@@ -113,7 +104,7 @@ public class EmailProcessor : IEmailProcessor
         try
         {
             MimeMessage message = new MimeMessage();
-            message.Headers.Add("List-Unsubscribe", "<" + urls.unsubscribeUrl + ">, <mailto:" + emailFrom + "?subject=unsubscribe>");
+            message.Headers.Add("List-Unsubscribe", "<" + urls.UnsubscribeUrl + ">, <mailto:" + emailFrom + "?subject=unsubscribe>");
             MailboxAddress from = new MailboxAddress("Free Network Monitor",
             emailFrom);
             message.From.Add(from);
@@ -161,17 +152,49 @@ public class EmailProcessor : IEmailProcessor
         return result;
     }
 
-    private (string resubscribeUrl, string unsubscribeUrl, string encryptEmailAddressStr, string encryptUserID) GetUrls(string userId, string email)
+
+    private EmailUrls GetUrls(UserInfo userInfo)
     {
-        string encryptEmailAddressStr = EncryptHelper.EncryptStrUrlCoded(_emailEncryptKey, email);
-        string encryptUserID = EncryptHelper.EncryptStrUrlCoded(_emailEncryptKey, userId);
-        string subscribeUrl = _emailSendServerName + "/email/unsubscribe?email=" + encryptEmailAddressStr + "&userid=" + encryptUserID;
+        EmailUrls result = new();
+        if (userInfo == null)
+        {
+            result.Success = false;
+            result.Message = $" Warning  : UserInfo is null";
+            return result;
+        }
+        if (userInfo.DisableEmail)
+        {
+            result.Success = false;
+            result.Message = $" Warning  : User has disabled email {userInfo.UserID} {userInfo.Email}.";
+            return result;
+        }
+        if (string.IsNullOrEmpty(userInfo.Email))
+        {
+            result.Success = false;
+            result.Message = $" Warning  : User has missing email {userInfo.UserID} ";
+            return result;
+        }
+        if (string.IsNullOrEmpty(userInfo.UserID))
+        {
+            result.Success = false;
+            result.Message = $" Warning  : User has missing UserID ";
+            return result;
+        }
+        if (userInfo.LoadServer == null) userInfo.LoadServer = new();
+        if (userInfo.LoadServer.Url == null) userInfo.LoadServer.Url = _emailSendServerName;
+
+
+        string encryptEmailAddressStr = EncryptHelper.EncryptStrUrlCoded(_emailEncryptKey, userInfo.Email);
+        string encryptUserID = EncryptHelper.EncryptStrUrlCoded(_emailEncryptKey, userInfo.UserID);
+        string subscribeUrl = userInfo.LoadServer.Url + "/email/unsubscribe?email=" + encryptEmailAddressStr + "&userid=" + encryptUserID;
         string resubscribeUrl = subscribeUrl + "&subscribe=true";
         string unsubscribeUrl = subscribeUrl + "&subscribe=false";
-        return (resubscribeUrl, unsubscribeUrl, encryptEmailAddressStr, encryptUserID);
+        string verifyUrl = userInfo.LoadServer.Url+"/email/verifyemail?email=" + encryptEmailAddressStr + "&userid=" + encryptUserID;
+            
+        return new EmailUrls(resubscribeUrl, unsubscribeUrl, encryptEmailAddressStr, encryptUserID, verifyUrl, true, "");
     }
-    private async Task<ResultObj> SendTemplate(string userId, string email, string subject, string body, (string resubscribeUrl, string unsubscribeUrl, string encryptEmailAddressStr, string encryptUserID
-     ) urls, bool isBodyHtml = true)
+
+    private async Task<ResultObj> SendTemplate(string userId, string email, string subject, string body, EmailUrls urls, bool isBodyHtml = true)
     {
         ResultObj result = new ResultObj();
         string systemPassword = _systemPassword;
@@ -193,7 +216,7 @@ public class EmailProcessor : IEmailProcessor
                 Headers = { { "Content-Transfer-Encoding", "8bit" } }
             };
 
-            message.Headers.Add("List-Unsubscribe", "<" + urls.unsubscribeUrl + ">, <mailto:" + _systemEmail + "?subject=unsubscribe>");
+            message.Headers.Add("List-Unsubscribe", "<" + urls.UnsubscribeUrl + ">, <mailto:" + _systemEmail + "?subject=unsubscribe>");
 
             message.From.Add(new MailboxAddress("Free Network Monitor", _systemEmail));
             message.To.Add(new MailboxAddress("", email));
@@ -273,13 +296,14 @@ public class EmailProcessor : IEmailProcessor
             result.Message = " Error : file ./templates/user-message-template.html returns null .";
             return result;
         }
-        if (user.DisableEmail)
+
+        var urls = GetUrls(user);
+        if (!urls.Success)
         {
             result.Success = false;
-            result.Message = $" Warning  : User has disabled email {user.UserID} {user.Email} .";
+            result.Message = urls.Message;
             return result;
         }
-        var urls = GetUrls(user.UserID, user.Email);
         var contentMap = new Dictionary<string, string>
             {
                 { "EmailTitle", "Weekly Free Network Monitor Host Report" },
@@ -290,7 +314,7 @@ public class EmailProcessor : IEmailProcessor
                  { "ButtonText", "Login and View My Hosts" },
                   { "CurrentYear", DateTime.Now.Year.ToString() },
                 { "MainContent", report },
-                                  { "UnsubscribeUrl", urls.unsubscribeUrl }
+                                  { "UnsubscribeUrl", urls.UnsubscribeUrl }
                 // Add other key-value pairs as needed based on your template
             };
 
@@ -299,7 +323,7 @@ public class EmailProcessor : IEmailProcessor
 
         var populatedTemplate = PopulateTemplate(template, contentMap);
 
-        result = await SendTemplate(user.UserID, user.Email, contentMap["EmailTitle"], populatedTemplate, urls);
+        result = await SendTemplate(user.UserID!, user.Email!, contentMap["EmailTitle"], populatedTemplate, urls);
         return result;
     }
 
@@ -331,14 +355,13 @@ public class EmailProcessor : IEmailProcessor
             result.Message = "Error: file ./templates/user-message-template.html returns null.";
             return result;
         }
-        if (emailObj.UserInfo.DisableEmail)
+        var urls = GetUrls(emailObj.UserInfo);
+        if (!urls.Success)
         {
             result.Success = false;
-            result.Message = $" Warning  : User has disabled email {emailObj.UserInfo.UserID} {emailObj.UserInfo.Email}.";
+            result.Message = urls.Message;
             return result;
         }
-
-        var urls = GetUrls(emailObj.UserInfo.UserID, emailObj.UserInfo.Email);
         var contentMap = new Dictionary<string, string>
     {
         { "EmailTitle", emailObj.EmailTitle },
@@ -349,12 +372,12 @@ public class EmailProcessor : IEmailProcessor
         { "ButtonUrl", emailObj.ButtonUrl },
         { "ButtonText", emailObj.ButtonText},
         { "CurrentYear", emailObj.CurrentYear },
-        { "UnsubscribeUrl", urls.unsubscribeUrl }
+        { "UnsubscribeUrl", urls.UnsubscribeUrl }
     };
 
         var populatedTemplate = PopulateTemplate(template, contentMap);
 
-        result = await SendTemplate(emailObj.UserInfo.UserID, emailObj.UserInfo.Email, emailObj.EmailTitle, populatedTemplate, urls);
+        result = await SendTemplate(emailObj.UserInfo!.UserID!, emailObj.UserInfo!.Email!, emailObj.EmailTitle, populatedTemplate, urls);
         return result;
     }
 
@@ -392,13 +415,17 @@ public class EmailProcessor : IEmailProcessor
 
         foreach (var emailObj in emailObjs)
         {
-            if (emailObj.UserInfo.DisableEmail)
+            var urls = GetUrls(emailObj.UserInfo);
+            if (!urls.Success)
             {
-                results.Add(new ResultObj { Success = false, Message = $" Warning : User Email Disabled {emailObj.UserInfo.UserID} {emailObj.UserInfo.Email} ." });
+                result = new ResultObj();
+                result.Success = false;
+                result.Message = urls.Message;
+                results.Add(result);
             }
+
             else
             {
-                var urls = GetUrls(emailObj.UserInfo.UserID, emailObj.UserInfo.Email);
                 var contentMap = new Dictionary<string, string>
                     {
                  { "EmailTitle", "Action Required: Your Free Network Monitor Account"},
@@ -409,14 +436,14 @@ public class EmailProcessor : IEmailProcessor
                    { "ButtonUrl", $"{AppConstants.FrontendUrl}/dashboard" },
                  { "ButtonText", "Reactivate My Hosts" },
                   { "CurrentYear", emailObj.CurrentYear },
-                  { "UnsubscribeUrl", urls.unsubscribeUrl }
+                  { "UnsubscribeUrl", urls.UnsubscribeUrl }
                      };
 
 
                 var populatedTemplate = PopulateTemplate(template, contentMap);
                 // Dont send to fast.
                 await Task.Delay(5000);
-                results.Add(await SendTemplate(emailObj.UserInfo.UserID, emailObj.UserInfo.Email, contentMap["EmailTitle"], populatedTemplate, urls));
+                results.Add(await SendTemplate(emailObj.UserInfo!.UserID!, emailObj.UserInfo!.Email!, contentMap["EmailTitle"], populatedTemplate, urls));
 
             }
         }
@@ -458,13 +485,17 @@ public class EmailProcessor : IEmailProcessor
 
         foreach (var emailObj in emailObjs)
         {
-            if (emailObj.UserInfo.DisableEmail)
+            var urls = GetUrls(emailObj.UserInfo);
+            if (!urls.Success)
             {
-                results.Add(new ResultObj { Success = false, Message = $" Warning : User Email Disabled {emailObj.UserInfo.UserID} {emailObj.UserInfo.Email} ." });
+                result = new ResultObj();
+                result.Success = false;
+                result.Message = urls.Message;
+                results.Add(result);
             }
+
             else
             {
-                var urls = GetUrls(emailObj.UserInfo.UserID, emailObj.UserInfo.Email);
                 var contentMap = new Dictionary<string, string>
                     {
                         { "EmailTitle", "Action Required: Your Free Network Monitor Agent"},
@@ -475,14 +506,14 @@ public class EmailProcessor : IEmailProcessor
                         { "ButtonUrl", $"{AppConstants.FrontendUrl}/dashboard" },
                         { "ButtonText", "Login to Manage My Hosts" },
                         { "CurrentYear", emailObj.CurrentYear },
-                        { "UnsubscribeUrl", urls.unsubscribeUrl }
+                        { "UnsubscribeUrl", urls.UnsubscribeUrl }
                      };
 
 
                 var populatedTemplate = PopulateTemplate(template, contentMap);
                 // Dont send to fast.
                 await Task.Delay(5000);
-                results.Add(await SendTemplate(emailObj.UserInfo.UserID, emailObj.UserInfo.Email, contentMap["EmailTitle"], populatedTemplate, urls));
+                results.Add(await SendTemplate(emailObj.UserInfo!.UserID!, emailObj.UserInfo!.Email!, contentMap["EmailTitle"], populatedTemplate, urls));
 
             }
         }
@@ -518,13 +549,17 @@ public class EmailProcessor : IEmailProcessor
 
         foreach (var emailObj in emailObjs)
         {
-            if (emailObj.UserInfo.DisableEmail)
+            var urls = GetUrls(emailObj.UserInfo);
+            if (!urls.Success)
             {
-                results.Add(new ResultObj { Success = false, Message = $" Warning : User Email Disabled {emailObj.UserInfo.UserID} {emailObj.UserInfo.Email}." });
+                result = new ResultObj();
+                result.Success = false;
+                result.Message = urls.Message;
+                results.Add(result);
             }
+
             else
             {
-                var urls = GetUrls(emailObj.UserInfo.UserID, emailObj.UserInfo.Email);
                 var contentMap = new Dictionary<string, string>
             {
                  { "EmailTitle", "Complimentary 6-Month Standard Plan Upgrade from Free Network Monitor"},
@@ -535,14 +570,14 @@ public class EmailProcessor : IEmailProcessor
                   { "ButtonUrl", $"{AppConstants.FrontendUrl}/dashboard" },
                  { "ButtonText", "Use your email Address to Login" },
                   { "CurrentYear", emailObj.CurrentYear },
-                  { "UnsubscribeUrl", urls.unsubscribeUrl }
+                  { "UnsubscribeUrl", urls.UnsubscribeUrl }
             };
 
 
                 var populatedTemplate = PopulateTemplate(template, contentMap);
                 // Dont send to fast.
                 await Task.Delay(5000);
-                results.Add(await SendTemplate(emailObj.UserInfo.UserID, emailObj.UserInfo.Email, contentMap["EmailTitle"], populatedTemplate, urls));
+                results.Add(await SendTemplate(emailObj.UserInfo!.UserID!, emailObj.UserInfo!.Email!, contentMap["EmailTitle"], populatedTemplate, urls));
 
             }
         }
@@ -590,5 +625,32 @@ public class EmailProcessor : IEmailProcessor
 
         return isValid;
     }
+  public class EmailUrls
+{
+    public string ResubscribeUrl { get; set; } = "";
+    public string UnsubscribeUrl { get; set; } = "";
+    public string EncryptEmailAddressStr { get; set; } = "";
+    public string EncryptUserID { get; set; } = "";
+    public string VerifyUrl{get;set;}="";
+    public bool Success { get; set; } = false;
+    public string Message { get; set; } = "";
+
+    // Default constructor maintains the property initializers above
+    public EmailUrls() { }
+
+    // Constructor that allows setting all properties
+    public EmailUrls(string resubscribeUrl, string unsubscribeUrl, 
+                    string encryptEmailAddressStr, string encryptUserID, string verifyUrl,
+                    bool success, string message)
+    {
+        ResubscribeUrl = resubscribeUrl;
+        UnsubscribeUrl = unsubscribeUrl;
+        EncryptEmailAddressStr = encryptEmailAddressStr;
+        EncryptUserID = encryptUserID;
+        VerifyUrl=verifyUrl;
+        Success = success;
+        Message = message;
+    }
+}
 
 }
