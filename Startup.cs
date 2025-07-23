@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using NetworkMonitor.Alert.Services;
 using NetworkMonitor.Objects.Factory;
 using NetworkMonitor.Objects.Repository;
+using NetworkMonitor.Objects;
 using NetworkMonitor.Utils.Helpers;
 using System;
 using System.Threading;
@@ -50,6 +51,16 @@ namespace NetworkMonitor.Alert
             services.AddSingleton<IRabbitRepo, RabbitRepo>();
             services.AddSingleton<IRabbitListener, RabbitListener>();
             services.AddSingleton<ISystemParamsHelper, SystemParamsHelper>();
+               services.AddSingleton<MLParams>(sp =>
+            {
+                var systemParamsHelper = sp.GetRequiredService<ISystemParamsHelper>();
+                return systemParamsHelper.GetMLParams();
+            });
+             services.AddSingleton<SystemParams>(sp =>
+            {
+                var systemParamsHelper = sp.GetRequiredService<ISystemParamsHelper>();
+                return systemParamsHelper.GetSystemParams();
+            });
             services.AddSingleton<IProcessorStateRabbitListner, ProcessorStateRabbitListner>();
             services.AddSingleton<IProcessorState, ProcessorState>();
 

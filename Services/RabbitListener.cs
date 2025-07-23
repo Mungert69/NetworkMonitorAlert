@@ -32,7 +32,7 @@ namespace NetworkMonitor.Alert.Services
     {
         private IAlertMessageService _alertMessageService;
         private IDataQueueService _dataQueueService;
-        public RabbitListener(IAlertMessageService alertMessageService, IDataQueueService dataQueueService, ILogger<RabbitListenerBase> logger, ISystemParamsHelper systemParamsHelper) : base(logger, DeriveSystemUrl(systemParamsHelper))
+        public RabbitListener(IAlertMessageService alertMessageService, IDataQueueService dataQueueService, ILogger<RabbitListenerBase> logger, SystemParams systemParams) : base(logger, DeriveSystemUrl(systemParams))
         {
             _alertMessageService = alertMessageService;
             _dataQueueService = dataQueueService;
@@ -40,9 +40,9 @@ namespace NetworkMonitor.Alert.Services
 
 
 
-        private static SystemUrl DeriveSystemUrl(ISystemParamsHelper systemParamsHelper)
+        private static SystemUrl DeriveSystemUrl(SystemParams systemParams)
         {
-            return systemParamsHelper.GetSystemParams().ThisSystemUrl;
+            return systemParams.ThisSystemUrl;
         }
         protected override void InitRabbitMQObjs()
         {
