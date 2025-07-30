@@ -51,10 +51,10 @@ namespace NetworkMonitor.Alert
             services.AddSingleton<IRabbitRepo, RabbitRepo>();
             services.AddSingleton<IRabbitListener, RabbitListener>();
             services.AddSingleton<ISystemParamsHelper, SystemParamsHelper>();
-               services.AddSingleton<MLParams>(sp =>
+               services.AddSingleton<AlertParams>(sp =>
             {
                 var systemParamsHelper = sp.GetRequiredService<ISystemParamsHelper>();
-                return systemParamsHelper.GetMLParams();
+                return systemParamsHelper.GetAlertParams();
             });
              services.AddSingleton<SystemParams>(sp =>
             {

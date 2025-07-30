@@ -70,9 +70,9 @@ namespace NetworkMonitor.Alert.Services
         private IProcessorState _processorState;
         private IRabbitRepo _rabbitRepo;
         private IFileRepo _fileRepo;
-        private ISystemParamsHelper _systemParamsHelper;
-        private CancellationToken _token;
         private SystemParams _systemParams;
+        private AlertParams _alertParams;
+        private CancellationToken _token;
         public IRabbitRepo RabbitRepo { get => _rabbitRepo; }
         public bool IsMonitorAlertRunning { get => _alertProcessor.MonitorAlertProcess.IsAlertRunning; set => _alertProcessor.MonitorAlertProcess.IsAlertRunning = value; }
         public bool IsPredictAlertRunning { get => _alertProcessor.PredictAlertProcess.IsAlertRunning; set => _alertProcessor.PredictAlertProcess.IsAlertRunning = value; }
@@ -81,7 +81,7 @@ namespace NetworkMonitor.Alert.Services
         public List<IAlertable> PredictAlerts { get => _alertProcessor.PredictAlertProcess.Alerts; set => _alertProcessor.PredictAlertProcess.Alerts = value; }
 
 
-        public AlertMessageService(ILogger<AlertMessageService> logger, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo, IRabbitRepo rabbitRepo, ISystemParamsHelper systemParamsHelper, IProcessorState processorState)
+        public AlertMessageService(ILogger<AlertMessageService> logger, IConfiguration config, IDataQueueService dataQueueService, CancellationTokenSource cancellationTokenSource, IFileRepo fileRepo, IRabbitRepo rabbitRepo, SystemParams systemParams, AlertParams alertParams, IProcessorState processorState)
         {
             _dataQueueService = dataQueueService;
             _fileRepo = fileRepo;
@@ -93,7 +93,9 @@ namespace NetworkMonitor.Alert.Services
             _config = config;
             _token = cancellationTokenSource.Token;
             _token.Register(() => OnStopping());
-            _systemParamsHelper = systemParamsHelper;
+            _systemParams = systemParams;
+            _alertParams = alertParams;
+                
             _processorState = processorState;
 
         }
@@ -124,7 +126,6 @@ namespace NetworkMonitor.Alert.Services
         }
         public async Task InitService(AlertServiceInitObj alertObj)
         {
-            var alertParams = _systemParamsHelper.GetAlertParams();
             var processorList = new List<ProcessorObj>();
             try
             {
@@ -154,9 +155,8 @@ namespace NetworkMonitor.Alert.Services
             {
 
 
-                _systemParams = _systemParamsHelper.GetSystemParams();
                 _logger.LogDebug("SystemParams: " + JsonUtils.WriteJsonObjectToString(_systemParams));
-                _emailProcessor = new EmailProcessor(_systemParams, _logger, alertParams.DisableEmails);
+                _emailProcessor = new EmailProcessor(_systemParams, _logger, _alertParams.DisableEmails);
                 _logger.LogInformation("Got config");
             }
             catch (Exception e)
@@ -238,7 +238,7 @@ namespace NetworkMonitor.Alert.Services
                 var connectFactory = new ConnectFactory(_logger, netConnectConfig);
                 var netConnectCollection = new NetConnectCollection(_logger, netConnectConfig, connectFactory);
 
-                _alertProcessor = new AlertProcessor(_logger, _rabbitRepo, _emailProcessor, _processorState, netConnectCollection, alertParams, _userInfos);
+                _alertProcessor = new AlertProcessor(_logger, _rabbitRepo, _emailProcessor, _processorState, netConnectCollection, _alertParams, _userInfos);
 
             }
             catch (Exception e)
