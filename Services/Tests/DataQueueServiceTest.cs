@@ -51,7 +51,7 @@ namespace NetworkMonitorAlert.Tests.Services
         public async Task AddProcessorDataStringToQueue_ReturnsError_WhenAppIDIsNull()
         {
             var service = CreateService();
-            var obj = new ProcessorDataObj { AppID = null, AuthKey = ValidAuthKey, MonitorStatusAlerts = new List<MonitorStatusAlert>() };
+            var obj = new ProcessorDataObj { AppID = "", AuthKey = ValidAuthKey, MonitorStatusAlerts = new List<MonitorStatusAlert>() };
             string dataString = CreateProcessorDataString(obj);
 
             var result = await service.AddProcessorDataStringToQueue(dataString, new List<IAlertable>());
@@ -64,7 +64,7 @@ namespace NetworkMonitorAlert.Tests.Services
         public async Task AddProcessorDataStringToQueue_ReturnsError_WhenAuthKeyIsNull()
         {
             var service = CreateService();
-            var obj = new ProcessorDataObj { AppID = ValidAppId, AuthKey = null, MonitorStatusAlerts = new List<MonitorStatusAlert>() };
+            var obj = new ProcessorDataObj { AppID = ValidAppId, AuthKey = "", MonitorStatusAlerts = new List<MonitorStatusAlert>() };
             string dataString = CreateProcessorDataString(obj);
 
             var result = await service.AddProcessorDataStringToQueue(dataString, new List<IAlertable>());
