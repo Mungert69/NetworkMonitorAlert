@@ -95,7 +95,7 @@ public class EmailProcessor : IEmailProcessor
             }
             alertMessage.Message += "\n\nPlease click on this link to verify your email " + urls.VerifyUrl;
         }
-        alertMessage.Message += "\n\nThis message was sent by the messenger running at " + _emailSendServerName + " (" + _publicIPAddress.ToString() + ")\n\n To unsubscribe from receiving these messages, please click this link " + urls.UnsubscribeUrl + "\n\n To re-subscribe to receiving these messages, please click this link " + urls.ResubscribeUrl;
+        alertMessage.Message += "\n\nThis message was sent by the network monitor service running at " + AppConstants.FrontendUrl + " . Email service ip @" + _publicIPAddress.ToString() + "\n\n To unsubscribe from receiving these messages, please click this link " + urls.UnsubscribeUrl + "\n\n To re-subscribe to receiving these messages, please click this link " + urls.ResubscribeUrl;
         string emailFrom = _systemEmail;
         string systemPassword = _systemPassword;
         string systemUser = _systemUser;
