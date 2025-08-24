@@ -124,6 +124,7 @@ public class EmailProcessor : IEmailProcessor
             //bodyBuilder.Attachments.Add(_env.WebRootPath + "\\file.png");
             message.Body = bodyBuilder.ToMessageBody();
             SmtpClient client = new SmtpClient();
+            client.LocalDomain = "mahadeva.co.uk";
             client.ServerCertificateValidationCallback = (mysender, certificate, chain, sslPolicyErrors) => { return true; };
             client.CheckCertificateRevocation = false;
             if (mailServerUseSSL)
@@ -237,6 +238,7 @@ public class EmailProcessor : IEmailProcessor
             message.Body = bodyBuilder.ToMessageBody();
             using (var client = new SmtpClient())
             {
+                client.LocalDomain = "mahadeva.co.uk";
                 client.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
                 client.CheckCertificateRevocation = false;
 
