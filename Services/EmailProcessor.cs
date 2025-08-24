@@ -105,6 +105,8 @@ public class EmailProcessor : IEmailProcessor
         {
             MimeMessage message = new MimeMessage();
             message.Headers.Add("List-Unsubscribe", "<" + urls.UnsubscribeUrl + ">, <mailto:" + emailFrom + "?subject=unsubscribe>");
+            message.Headers.Add("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
+            
             MailboxAddress from = new MailboxAddress("Quantum Network Monitor",
             emailFrom);
             message.From.Add(from);
@@ -218,7 +220,7 @@ public class EmailProcessor : IEmailProcessor
             };
 
             message.Headers.Add("List-Unsubscribe", "<" + urls.UnsubscribeUrl + ">, <mailto:" + _systemEmail + "?subject=unsubscribe>");
-
+            message.Headers.Add("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
             message.From.Add(new MailboxAddress("Quantum Network Monitor", _systemEmail));
             message.To.Add(new MailboxAddress("", email));
             message.Subject = subject;
