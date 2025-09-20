@@ -51,21 +51,26 @@ namespace NetworkMonitor.Alert
             services.AddSingleton<IRabbitRepo, RabbitRepo>();
             services.AddSingleton<IRabbitListener, RabbitListener>();
             services.AddSingleton<ISystemParamsHelper, SystemParamsHelper>();
-               services.AddSingleton<AlertParams>(sp =>
-            {
-                var systemParamsHelper = sp.GetRequiredService<ISystemParamsHelper>();
-                return systemParamsHelper.GetAlertParams();
-            });
-             services.AddSingleton<SystemParams>(sp =>
-            {
-                var systemParamsHelper = sp.GetRequiredService<ISystemParamsHelper>();
-                return systemParamsHelper.GetSystemParams();
-            });
+            services.AddSingleton<AlertParams>(sp =>
+         {
+             var systemParamsHelper = sp.GetRequiredService<ISystemParamsHelper>();
+             return systemParamsHelper.GetAlertParams();
+         });
+            services.AddSingleton<SystemParams>(sp =>
+           {
+               var systemParamsHelper = sp.GetRequiredService<ISystemParamsHelper>();
+               return systemParamsHelper.GetSystemParams();
+           });
             services.AddSingleton<IProcessorStateRabbitListner, ProcessorStateRabbitListner>();
             services.AddSingleton<IProcessorState, ProcessorState>();
 
 
-            services.AddSingleton<IFileRepo, FileRepo>();
+            services.AddSingleton<IFileRepo, FileRepo>(
+                 provider =>
+                 {
+                     return new FileRepo(false, "./state");
+                 }
+             );
             services.AddAsyncServiceInitialization()
                 .AddInitAction<IRabbitRepo>(async (rabbitRepo) =>
                     {
