@@ -190,7 +190,7 @@ public class AlertProcessor
 
             // If the previoud publish of AlertSent failed then need to republish.
             bool noAlertSentStored = alertProcess.UpdateAlertSentList.FirstOrDefault(w => w.ID == statusAlert.ID) == null;
-            if (statusAlert.AlertFlag = true && statusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(statusAlert);
+            if (statusAlert.AlertFlag && statusAlert.AlertSent == false && !noAlertSentStored) publishAlertSentList.Add(statusAlert);
             string? userId = statusAlert.UserID;
             var testUserInfo = userInfos.FirstOrDefault(u => u.UserID == userId);
             if (testUserInfo == null)
