@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Text;
 using MailKit.Net.Smtp;
 using MimeKit;
+using MimeKit.Text;
 using NetworkMonitor.Objects;
 using NetworkMonitor.Utils;
 using NetworkMonitor.Utils.Helpers;
@@ -225,19 +226,20 @@ public class EmailProcessor : IEmailProcessor
             message.To.Add(new MailboxAddress("", email));
             message.Subject = subject;
 
-            // Configure BodyBuilder for UTF-8 encoding
-            var bodyBuilder = new BodyBuilder
-            {
-                HtmlBody = isBodyHtml ? body : null,
-                TextBody = !isBodyHtml ? body : null,
-            };
+            // Force UTF-8 Base64 encoding so HTML attributes are not rewritten as quoted-printable
+            MimeEntity messageBody = isBodyHtml
+                ? new TextPart(TextFormat.Html)
+                {
+                    Text = body,
+                    ContentTransferEncoding = ContentEncoding.Base64
+                }
+                : new TextPart(TextFormat.Plain)
+                {
+                    Text = body,
+                    ContentTransferEncoding = ContentEncoding.Base64
+                };
 
-            // Use UTF-8 encoding for the message body
-            bodyBuilder.TextBody = bodyBuilder.TextBody != null ? Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(bodyBuilder.TextBody)) : null;
-            bodyBuilder.HtmlBody = bodyBuilder.HtmlBody != null ? Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(bodyBuilder.HtmlBody)) : null;
-
-            // Set the body with UTF-8 encoding
-            message.Body = bodyBuilder.ToMessageBody();
+            message.Body = messageBody;
             using (var client = new SmtpClient())
             {
                 client.LocalDomain = "mahadeva.co.uk";
