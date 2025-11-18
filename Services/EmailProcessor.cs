@@ -214,12 +214,7 @@ public class EmailProcessor : IEmailProcessor
         }
         try
         {
-            var message = new MimeMessage
-            {
-                // Explicitly set UTF-8 encoding for headers
-                Headers = { { "Content-Transfer-Encoding", "8bit" } }
-            };
-
+            var message = new MimeMessage();
             message.Headers.Add("List-Unsubscribe", "<" + urls.UnsubscribeUrl + ">, <mailto:" + _systemEmail + "?subject=unsubscribe>");
             message.Headers.Add("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
             message.From.Add(new MailboxAddress("Quantum Network Monitor", _systemEmail));
@@ -227,18 +222,12 @@ public class EmailProcessor : IEmailProcessor
             message.Subject = subject;
 
             // Force UTF-8 Base64 encoding so HTML attributes are not rewritten as quoted-printable
-            MimeEntity messageBody = isBodyHtml
-                ? new TextPart(TextFormat.Html)
-                {
-                    Text = body,
-                    ContentTransferEncoding = ContentEncoding.Base64
-                }
-                : new TextPart(TextFormat.Plain)
-                {
-                    Text = body,
-                    ContentTransferEncoding = ContentEncoding.Base64
-                };
-
+            var messageBody = new TextPart(isBodyHtml ? TextFormat.Html : TextFormat.Plain)
+            {
+                Text = body,
+                ContentTransferEncoding = ContentEncoding.Base64
+            };
+            messageBody.ContentType.Charset = Encoding.UTF8.WebName;
             message.Body = messageBody;
             using (var client = new SmtpClient())
             {
