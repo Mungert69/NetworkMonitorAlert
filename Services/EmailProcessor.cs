@@ -214,21 +214,7 @@ public class EmailProcessor : IEmailProcessor
         }
         try
         {
-            var message = new MimeMessage();
-            message.Headers.Add("List-Unsubscribe", "<" + urls.UnsubscribeUrl + ">, <mailto:" + _systemEmail + "?subject=unsubscribe>");
-            message.Headers.Add("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
-            message.From.Add(new MailboxAddress("Quantum Network Monitor", _systemEmail));
-            message.To.Add(new MailboxAddress("", email));
-            message.Subject = subject;
-
-            // Force UTF-8 Base64 encoding so HTML attributes are not rewritten as quoted-printable
-            var messageBody = new TextPart(isBodyHtml ? TextFormat.Html : TextFormat.Plain)
-            {
-                Text = body,
-                ContentTransferEncoding = ContentEncoding.Base64
-            };
-            messageBody.ContentType.Charset = Encoding.UTF8.WebName;
-            message.Body = messageBody;
+            var message = CreateMimeMessage(email, subject, body, urls, isBodyHtml);
             using (var client = new SmtpClient())
             {
                 client.LocalDomain = "mahadeva.co.uk";
@@ -259,6 +245,25 @@ public class EmailProcessor : IEmailProcessor
         }
 
         return result;
+    }
+
+    internal MimeMessage CreateMimeMessage(string email, string subject, string body, EmailUrls urls, bool isBodyHtml)
+    {
+        var message = new MimeMessage();
+        message.Headers.Add("List-Unsubscribe", "<" + urls.UnsubscribeUrl + ">, <mailto:" + _systemEmail + "?subject=unsubscribe>");
+        message.Headers.Add("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
+        message.From.Add(new MailboxAddress("Quantum Network Monitor", _systemEmail));
+        message.To.Add(new MailboxAddress("", email));
+        message.Subject = subject;
+
+        var messageBody = new TextPart(isBodyHtml ? TextFormat.Html : TextFormat.Plain)
+        {
+            Text = body,
+            ContentTransferEncoding = ContentEncoding.Base64
+        };
+        messageBody.ContentType.Charset = Encoding.UTF8.WebName;
+        message.Body = messageBody;
+        return message;
     }
 
     public async Task<ResultObj> SendHostReport(HostReportObj hostReport)
