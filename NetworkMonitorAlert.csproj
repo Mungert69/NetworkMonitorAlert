@@ -7,6 +7,8 @@
     <PublishProfile>DefaultContainer</PublishProfile>
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0</ContainerBaseImage>
     <ContainerImageTag>1.12.0</ContainerImageTag>
+         <RollForward>Minor</RollForward>
+
     <Nullable>enable</Nullable>
     <StartupObject>NetworkMonitor.Alert.Program</StartupObject>
       <NoWarn>CS8618</NoWarn> 
