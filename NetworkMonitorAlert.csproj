@@ -6,7 +6,7 @@
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <PublishProfile>DefaultContainer</PublishProfile>
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0</ContainerBaseImage>
-    <ContainerImageTag>1.12.0</ContainerImageTag>
+    <ContainerImageTag>1.12.1</ContainerImageTag>
          <RollForward>Minor</RollForward>
 
     <Nullable>enable</Nullable>
