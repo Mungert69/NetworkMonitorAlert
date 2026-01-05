@@ -56,7 +56,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\NetworkMonitorProcessor\openssl\**">
+    <Content Include="..\NetworkMonitorProcessorAgent\openssl\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <TargetPath>openssl\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
