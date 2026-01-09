@@ -21,6 +21,17 @@
     <StartupObject>NetworkMonitor.Alert.Program</StartupObject>
     <NoWarn>CS8618</NoWarn>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <Optimize>true</Optimize>
+    <ContainerRepository>mungert/networkmonitoralert</ContainerRepository>
+    <NoWarn>CS8618</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release-Dev'">
+    <DefineConstants>DEV</DefineConstants>
+    <Optimize>true</Optimize>
+    <ContainerRepository>mungert/networkmonitoralert-dev</ContainerRepository>
+  </PropertyGroup>
 
   <ItemGroup>
 
