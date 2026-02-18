@@ -461,7 +461,8 @@ namespace NetworkMonitor.Alert.Services
                 result.Message += " Error : alertServiceAlertObj is invalid ";
                 return result;
             }
-            if (string.IsNullOrWhiteSpace(CurrentPublisherUserId))
+            bool enforcePublisherIdentity = _systemUrl.RequirePublisherUserId;
+            if (enforcePublisherIdentity && string.IsNullOrWhiteSpace(CurrentPublisherUserId))
             {
                 result.Message += " Error : publisher identity is missing.";
                 return result;
@@ -474,7 +475,7 @@ namespace NetworkMonitor.Alert.Services
             bool isSharedPublisher =
                 string.Equals(CurrentPublisherUserId, "usersetup", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(CurrentPublisherUserId, "default", StringComparison.OrdinalIgnoreCase);
-            if (!isSharedPublisher &&
+            if (enforcePublisherIdentity && !isSharedPublisher &&
                 !alertServiceAlertObj.AppID.StartsWith(CurrentPublisherUserId + "-", StringComparison.Ordinal))
             {
                 result.Message += $" Error : AppID '{alertServiceAlertObj.AppID}' is not bound to publisher '{CurrentPublisherUserId}'.";
