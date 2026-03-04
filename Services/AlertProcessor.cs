@@ -216,7 +216,10 @@ public class AlertProcessor
             if (statusAlert.AddUserEmail == "delete") userInfo.DisableEmail = true;
 
             statusAlert.UserName = userInfo.Name;
-            if (statusAlert.DownCount > alertProcess.AlertThreshold && statusAlert.AlertSent == false && noAlertSentStored)
+            bool alertTriggered = statusAlert is PredictStatusAlert
+                ? statusAlert.AlertFlag
+                : statusAlert.DownCount > alertProcess.AlertThreshold;
+            if (alertTriggered && statusAlert.AlertSent == false && noAlertSentStored)
             {
                 // Its not the first messge for this user so we need to add a new line
                 if (alertProcess.AlertMessages.FirstOrDefault(a => a.UserID == userId) != null)
