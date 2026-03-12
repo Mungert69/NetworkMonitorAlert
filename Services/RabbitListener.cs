@@ -461,24 +461,13 @@ namespace NetworkMonitor.Alert.Services
                 result.Message += " Error : alertServiceAlertObj is invalid ";
                 return result;
             }
-            bool enforcePublisherIdentity = _systemUrl.RequirePublisherUserId;
-            if (enforcePublisherIdentity && string.IsNullOrWhiteSpace(CurrentPublisherUserId))
+            if (!ValidatePublisherIdentityForApp(
+                result,
+                alertServiceAlertObj.AppID,
+                "AlertMessageResetAlerts",
+                allowUserSetupPublisher: true,
+                allowDefaultPublisher: true))
             {
-                result.Message += " Error : publisher identity is missing.";
-                return result;
-            }
-            if (string.IsNullOrWhiteSpace(alertServiceAlertObj.AppID))
-            {
-                result.Message += " Error : AppID is missing.";
-                return result;
-            }
-            bool isSharedPublisher =
-                string.Equals(CurrentPublisherUserId, "usersetup", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(CurrentPublisherUserId, "default", StringComparison.OrdinalIgnoreCase);
-            if (enforcePublisherIdentity && !isSharedPublisher &&
-                !alertServiceAlertObj.AppID.StartsWith(CurrentPublisherUserId + "-", StringComparison.Ordinal))
-            {
-                result.Message += $" Error : AppID '{alertServiceAlertObj.AppID}' is not bound to publisher '{CurrentPublisherUserId}'.";
                 return result;
             }
             try
@@ -513,6 +502,15 @@ namespace NetworkMonitor.Alert.Services
             if (_alertMessageService.IsBadAuthKey(alertServiceAlertObj.AuthKey, alertServiceAlertObj.AppID))
             {
                 result.Message += " Error : alertServiceAlertObj is invalid ";
+                return result;
+            }
+            if (!ValidatePublisherIdentityForApp(
+                result,
+                alertServiceAlertObj.AppID,
+                "AlertMessageResetPredictAlerts",
+                allowUserSetupPublisher: true,
+                allowDefaultPublisher: true))
+            {
                 return result;
             }
             try
