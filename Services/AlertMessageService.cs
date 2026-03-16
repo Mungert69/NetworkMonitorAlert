@@ -95,6 +95,7 @@ namespace NetworkMonitor.Alert.Services
             _token.Register(() => OnStopping());
             _systemParams = systemParams;
             _alertParams = alertParams;
+            _logger.LogDebug("AlertMessageService ctor params: SystemParams={SystemParams}", _systemParams);
                 
             _processorState = processorState;
 
@@ -155,8 +156,9 @@ namespace NetworkMonitor.Alert.Services
             {
 
 
-                 _emailProcessor = new EmailProcessor(_systemParams, _logger, _alertParams.DisableEmails);
+                _emailProcessor = new EmailProcessor(_systemParams, _logger, _alertParams.DisableEmails);
                 _logger.LogInformation("Got config");
+                _logger.LogDebug("AlertMessageService init params: SystemParams={SystemParams}", _systemParams);
             }
             catch (Exception e)
             {
