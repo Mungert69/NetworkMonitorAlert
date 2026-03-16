@@ -155,13 +155,12 @@ namespace NetworkMonitor.Alert.Services
             {
 
 
-                _logger.LogDebug("SystemParams: " + JsonUtils.WriteJsonObjectToString(_systemParams));
-                _emailProcessor = new EmailProcessor(_systemParams, _logger, _alertParams.DisableEmails);
+                 _emailProcessor = new EmailProcessor(_systemParams, _logger, _alertParams.DisableEmails);
                 _logger.LogInformation("Got config");
             }
             catch (Exception e)
             {
-                _logger.LogError("Error : Can not get Config" + e.Message.ToString());
+                _logger.LogError("Error : Can not get set EmailProcessor" + e.Message.ToString());
             }
             if (alertObj.TotalReset)
             {
