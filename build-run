@@ -10,7 +10,10 @@ TAG="$(sed -n 's/.*<ContainerImageTag>\(.*\)<\/ContainerImageTag>.*/\1/p' Networ
 # repo from matching PropertyGroup
 REPO="$(
   awk -v cfg="$CONFIG" '
-    /<PropertyGroup/ && /Condition/ && index($0,cfg){inpg=1}
+    /<PropertyGroup/ && /Condition=/ {
+      inpg = ($0 ~ ("\\x27\\$\\(Configuration\\)\\x27[[:space:]]*==[[:space:]]*\\x27" cfg "\\x27"))
+      next
+    }
     inpg && /<ContainerRepository>/{line=$0;sub(/.*<ContainerRepository>/,"",line);sub(/<\/ContainerRepository>.*/,"",line);print line;exit}
     inpg && /<\/PropertyGroup>/{inpg=0}
   ' NetworkMonitorAlert.csproj
@@ -29,4 +32,3 @@ dotnet test --nologo
 dotnet publish NetworkMonitorAlert.csproj \
   -c "$CONFIG" \
   -t:PublishContainer
-
