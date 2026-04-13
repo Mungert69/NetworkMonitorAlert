@@ -8,6 +8,7 @@ using System;
 using System.Text;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using NetworkMonitor.Utils;
 using NetworkMonitor.Utils.Helpers;
@@ -26,6 +27,7 @@ namespace NetworkMonitor.Alert.Services
         Task<ResultObj> AlertUpdateMonitorStatusAlerts(string monitorStatusAlertString);
         Task Shutdown();
         Task<ResultObj> Setup();
+        Task<ResultObj> Setup(CancellationToken cancellationToken);
     }
 
     public class RabbitListener : RabbitListenerBase, IRabbitListener
