@@ -140,253 +140,107 @@ namespace NetworkMonitor.Alert.Services
             var result = new ResultObj();
             try
             {
-                 await Parallel.ForEachAsync(_rabbitMQObjs, async (rabbitMQObj, cancellationToken) =>
+                await Parallel.ForEachAsync(_rabbitMQObjs, async (rabbitMQObj, cancellationToken) =>
                 {
-
-                    if (rabbitMQObj.ConnectChannel != null)
+                    if (rabbitMQObj.ConnectChannel == null)
                     {
+                        return;
+                    }
 
-                        rabbitMQObj.Consumer = new AsyncEventingBasicConsumer(rabbitMQObj.ConnectChannel);
-                        await rabbitMQObj.ConnectChannel.BasicConsumeAsync(
-                                queue: rabbitMQObj.QueueName,
-                                autoAck: false,
-                                consumer: rabbitMQObj.Consumer
-                            );
-
+                    rabbitMQObj.Consumer = new AsyncEventingBasicConsumer(rabbitMQObj.ConnectChannel);
+                    await rabbitMQObj.ConnectChannel.BasicConsumeAsync(
+                        queue: rabbitMQObj.QueueName,
+                        autoAck: false,
+                        consumer: rabbitMQObj.Consumer);
 
                     switch (rabbitMQObj.FuncName)
                     {
                         case "serviceWakeUp":
-                            await rabbitMQObj.ConnectChannel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false);
-                            rabbitMQObj.Consumer.ReceivedAsync += async (model, ea) =>
-                        {
-                            try
-                            {
-                                result = await WakeUp();
-                                await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.serviceWakeUp " + ex.Message);
-                            }
-                        };
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "serviceWakeUp", async (_, _) => { result = await WakeUp(); });
                             break;
                         case "alertMessageInit":
-                            await rabbitMQObj.ConnectChannel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false);
-                            rabbitMQObj.Consumer.ReceivedAsync += async (model, ea) =>
-                        {
-                            try
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "alertMessageinit", (model, ea) =>
                             {
                                 result = AlertMessageInit(ConvertToObject<AlertServiceInitObj>(model, ea));
-                                await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessageinit " + ex.Message);
-                            }
-                            result = AlertMessageInit(ConvertToObject<AlertServiceInitObj>(model, ea));
-                            await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                        };
+                                return Task.CompletedTask;
+                            });
                             break;
                         case "alertMessageResetAlerts":
-                            await rabbitMQObj.ConnectChannel.BasicQosAsync(prefetchSize: 0, prefetchCount: 10, global: false);
-                            rabbitMQObj.Consumer.ReceivedAsync += async (model, ea) =>
-                        {
-                            try
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "alertMessageResetAlerts", (model, ea) =>
                             {
                                 result = AlertMessageResetAlerts(ConvertToObject<AlertServiceAlertObj>(model, ea));
-                                await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessageResetAlerts " + ex.Message);
-                            }
-                        };
+                                return Task.CompletedTask;
+                            });
                             break;
-                             case "alertMessageResetPredictAlerts":
-                            await rabbitMQObj.ConnectChannel.BasicQosAsync(prefetchSize: 0, prefetchCount: 10, global: false);
-                            rabbitMQObj.Consumer.ReceivedAsync += async (model, ea) =>
-                        {
-                            try
+                        case "alertMessageResetPredictAlerts":
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "alertMessageResetPredictAlerts", (model, ea) =>
                             {
                                 result = AlertMessageResetPredictAlerts(ConvertToObject<AlertServiceAlertObj>(model, ea));
-                                await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessageResetPredictAlerts " + ex.Message);
-                            }
-                        };
+                                return Task.CompletedTask;
+                            });
                             break;
                         case "alertMessage":
-                            await rabbitMQObj.ConnectChannel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false);
-                            rabbitMQObj.Consumer.ReceivedAsync += async (model, ea) =>
-                        {
-                            try
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "alertMessage", async (model, ea) =>
                             {
                                 result = await AlertMessage(ConvertToObject<AlertMessage>(model, ea));
-                                await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessage " + ex.Message);
-                            }
-                        };
+                            });
                             break;
                         case "updateUserInfoAlertMessage":
-                            await rabbitMQObj.ConnectChannel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false);
-                            rabbitMQObj.Consumer.ReceivedAsync += async (model, ea) =>
-                        {
-                            try
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "updateUserInfoAlertMessage", async (model, ea) =>
                             {
                                 result = await UpdateUserInfoAlertMessage(ConvertToObject<UserInfo>(model, ea));
-                                await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.updateUserInfoAlertMessage " + ex.Message);
-                            }
-                        };
+                            });
                             break;
                         case "monitorAlert":
-                            await rabbitMQObj.ConnectChannel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false);
-                            rabbitMQObj.Consumer.ReceivedAsync += async (model, ea) =>
-                        {
-                            try
-                            {
-                                result = await MonitorAlert();
-                                await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.monitorAlert " + ex.Message);
-                            }
-                        };
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "monitorAlert", async (_, _) => { result = await MonitorAlert(); });
                             break;
-                         case "predictAlert":
-                            await rabbitMQObj.ConnectChannel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false);
-                            rabbitMQObj.Consumer.ReceivedAsync += async (model, ea) =>
-                        {
-                            try
-                            {
-                                result = await PredictAlert();
-                                await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.predictAlert " + ex.Message);
-                            }
-                        };
+                        case "predictAlert":
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "predictAlert", async (_, _) => { result = await PredictAlert(); });
                             break;
                         case "alertUpdateMonitorStatusAlerts":
-                            await rabbitMQObj.ConnectChannel.BasicQosAsync(prefetchSize: 0, prefetchCount: 10, global: false);
-                            rabbitMQObj.Consumer.ReceivedAsync += async (model, ea) =>
-                        {
-                            try
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "alertUpdateMonitorStatusAlerts", async (model, ea) =>
                             {
                                 result = await AlertUpdateMonitorStatusAlerts(ConvertToString(model, ea));
-                                await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertUpdateMonitorStatusAlerts " + ex.Message);
-                            }
-                        };
+                            });
                             break;
-                         case "alertUpdatePredictStatusAlerts":
-                            await rabbitMQObj.ConnectChannel.BasicQosAsync(prefetchSize: 0, prefetchCount: 10, global: false);
-                            rabbitMQObj.Consumer.ReceivedAsync += async (model, ea) =>
-                        {
-                            try
+                        case "alertUpdatePredictStatusAlerts":
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "alertUpdatePredictStatusAlerts", async (model, ea) =>
                             {
                                 result = await AlertUpdatePredictStatusAlerts(ConvertToString(model, ea));
-                                await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertUpdatePredictStatusAlerts " + ex.Message);
-                            }
-                        };
+                            });
                             break;
                         case "userHostExpire":
-                            await rabbitMQObj.ConnectChannel.BasicQosAsync(prefetchSize: 0, prefetchCount: 10, global: false);
-                            rabbitMQObj.Consumer.ReceivedAsync += async (model, ea) =>
-                        {
-                            try
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "userHostExpire", async (model, ea) =>
                             {
                                 result = await UserHostExpire(ConvertToList<List<GenericEmailObj>>(model, ea));
-                                await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.userHostExpire " + ex.Message);
-                            }
-                        };
+                            });
                             break;
-                              case "userProcessorExpire":
-                            await rabbitMQObj.ConnectChannel.BasicQosAsync(prefetchSize: 0, prefetchCount: 10, global: false);
-                            rabbitMQObj.Consumer.ReceivedAsync += async (model, ea) =>
-                        {
-                            try
+                        case "userProcessorExpire":
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "userProcessorExpire", async (model, ea) =>
                             {
                                 result = await UserProccesorExpire(ConvertToList<List<GenericEmailObj>>(model, ea));
-                                await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.userProcessorExpire " + ex.Message);
-                            }
-                        };
+                            });
                             break;
-                      
-                         case "userUpgrade":
-                            await rabbitMQObj.ConnectChannel.BasicQosAsync(prefetchSize: 0, prefetchCount: 10, global: false);
-                            rabbitMQObj.Consumer.ReceivedAsync += async (model, ea) =>
-                        {
-                            try
+                        case "userUpgrade":
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "userUpgrade", async (model, ea) =>
                             {
                                 result = await UserUpgrade(ConvertToList<List<GenericEmailObj>>(model, ea));
-                                await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.userUpgrade " + ex.Message);
-                            }
-                        };
+                            });
                             break;
                         case "sendHostReport":
-                            await rabbitMQObj.ConnectChannel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false);
-                            rabbitMQObj.Consumer.ReceivedAsync += async (model, ea) =>
-                        {
-                            try
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "sendHostReport", async (model, ea) =>
                             {
                                 result = await SendHostReport(ConvertToObject<HostReportObj>(model, ea));
-                                await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.alertMessage " + ex.Message);
-                            }
-                        };
+                            });
                             break;
                         case "sendGenericEmail":
-                            await rabbitMQObj.ConnectChannel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false);
-                            rabbitMQObj.Consumer.ReceivedAsync += async (model, ea) =>
-                        {
-                            try
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "sendGenericEmail", async (model, ea) =>
                             {
                                 result = await SendGenericEmail(ConvertToObject<GenericEmailObj>(model, ea));
-                                await rabbitMQObj.ConnectChannel.BasicAckAsync(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(" Error : RabbitListener.DeclareConsumers.sendGenericEmail " + ex.Message);
-                            }
-                        };
+                            });
                             break;
                     }
-                }
-            });
+                });
                 result.Success = true;
                 result.Message += " Success : Declared all consumers ";
             }
