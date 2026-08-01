@@ -68,7 +68,7 @@ namespace NetworkMonitor.Alert
             services.AddSingleton<IFileRepo, FileRepo>(
                  provider =>
                  {
-                     return new FileRepo(false, "./state");
+                     return new FileRepo(false, "./state/networkmonitoralert");
                  }
              );
             services.AddAsyncServiceInitialization()
