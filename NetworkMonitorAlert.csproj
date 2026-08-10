@@ -12,7 +12,7 @@
     <!-- Multi-arch ASP.NET base -->
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0</ContainerBaseImage>
 
-    <ContainerImageTag>1.14.3</ContainerImageTag>
+    <ContainerImageTag>1.14.4</ContainerImageTag>
     <ContainerImageFormat>OCI</ContainerImageFormat>
 
     <PublishProfile>DefaultContainer</PublishProfile>
