@@ -321,7 +321,6 @@ namespace NetworkMonitor.Alert.Services
                 result,
                 alertServiceAlertObj.AppID,
                 "AlertMessageResetAlerts",
-                allowUserSetupPublisher: true,
                 allowDefaultPublisher: true))
             {
                 return result;
@@ -364,7 +363,6 @@ namespace NetworkMonitor.Alert.Services
                 result,
                 alertServiceAlertObj.AppID,
                 "AlertMessageResetPredictAlerts",
-                allowUserSetupPublisher: true,
                 allowDefaultPublisher: true))
             {
                 return result;
