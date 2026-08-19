@@ -353,3 +353,8 @@ UserInfos
 ProcessorList
 .mono/
 .env
+# Local AI tool state
+/.codex/
+/.qwen/
+/.gemini/
+/.pi/
