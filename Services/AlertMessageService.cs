@@ -56,7 +56,7 @@ namespace NetworkMonitor.Alert.Services
 
 
         //private bool _awake;
-   
+
         private ILogger _logger;
 
         private IEmailProcessor _emailProcessor;
@@ -87,16 +87,16 @@ namespace NetworkMonitor.Alert.Services
             _fileRepo = fileRepo;
             _rabbitRepo = rabbitRepo;
             _logger = logger;
-              _fileRepo.CheckFileExistsWithCreateObject<List<ProcessorObj>>("ProcessorList",new List<ProcessorObj>(), _logger);
-              
-             _fileRepo.CheckFileExistsWithCreateJsonZObject<List<UserInfo>>("UserInfos",new List<UserInfo>(), _logger);
+            _fileRepo.CheckFileExistsWithCreateObject<List<ProcessorObj>>("ProcessorList", new List<ProcessorObj>(), _logger);
+
+            _fileRepo.CheckFileExistsWithCreateJsonZObject<List<UserInfo>>("UserInfos", new List<UserInfo>(), _logger);
             _config = config;
             _token = cancellationTokenSource.Token;
             _token.Register(() => OnStopping());
             _systemParams = systemParams;
             _alertParams = alertParams;
             _logger.LogDebug("AlertMessageService ctor params: SystemParams={SystemParams}", _systemParams);
-                
+
             _processorState = processorState;
 
         }
@@ -130,7 +130,7 @@ namespace NetworkMonitor.Alert.Services
             var processorList = new List<ProcessorObj>();
             try
             {
-                 processorList = _fileRepo.GetStateJson<List<ProcessorObj>>("ProcessorList");
+                processorList = _fileRepo.GetStateJson<List<ProcessorObj>>("ProcessorList");
 
 
             }
@@ -197,7 +197,7 @@ namespace NetworkMonitor.Alert.Services
                 {
                     try
                     {
-                        
+
                         var userInfos = _fileRepo.GetStateJsonZAsync<List<UserInfo>>("UserInfos").Result;
                         if (userInfos == null) _userInfos = new List<UserInfo>();
                         else
@@ -217,7 +217,7 @@ namespace NetworkMonitor.Alert.Services
                 }
                 else
                 {
-                    _userInfos=new List<UserInfo>();
+                    _userInfos = new List<UserInfo>();
                     _logger.LogWarning("Warning got no UserInfos from state file.");
                 }
             }
@@ -234,8 +234,8 @@ namespace NetworkMonitor.Alert.Services
             try
             {
                 string appDataDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-  
-                var netConnectConfig = new NetConnectConfig(_config,appDataDirectory);
+
+                var netConnectConfig = new NetConnectConfig(_config, appDataDirectory);
                 var connectFactory = new ConnectFactory(_logger, netConnectConfig);
                 var netConnectCollection = new NetConnectCollection(_logger, netConnectConfig, connectFactory);
 
@@ -283,7 +283,7 @@ namespace NetworkMonitor.Alert.Services
         {
             return await _emailProcessor.UserHostExpire(emailObjs);
         }
-         public async Task<List<ResultObj>> UserProcessorExpire(List<GenericEmailObj> emailObjs)
+        public async Task<List<ResultObj>> UserProcessorExpire(List<GenericEmailObj> emailObjs)
         {
             return await _emailProcessor.UserProcessorExpire(emailObjs);
         }

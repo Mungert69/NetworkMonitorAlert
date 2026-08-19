@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 namespace NetworkMonitor.Alert.Services;
+
 public class AlertProcessor
 {
 
@@ -22,8 +23,8 @@ public class AlertProcessor
     private AlertParams _alertParams;
 
 
-    private IAlertProcess _monitorAlertProcess = new AlertProcess() {PublishScheduler=true, PublishProcessor = true, CheckAlerts = true,PublishPrefix="Monitor" };
-    private IAlertProcess _predictAlertProcess = new AlertProcess() {PublishScheduler=true, PublishPredict = true, CheckAlerts = false, PublishPrefix="Predict" };
+    private IAlertProcess _monitorAlertProcess = new AlertProcess() { PublishScheduler = true, PublishProcessor = true, CheckAlerts = true, PublishPrefix = "Monitor" };
+    private IAlertProcess _predictAlertProcess = new AlertProcess() { PublishScheduler = true, PublishPredict = true, CheckAlerts = false, PublishPrefix = "Predict" };
 
     public IAlertProcess MonitorAlertProcess { get => _monitorAlertProcess; set => _monitorAlertProcess = value; }
     public IAlertProcess PredictAlertProcess { get => _predictAlertProcess; set => _predictAlertProcess = value; }
@@ -272,8 +273,8 @@ public class AlertProcessor
         {
             _logger.LogWarning("Warning republishing AlertSent List check coms. ");
             if (alertProcess.PublishProcessor) await PublishAlertsRepo.ProcessorAlertSent(_logger, _rabbitRepo, publishAlertSentList, _processorState.EnabledProcessorList(true));
-             if (alertProcess.PublishPredict) await PublishAlertsRepo.PredictAlertSent(_logger, _rabbitRepo, publishAlertSentList);
-         
+            if (alertProcess.PublishPredict) await PublishAlertsRepo.PredictAlertSent(_logger, _rabbitRepo, publishAlertSentList);
+
         }
         if (alertProcess.CheckAlerts) await CheckAlerts(updateAlertFlagList, alertProcess);
 
@@ -282,7 +283,7 @@ public class AlertProcessor
             alertProcess.Alert = true;
             if (alertProcess.PublishProcessor) await PublishAlertsRepo.ProcessorAlertFlag(_logger, _rabbitRepo, updateAlertFlagList, _processorState.EnabledProcessorList(true));
             if (alertProcess.PublishPredict) await PublishAlertsRepo.PredictAlertFlag(_logger, _rabbitRepo, updateAlertFlagList);
-        
+
         }
         else alertProcess.Alert = false;
         return resultStr;

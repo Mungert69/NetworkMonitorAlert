@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 
 namespace NetworkMonitor.Alert.Tests;
+
 public class AlertTestData
 {
 
@@ -104,7 +105,7 @@ public class AlertTestData
             Message = "Timeout",
             MonitorPingInfoID = 4,
         });
-          alerts.Add(new MonitorStatusAlert()
+        alerts.Add(new MonitorStatusAlert()
         {
             ID = 5,
             UserID = "testdisableemail",
@@ -123,7 +124,7 @@ public class AlertTestData
             Message = "Timeout",
             MonitorPingInfoID = 4,
         });
-          alerts.Add(new MonitorStatusAlert()
+        alerts.Add(new MonitorStatusAlert()
         {
             ID = 6,
             UserID = "testdisablemonitor",
@@ -285,8 +286,8 @@ public class AlertTestData
         {
             CheckAlerts = true,
             DisableEmails = false,
-             DisablePredictEmailAlert = true,
-              DisableMonitorEmailAlert = true,
+            DisablePredictEmailAlert = true,
+            DisableMonitorEmailAlert = true,
             AlertThreshold = 4,
             PredictThreshold = 0
         };
@@ -316,8 +317,8 @@ public class AlertTestData
             Email = "support@mahadeva.co.uk",
             Email_verified = true,
             DisableEmail = false,
-            PredictAlertEnabled=true,
-            MonitorAlertEnabled=true,
+            PredictAlertEnabled = true,
+            MonitorAlertEnabled = true,
             Name = "test user"
 
         });
@@ -327,12 +328,12 @@ public class AlertTestData
             Email = "bademailtest",
             Email_verified = true,
             DisableEmail = false,
-            PredictAlertEnabled=true,
-            MonitorAlertEnabled=true,
+            PredictAlertEnabled = true,
+            MonitorAlertEnabled = true,
             Name = "default"
 
         });
-           userInfos.Add(new UserInfo()
+        userInfos.Add(new UserInfo()
         {
             UserID = "testdisableemail",
             Email = "support@mahadeva.co.uk",
@@ -347,17 +348,17 @@ public class AlertTestData
             Email = "support@mahadeva.co.uk",
             Email_verified = true,
             DisableEmail = false,
-            PredictAlertEnabled=false,
+            PredictAlertEnabled = false,
             Name = "default"
 
         });
-         userInfos.Add(new UserInfo()
+        userInfos.Add(new UserInfo()
         {
             UserID = "testdisablemonitor",
             Email = "support@mahadeva.co.uk",
             Email_verified = true,
             DisableEmail = false,
-            MonitorAlertEnabled=false,
+            MonitorAlertEnabled = false,
             Name = "default"
 
         });

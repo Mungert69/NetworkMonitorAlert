@@ -4,6 +4,7 @@ using System.Linq;
 
 
 namespace NetworkMonitor.Alert.Services;
+
 public interface IAlertProcess
 {
     string PublishPrefix { get; set; }
@@ -19,8 +20,8 @@ public interface IAlertProcess
     bool PublishScheduler { get; set; }
     bool CheckAlerts { get; set; }
     public bool DisableEmailAlert { get; set; }
-  bool IsPredictProcess{get ;}
-    bool IsMonitorProcess{get ;}
+    bool IsPredictProcess { get; }
+    bool IsMonitorProcess { get; }
 
 }
 public class AlertProcess : IAlertProcess
@@ -52,7 +53,7 @@ public class AlertProcess : IAlertProcess
     public bool IsAlertRunning { get => _isAlertRunning; set => _isAlertRunning = value; }
     public bool CheckAlerts { get => _checkAlerts; set => _checkAlerts = value; }
     public bool DisableEmailAlert { get => _disableEmailAlert; set => _disableEmailAlert = value; }
-    public bool IsPredictProcess{get => Alerts.Any(a => a is PredictStatusAlert);}
-    public bool IsMonitorProcess{get => Alerts.Any(a => a is MonitorStatusAlert);}
+    public bool IsPredictProcess { get => Alerts.Any(a => a is PredictStatusAlert); }
+    public bool IsMonitorProcess { get => Alerts.Any(a => a is MonitorStatusAlert); }
 
 }

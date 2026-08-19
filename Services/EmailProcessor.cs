@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
 
 namespace NetworkMonitor.Alert.Services;
+
 public interface IEmailProcessor
 {
     bool SendTrustPilot { get; set; }
@@ -84,9 +85,9 @@ public class EmailProcessor : IEmailProcessor
             result.Message += " Error : Emails are disabled in appsettings.json (DisableEmailAlert=true) . ";
             return result;
         }
-       
+
         var urls = GetUrls(alertMessage.UserInfo);
-        if (!urls.Success) return new ResultObj(){Success=false, Message=urls.Message};
+        if (!urls.Success) return new ResultObj() { Success = false, Message = urls.Message };
         if (alertMessage.VerifyLink)
         {
             result = _spamFilter.IsVerifyLimit(alertMessage.UserInfo!.UserID!);
@@ -107,7 +108,7 @@ public class EmailProcessor : IEmailProcessor
             MimeMessage message = new MimeMessage();
             message.Headers.Add("List-Unsubscribe", "<" + urls.UnsubscribeUrl + ">, <mailto:" + emailFrom + "?subject=unsubscribe>");
             message.Headers.Add("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
-            
+
             MailboxAddress from = new MailboxAddress("Quantum Network Monitor",
             emailFrom);
             message.From.Add(from);
@@ -193,8 +194,8 @@ public class EmailProcessor : IEmailProcessor
         string subscribeUrl = userInfo.LoadServer.Url + "/email/unsubscribe?email=" + encryptEmailAddressStr + "&userid=" + encryptUserID;
         string resubscribeUrl = subscribeUrl + "&subscribe=true";
         string unsubscribeUrl = subscribeUrl + "&subscribe=false";
-        string verifyUrl = userInfo.LoadServer.Url+"/email/verifyemail?email=" + encryptEmailAddressStr + "&userid=" + encryptUserID;
-            
+        string verifyUrl = userInfo.LoadServer.Url + "/email/verifyemail?email=" + encryptEmailAddressStr + "&userid=" + encryptUserID;
+
         return new EmailUrls(resubscribeUrl, unsubscribeUrl, encryptEmailAddressStr, encryptUserID, verifyUrl, true, "");
     }
 
@@ -625,32 +626,32 @@ public class EmailProcessor : IEmailProcessor
 
         return isValid;
     }
-  public class EmailUrls
-{
-    public string ResubscribeUrl { get; set; } = "";
-    public string UnsubscribeUrl { get; set; } = "";
-    public string EncryptEmailAddressStr { get; set; } = "";
-    public string EncryptUserID { get; set; } = "";
-    public string VerifyUrl{get;set;}="";
-    public bool Success { get; set; } = false;
-    public string Message { get; set; } = "";
-
-    // Default constructor maintains the property initializers above
-    public EmailUrls() { }
-
-    // Constructor that allows setting all properties
-    public EmailUrls(string resubscribeUrl, string unsubscribeUrl, 
-                    string encryptEmailAddressStr, string encryptUserID, string verifyUrl,
-                    bool success, string message)
+    public class EmailUrls
     {
-        ResubscribeUrl = resubscribeUrl;
-        UnsubscribeUrl = unsubscribeUrl;
-        EncryptEmailAddressStr = encryptEmailAddressStr;
-        EncryptUserID = encryptUserID;
-        VerifyUrl=verifyUrl;
-        Success = success;
-        Message = message;
+        public string ResubscribeUrl { get; set; } = "";
+        public string UnsubscribeUrl { get; set; } = "";
+        public string EncryptEmailAddressStr { get; set; } = "";
+        public string EncryptUserID { get; set; } = "";
+        public string VerifyUrl { get; set; } = "";
+        public bool Success { get; set; } = false;
+        public string Message { get; set; } = "";
+
+        // Default constructor maintains the property initializers above
+        public EmailUrls() { }
+
+        // Constructor that allows setting all properties
+        public EmailUrls(string resubscribeUrl, string unsubscribeUrl,
+                        string encryptEmailAddressStr, string encryptUserID, string verifyUrl,
+                        bool success, string message)
+        {
+            ResubscribeUrl = resubscribeUrl;
+            UnsubscribeUrl = unsubscribeUrl;
+            EncryptEmailAddressStr = encryptEmailAddressStr;
+            EncryptUserID = encryptUserID;
+            VerifyUrl = verifyUrl;
+            Success = success;
+            Message = message;
+        }
     }
-}
 
 }

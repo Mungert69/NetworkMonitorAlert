@@ -64,7 +64,7 @@ namespace NetworkMonitor.Alert.Services
                 ExchangeName = "alertMessageResetAlerts",
                 FuncName = "alertMessageResetAlerts"
             });
-             _rabbitMQObjs.Add(new RabbitMQObj()
+            _rabbitMQObjs.Add(new RabbitMQObj()
             {
                 ExchangeName = "alertMessageResetPredictAlerts",
                 FuncName = "alertMessageResetPredictAlerts"
@@ -98,7 +98,7 @@ namespace NetworkMonitor.Alert.Services
                 FuncName = "alertUpdateMonitorStatusAlerts",
                 MessageTimeout = 60000
             });
-             _rabbitMQObjs.Add(new RabbitMQObj()
+            _rabbitMQObjs.Add(new RabbitMQObj()
             {
                 ExchangeName = "alertUpdatePredictStatusAlerts",
                 FuncName = "alertUpdatePredictStatusAlerts",
@@ -116,7 +116,7 @@ namespace NetworkMonitor.Alert.Services
                 FuncName = "userProcessorExpire",
                 MessageTimeout = 86300000
             });
-             _rabbitMQObjs.Add(new RabbitMQObj()
+            _rabbitMQObjs.Add(new RabbitMQObj()
             {
                 ExchangeName = "userUpgrade",
                 FuncName = "userUpgrade",
@@ -452,7 +452,7 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
-          public async Task<ResultObj> PredictAlert()
+        public async Task<ResultObj> PredictAlert()
         {
             ResultObj result = new ResultObj();
             result.Success = false;
@@ -506,7 +506,7 @@ namespace NetworkMonitor.Alert.Services
         }
 
 
-public async Task<ResultObj> AlertUpdatePredictStatusAlerts(string? predictStatusAlertString)
+        public async Task<ResultObj> AlertUpdatePredictStatusAlerts(string? predictStatusAlertString)
         {
             var result = new ResultObj();
             result.Success = false;
@@ -612,7 +612,7 @@ public async Task<ResultObj> AlertUpdatePredictStatusAlerts(string? predictStatu
         }
 
 
-         public async Task<ResultObj> UserUpgrade(List<GenericEmailObj>? emailObjs)
+        public async Task<ResultObj> UserUpgrade(List<GenericEmailObj>? emailObjs)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
@@ -647,7 +647,7 @@ public async Task<ResultObj> AlertUpdatePredictStatusAlerts(string? predictStatu
             }
             return result;
         }
-       
+
         public async Task<ResultObj> SendHostReport(HostReportObj? hostReport)
         {
             ResultObj result = new ResultObj();
