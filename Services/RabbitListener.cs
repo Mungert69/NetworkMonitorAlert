@@ -20,7 +20,7 @@ namespace NetworkMonitor.Alert.Services
     {
         Task<ResultObj> WakeUp();
         ResultObj AlertMessageInit(AlertServiceInitObj initObj);
-        ResultObj AlertMessageResetAlerts(AlertServiceAlertObj alertServiceAlertObj);
+        Task<ResultObj> AlertMessageResetAlerts(AlertServiceAlertObj alertServiceAlertObj);
         Task<ResultObj> AlertMessage(AlertMessage alertMessage);
         Task<ResultObj> UpdateUserInfoAlertMessage(UserInfo userInfo);
         Task<ResultObj> MonitorAlert();
@@ -166,17 +166,15 @@ namespace NetworkMonitor.Alert.Services
                             });
                             break;
                         case "alertMessageResetAlerts":
-                            await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "alertMessageResetAlerts", (model, ea) =>
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "alertMessageResetAlerts", async (model, ea) =>
                             {
-                                result = AlertMessageResetAlerts(ConvertToObject<AlertServiceAlertObj>(model, ea));
-                                return Task.CompletedTask;
+                                result = await AlertMessageResetAlerts(ConvertToObject<AlertServiceAlertObj>(model, ea));
                             });
                             break;
                         case "alertMessageResetPredictAlerts":
-                            await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "alertMessageResetPredictAlerts", (model, ea) =>
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "alertMessageResetPredictAlerts", async (model, ea) =>
                             {
-                                result = AlertMessageResetPredictAlerts(ConvertToObject<AlertServiceAlertObj>(model, ea));
-                                return Task.CompletedTask;
+                                result = await AlertMessageResetPredictAlerts(ConvertToObject<AlertServiceAlertObj>(model, ea));
                             });
                             break;
                         case "alertMessage":
@@ -302,7 +300,7 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
-        public ResultObj AlertMessageResetAlerts(AlertServiceAlertObj? alertServiceAlertObj)
+        public async Task<ResultObj> AlertMessageResetAlerts(AlertServiceAlertObj? alertServiceAlertObj)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
@@ -328,7 +326,7 @@ namespace NetworkMonitor.Alert.Services
             try
             {
 
-                var results = _alertMessageService.ResetMonitorAlerts(alertServiceAlertObj.AlertFlagObjs);
+                var results = await _alertMessageService.ResetMonitorAlerts(alertServiceAlertObj.AlertFlagObjs);
                 results.ForEach(f => result.Message += f.Message);
                 result.Success = results.All(a => a.Success == true) && results.Count() != 0;
                 result.Data = results;
@@ -344,7 +342,7 @@ namespace NetworkMonitor.Alert.Services
             return result;
         }
 
-        public ResultObj AlertMessageResetPredictAlerts(AlertServiceAlertObj? alertServiceAlertObj)
+        public async Task<ResultObj> AlertMessageResetPredictAlerts(AlertServiceAlertObj? alertServiceAlertObj)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
@@ -370,7 +368,7 @@ namespace NetworkMonitor.Alert.Services
             try
             {
 
-                var results = _alertMessageService.ResetPredictAlerts(alertServiceAlertObj.AlertFlagObjs);
+                var results = await _alertMessageService.ResetPredictAlerts(alertServiceAlertObj.AlertFlagObjs);
                 results.ForEach(f => result.Message += f.Message);
                 result.Success = results.All(a => a.Success == true) && results.Count() != 0;
                 result.Data = results;
@@ -486,7 +484,7 @@ namespace NetworkMonitor.Alert.Services
                 while (_alertMessageService.IsMonitorAlertRunning)
                 {
                     result.Message += "Info : Waiting for Alert to stop running ";
-                    new System.Threading.ManualResetEvent(false).WaitOne(5000);
+                    await Task.Delay(5000);
                 }
                 _alertMessageService.IsMonitorAlertRunning = true;
                 var returnResult = await _dataQueueService.AddProcessorDataStringToQueue(monitorStatusAlertString, _alertMessageService.MonitorAlerts);
@@ -521,7 +519,7 @@ namespace NetworkMonitor.Alert.Services
                 while (_alertMessageService.IsPredictAlertRunning)
                 {
                     result.Message += "Info : Waiting for Alert to stop running ";
-                    new System.Threading.ManualResetEvent(false).WaitOne(5000);
+                    await Task.Delay(5000);
                 }
                 _alertMessageService.IsPredictAlertRunning = true;
                 var returnResult = await _dataQueueService.AddPredictDataStringToQueue(predictStatusAlertString, _alertMessageService.PredictAlerts);

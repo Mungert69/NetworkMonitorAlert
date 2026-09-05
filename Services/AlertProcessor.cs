@@ -135,7 +135,7 @@ public class AlertProcessor
                 if (timeTakenInnerInt < 10000)
                 {
                     _logger.LogInformation("Sleeping for " + (10000 - timeTakenInnerInt) + " ms to allow message to pass to scheduler");
-                    new System.Threading.ManualResetEvent(false).WaitOne(10000 - timeTakenInnerInt);
+                    await Task.Delay(10000 - timeTakenInnerInt);
                 }
                 if (alertProcess.PublishScheduler)
                 {
@@ -163,7 +163,7 @@ public class AlertProcessor
         while (alertProcess.IsAlertRunning)
         {
             resultStr += " Warning : Waiting for Alert to stop running ";
-            new System.Threading.ManualResetEvent(false).WaitOne(1000);
+            await Task.Delay(1000);
         }
         alertProcess.IsAlertRunning = true;
         List<IAlertable> statusAlerts;
@@ -354,26 +354,26 @@ public class AlertProcessor
         }
     }
 
-    public List<ResultObj> ResetMonitorAlerts(List<AlertFlagObj> alertFlagObjs)
+    public Task<List<ResultObj>> ResetMonitorAlerts(List<AlertFlagObj> alertFlagObjs)
     {
         return ResetAlerts(alertFlagObjs, _monitorAlertProcess);
     }
-    public List<ResultObj> ResetPredictAlerts(List<AlertFlagObj> alertFlagObjs)
+    public Task<List<ResultObj>> ResetPredictAlerts(List<AlertFlagObj> alertFlagObjs)
     {
         return ResetAlerts(alertFlagObjs, _predictAlertProcess);
     }
-    private List<ResultObj> ResetAlerts(List<AlertFlagObj> alertFlagObjs, IAlertProcess alertProcess)
+    private async Task<List<ResultObj>> ResetAlerts(List<AlertFlagObj> alertFlagObjs, IAlertProcess alertProcess)
     {
         var results = new List<ResultObj>();
-        var result = new ResultObj();
-        alertFlagObjs.ForEach(f =>
+        foreach (var f in alertFlagObjs)
         {
+            var result = new ResultObj();
             try
             {
                 while (alertProcess.IsAlertRunning)
                 {
                     result.Message += " Info : Waiting for Alert to stop running ";
-                    new System.Threading.ManualResetEvent(false).WaitOne(5000);
+                    await Task.Delay(5000);
                 }
                 var updateStatusAlerts = alertProcess.Alerts.Where(w => w.ID == f.ID).ToList();
                 if (updateStatusAlerts == null)
@@ -402,7 +402,7 @@ public class AlertProcessor
                 result.Message += " Error : Unable to reset alerts for MonitorStatusAlert with ID " + f.ID + " with AppID " + f.AppID + " Error was : " + e.Message + " . ";
             }
             results.Add(result);
-        });
+        }
         return results;
     }
     private async Task CheckAlerts(List<IAlertable> updateAlertFlagList, IAlertProcess alertProcess)
@@ -439,7 +439,6 @@ public class AlertProcessor
             }
         );
         Task.WhenAll(pingConnectTasks.ToArray()).Wait();
-        //new System.Threading.ManualResetEvent(false).WaitOne(maxTimeout);
         var monitorIPDic = new Dictionary<string, List<int>>();
         monitorPingInfos.Where(w => w.MonitorStatus.IsUp == true).ToList().ForEach(m =>
        {

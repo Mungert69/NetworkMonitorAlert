@@ -113,7 +113,7 @@ namespace NetworkMonitorAlert.Tests.Services
         }
 
         [Fact]
-        public void ResetMonitorAlerts_ResetsFlags()
+        public async Task ResetMonitorAlerts_ResetsFlags()
         {
             var processor = CreateProcessor();
             var alert = new MonitorStatusAlert { ID = 1, UserID = "user1", Address = "1.1.1.1", AlertFlag = true, AlertSent = true, DownCount = 5 };
@@ -121,7 +121,7 @@ namespace NetworkMonitorAlert.Tests.Services
 
             var alertFlagObjs = new List<AlertFlagObj> { new AlertFlagObj { ID = 1, AppID = "app1" } };
 
-            var result = processor.ResetMonitorAlerts(alertFlagObjs);
+            var result = await processor.ResetMonitorAlerts(alertFlagObjs);
 
             Assert.NotNull(result);
             Assert.True(result.Count > 0);
@@ -131,7 +131,7 @@ namespace NetworkMonitorAlert.Tests.Services
         }
 
         [Fact]
-        public void ResetPredictAlerts_ResetsFlags()
+        public async Task ResetPredictAlerts_ResetsFlags()
         {
             var processor = CreateProcessor();
             var alert = new PredictStatusAlert { ID = 2, UserID = "user1", Address = "2.2.2.2", AlertFlag = true, AlertSent = true, DownCount = 5 };
@@ -139,7 +139,7 @@ namespace NetworkMonitorAlert.Tests.Services
 
             var alertFlagObjs = new List<AlertFlagObj> { new AlertFlagObj { ID = 2, AppID = "app2" } };
 
-            var result = processor.ResetPredictAlerts(alertFlagObjs);
+            var result = await processor.ResetPredictAlerts(alertFlagObjs);
 
             Assert.NotNull(result);
             Assert.True(result.Count > 0);

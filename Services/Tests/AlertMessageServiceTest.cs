@@ -231,7 +231,7 @@ namespace NetworkMonitorAlert.Tests.Services
         }
 
         [Fact]
-        public void ResetMonitorAlerts_DelegatesToAlertProcessor()
+        public async Task ResetMonitorAlerts_DelegatesToAlertProcessor()
         {
             // Arrange
             var service = CreateService();
@@ -253,7 +253,7 @@ namespace NetworkMonitorAlert.Tests.Services
             alertProcessorField!.SetValue(service, alertProcessor);
 
             // Act
-            var result = service.ResetMonitorAlerts(alertFlagObjs);
+            var result = await service.ResetMonitorAlerts(alertFlagObjs);
 
             // Assert
             Assert.NotNull(result);
@@ -261,7 +261,7 @@ namespace NetworkMonitorAlert.Tests.Services
         }
 
         [Fact]
-        public void ResetPredictAlerts_DelegatesToAlertProcessor()
+        public async Task ResetPredictAlerts_DelegatesToAlertProcessor()
         {
             // Arrange
             var service = CreateService();
@@ -283,7 +283,7 @@ namespace NetworkMonitorAlert.Tests.Services
             alertProcessorField!.SetValue(service, alertProcessor);
 
             // Act
-            var result = service.ResetPredictAlerts(alertFlagObjs);
+            var result = await service.ResetPredictAlerts(alertFlagObjs);
 
             // Assert
             Assert.NotNull(result);
