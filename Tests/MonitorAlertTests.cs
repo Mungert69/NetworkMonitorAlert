@@ -161,7 +161,7 @@ namespace NetworkMonitor.Alert.Tests
             // Setup _systemParamsHelperMock to return the mocked SystemParams object from GetSystemParams()
             _systemParamsHelperMock.Setup(p => p.GetSystemParams()).Returns(systemParams);
 
-            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object);
+            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object);
 
             _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
@@ -186,13 +186,43 @@ namespace NetworkMonitor.Alert.Tests
 
         }
         [Fact]
+        public async Task DataQueue_TestSupersededAuthKey()
+        {
+            var systemParams = AlertTestData.GetSystemParams();
+            _systemParamsHelperMock.Setup(p => p.GetSystemParams()).Returns(systemParams);
+
+            const string appId = "test";
+            var oldAuthKey = AesOperation.EncryptString(systemParams.EmailEncryptKey, appId);
+            var currentAuthKey = AesOperation.EncryptString(systemParams.EmailEncryptKey, appId);
+            _processorStateMock.Setup(p => p.GetProcessorFromID(appId, true))
+                .Returns(new ProcessorObj { AppID = appId, AuthKey = currentAuthKey });
+
+            var dataQueueService = new DataQueueService(
+                _loggerDataQueueMock.Object,
+                _systemParamsHelperMock.Object,
+                _processorStateMock.Object);
+            var processorDataObj = new ProcessorDataObj
+            {
+                AppID = appId,
+                AuthKey = oldAuthKey,
+                PredictStatusAlerts = new List<PredictStatusAlert>()
+            };
+            var fileRepo = new FileRepo();
+            var predictDataString = await fileRepo.SaveStateStringJsonZAsync("TestSupersededProcessorDataObj", processorDataObj);
+
+            var result = await dataQueueService.AddPredictDataStringToQueue(predictDataString, new List<IAlertable>());
+
+            Assert.False(result.Success);
+            Assert.Contains("expired AuthKey", result.Message);
+        }
+        [Fact]
         public async Task DataQueue_TestInvalidAppIDInData()
         {
             var systemParams = AlertTestData.GetSystemParams();
             // Setup _systemParamsHelperMock to return the mocked SystemParams object from GetSystemParams()
             _systemParamsHelperMock.Setup(p => p.GetSystemParams()).Returns(systemParams);
 
-            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object);
+            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object);
 
             _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
@@ -210,6 +240,8 @@ namespace NetworkMonitor.Alert.Tests
             processorDataObj.PredictStatusAlerts = alertProcessor.PredictAlerts;
             processorDataObj.AppID = "test";
             processorDataObj.AuthKey = AesOperation.EncryptString(systemParams.EmailEncryptKey, processorDataObj.AppID);
+            _processorStateMock.Setup(p => p.GetProcessorFromID("test", true))
+                .Returns(new ProcessorObj { AppID = "test", AuthKey = processorDataObj.AuthKey });
 
             var predictDataString = await fileRepo.SaveStateStringJsonZAsync<ProcessorDataObj>("TestProcessorDataObj", processorDataObj);
             var result = await dataQueueService.AddPredictDataStringToQueue(predictDataString, predictStatusAlerts);
@@ -225,7 +257,7 @@ namespace NetworkMonitor.Alert.Tests
             // Setup _systemParamsHelperMock to return the mocked SystemParams object from GetSystemParams()
             _systemParamsHelperMock.Setup(p => p.GetSystemParams()).Returns(systemParams);
 
-            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object);
+            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object);
 
             _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
@@ -242,6 +274,9 @@ namespace NetworkMonitor.Alert.Tests
             processorDataObj.PredictStatusAlerts = alertProcessor.PredictAlerts;
             processorDataObj.AppID = "test";
             processorDataObj.AuthKey = AesOperation.EncryptString(systemParams.EmailEncryptKey, processorDataObj.AppID);
+
+            _processorStateMock.Setup(p => p.GetProcessorFromID("test", true))
+                .Returns(new ProcessorObj { AppID = "test", AuthKey = processorDataObj.AuthKey });
 
             var predictDataString = await fileRepo.SaveStateStringJsonZAsync<ProcessorDataObj>("TestProcessorDataObj", processorDataObj);
             var result = await dataQueueService.AddPredictDataStringToQueue(predictDataString, predictStatusAlerts);
@@ -269,7 +304,7 @@ namespace NetworkMonitor.Alert.Tests
             // Setup _systemParamsHelperMock to return the mocked SystemParams object from GetSystemParams()
             _systemParamsHelperMock.Setup(p => p.GetSystemParams()).Returns(systemParams);
 
-            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object);
+            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object);
 
             _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
@@ -286,6 +321,8 @@ namespace NetworkMonitor.Alert.Tests
             processorDataObj.MonitorStatusAlerts = alertProcessor.MonitorAlerts;
             processorDataObj.AppID = "test";
             processorDataObj.AuthKey = AesOperation.EncryptString(systemParams.EmailEncryptKey, processorDataObj.AppID);
+            _processorStateMock.Setup(p => p.GetProcessorFromID("test", true))
+                .Returns(new ProcessorObj { AppID = "test", AuthKey = processorDataObj.AuthKey });
 
             var monitorDataString = await fileRepo.SaveStateStringJsonZAsync<ProcessorDataObj>("TestProcessorDataObj", processorDataObj);
             var result = await dataQueueService.AddProcessorDataStringToQueue(monitorDataString, monitorStatusAlerts);

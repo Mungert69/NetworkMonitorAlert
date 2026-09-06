@@ -14,6 +14,9 @@ using NetworkMonitor.Objects.Factory;
 using NetworkMonitor.Utils.Helpers;
 using NetworkMonitor.Utils;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
+using NetworkMonitor.Objects.Repository;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace NetworkMonitor.Alert.Services
 {
@@ -28,10 +31,12 @@ namespace NetworkMonitor.Alert.Services
         private ILogger _logger;
         private TaskQueue taskQueue = new TaskQueue();
         private string _encryptKey;
-        public DataQueueService(ILogger<DataQueueService> logger, ISystemParamsHelper systemParamsHelper)
+        private readonly IProcessorState _processorState;
+        public DataQueueService(ILogger<DataQueueService> logger, ISystemParamsHelper systemParamsHelper, IProcessorState processorState)
         {
             _encryptKey = systemParamsHelper.GetSystemParams().EmailEncryptKey;
             _logger = logger;
+            _processorState = processorState;
         }
         public Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<IAlertable> monitorStatusAlerts)
         {
@@ -75,6 +80,13 @@ namespace NetworkMonitor.Alert.Services
                         result.Success = false;
                         result.Message = $" Error : Failed CommitProcessorDataBytes bad AuthKey for AppID {processorDataObj.AppID}";
                         _logger.LogError(result.Message);
+                        return result;
+                    }
+                    if (!IsCurrentAuthKey(processorDataObj.AppID, processorDataObj.AuthKey))
+                    {
+                        result.Success = false;
+                        result.Message = $" Error : Failed CommitProcessorDataBytes expired AuthKey for AppID {processorDataObj.AppID}";
+                        _logger.LogWarning(result.Message);
                         return result;
                     }
                     if (processorDataObj.MonitorStatusAlerts.Where(w => w.AppID != processorDataObj.AppID).Count() > 0)
@@ -155,6 +167,13 @@ namespace NetworkMonitor.Alert.Services
                         _logger.LogError(result.Message);
                         return result;
                     }
+                    if (!IsCurrentAuthKey(processorDataObj.AppID, processorDataObj.AuthKey))
+                    {
+                        result.Success = false;
+                        result.Message = $" Error : Failed CommitProcessorDataBytes expired AuthKey for AppID {processorDataObj.AppID}";
+                        _logger.LogWarning(result.Message);
+                        return result;
+                    }
                     if (processorDataObj.PredictStatusAlerts.Where(w => w.AppID != processorDataObj.AppID).Count() > 0)
                     {
                         result.Success = false;
@@ -187,6 +206,19 @@ namespace NetworkMonitor.Alert.Services
                 }
                 return result;
             });
+        }
+
+        private bool IsCurrentAuthKey(string appID, string suppliedAuthKey)
+        {
+            var currentAuthKey = _processorState.GetProcessorFromID(appID, true)?.AuthKey;
+            if (string.IsNullOrEmpty(currentAuthKey))
+            {
+                return false;
+            }
+
+            return CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(suppliedAuthKey),
+                Encoding.UTF8.GetBytes(currentAuthKey));
         }
 
     }

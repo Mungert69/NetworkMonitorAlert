@@ -7,6 +7,7 @@ using NetworkMonitor.Alert.Services;
 using NetworkMonitor.Objects;
 using NetworkMonitor.Objects.ServiceMessage;
 using NetworkMonitor.Utils.Helpers;
+using NetworkMonitor.Objects.Repository;
 using Xunit;
 
 namespace NetworkMonitorAlert.Tests.Services
@@ -15,6 +16,7 @@ namespace NetworkMonitorAlert.Tests.Services
     {
         private readonly Mock<ILogger<DataQueueService>> _loggerMock = new();
         private readonly Mock<ISystemParamsHelper> _systemParamsHelperMock = new();
+        private readonly Mock<IProcessorState> _processorStateMock = new();
 
         private const string ValidAppId = "testApp";
         private const string ValidAuthKey = "validkey";
@@ -27,7 +29,9 @@ namespace NetworkMonitorAlert.Tests.Services
         private DataQueueService CreateService()
         {
             _systemParamsHelperMock.Setup(s => s.GetSystemParams()).Returns(CreateSystemParams());
-            return new DataQueueService(_loggerMock.Object, _systemParamsHelperMock.Object);
+            _processorStateMock.Setup(s => s.GetProcessorFromID(ValidAppId, true))
+                .Returns(new ProcessorObj { AppID = ValidAppId, AuthKey = ValidAuthKey });
+            return new DataQueueService(_loggerMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object);
         }
 
         private string CreateProcessorDataString(ProcessorDataObj obj)
