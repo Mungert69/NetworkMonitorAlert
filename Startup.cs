@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using NetworkMonitor.Alert.Services;
 using NetworkMonitor.Objects.Factory;
 using NetworkMonitor.Objects.Repository;
+using NetworkMonitor.Objects.ServiceMessage;
 using NetworkMonitor.Objects;
 using NetworkMonitor.Utils.Helpers;
 using System;
@@ -61,6 +62,7 @@ namespace NetworkMonitor.Alert
                var systemParamsHelper = sp.GetRequiredService<ISystemParamsHelper>();
                return systemParamsHelper.GetSystemParams();
            });
+            services.AddSingleton<IBackendMessageSignatureVerifier, BackendMessageSignatureVerifier>();
             services.AddSingleton<IProcessorStateRabbitListner, ProcessorStateRabbitListner>();
             services.AddSingleton<IProcessorState, ProcessorState>();
 
