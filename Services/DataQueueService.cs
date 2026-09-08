@@ -32,11 +32,13 @@ namespace NetworkMonitor.Alert.Services
         private TaskQueue taskQueue = new TaskQueue();
         private string _encryptKey;
         private readonly IProcessorState _processorState;
-        public DataQueueService(ILogger<DataQueueService> logger, ISystemParamsHelper systemParamsHelper, IProcessorState processorState)
+        private readonly IBackendMessageHmacService _backendHmac;
+        public DataQueueService(ILogger<DataQueueService> logger, ISystemParamsHelper systemParamsHelper, IProcessorState processorState, IBackendMessageHmacService backendHmac)
         {
             _encryptKey = systemParamsHelper.GetSystemParams().EmailEncryptKey;
             _logger = logger;
             _processorState = processorState;
+            _backendHmac = backendHmac;
         }
         public Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<IAlertable> monitorStatusAlerts)
         {
@@ -123,10 +125,22 @@ namespace NetworkMonitor.Alert.Services
             });
         }
 
-        public Task<ResultObj> AddPredictDataStringToQueue(string predictDataString, List<IAlertable> predictStatusAlerts)
+        public async Task<ResultObj> AddPredictDataStringToQueue(string predictDataString, List<IAlertable> predictStatusAlerts)
         {
+            ProcessorDataObj? message;
+            try { message = ProcessorDataBuilder.ExtractFromZString<ProcessorDataObj>(predictDataString); }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Rejected alertUpdatePredictStatusAlerts: invalid compressed payload.");
+                return new ResultObj { Success = false, Message = " Error : invalid predict status payload." };
+            }
+            if (message == null || !await _backendHmac.VerifyAsync("alertUpdatePredictStatusAlerts", "alertUpdatePredictStatusAlerts", message))
+            {
+                _logger.LogWarning("Rejected alertUpdatePredictStatusAlerts: invalid backend HMAC.");
+                return new ResultObj { Success = false, Message = " Error : invalid backend HMAC." };
+            }
             Func<string, List<IAlertable>, Task<ResultObj>> func = CommitPredictDataString;
-            return taskQueue.EnqueueStatusString<ResultObj>(func, predictDataString, predictStatusAlerts);
+            return await taskQueue.EnqueueStatusString<ResultObj>(func, predictDataString, predictStatusAlerts);
         }
 
         private Task<ResultObj> CommitPredictDataString(string predictDataString, List<IAlertable> predictStatusAlerts)
@@ -151,27 +165,6 @@ namespace NetworkMonitor.Alert.Services
                         result.Success = false;
                         result.Message = " Error : Failed CommitProcessorDataBytes processorDataObj.AppID is null.";
                         _logger.LogError(result.Message);
-                        return result;
-                    }
-                    if (processorDataObj.AuthKey == null)
-                    {
-                        result.Success = false;
-                        result.Message = $" Error : Failed CommitProcessorDataBytes processorDataObj.AppKey is null for AppID {processorDataObj.AppID}";
-                        _logger.LogError(result.Message);
-                        return result;
-                    }
-                    if (EncryptHelper.IsBadKey(_encryptKey, processorDataObj.AuthKey, processorDataObj.AppID))
-                    {
-                        result.Success = false;
-                        result.Message = $" Error : Failed CommitProcessorDataBytes bad AuthKey for AppID {processorDataObj.AppID}";
-                        _logger.LogError(result.Message);
-                        return result;
-                    }
-                    if (!IsCurrentAuthKey(processorDataObj.AppID, processorDataObj.AuthKey))
-                    {
-                        result.Success = false;
-                        result.Message = $" Error : Failed CommitProcessorDataBytes expired AuthKey for AppID {processorDataObj.AppID}";
-                        _logger.LogWarning(result.Message);
                         return result;
                     }
                     if (processorDataObj.PredictStatusAlerts.Where(w => w.AppID != processorDataObj.AppID).Count() > 0)

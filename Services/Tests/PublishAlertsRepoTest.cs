@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NetworkMonitor.Objects;
 using NetworkMonitor.Objects.Repository;
+using NetworkMonitor.Objects.ServiceMessage;
 using Xunit;
 
 namespace NetworkMonitorAlert.Tests.Services
@@ -91,12 +92,12 @@ namespace NetworkMonitorAlert.Tests.Services
         public async Task PredictAlertSent_Publishes_WhenAlertsExist()
         {
             var alerts = CreateAlertableList("app5");
-            _rabbitRepoMock.Setup(r => r.PublishAsync<List<int>>(It.IsAny<string>(), It.IsAny<List<int>>(), ""))
+            _rabbitRepoMock.Setup(r => r.PublishAsync<BackendIntListMessage>(It.IsAny<string>(), It.IsAny<BackendIntListMessage>(), ""))
                 .Returns(Task.CompletedTask);
 
             await PublishAlertsRepo.PredictAlertSent(_loggerMock.Object, _rabbitRepoMock.Object, alerts);
 
-            _rabbitRepoMock.Verify(r => r.PublishAsync<List<int>>("predictAlertSent", It.Is<List<int>>(ids => ids.Count == 2), ""), Times.Once);
+            _rabbitRepoMock.Verify(r => r.PublishAsync<BackendIntListMessage>("predictAlertSent", It.Is<BackendIntListMessage>(m => m.Values.Count == 2), ""), Times.Once);
         }
 
         [Fact]
@@ -106,19 +107,19 @@ namespace NetworkMonitorAlert.Tests.Services
 
             await PublishAlertsRepo.PredictAlertSent(_loggerMock.Object, _rabbitRepoMock.Object, alerts);
 
-            _rabbitRepoMock.Verify(r => r.PublishAsync<List<int>>(It.IsAny<string>(), It.IsAny<List<int>>(), ""), Times.Never);
+            _rabbitRepoMock.Verify(r => r.PublishAsync<BackendIntListMessage>(It.IsAny<string>(), It.IsAny<BackendIntListMessage>(), ""), Times.Never);
         }
 
         [Fact]
         public async Task PredictAlertFlag_PublishesAndSetsAlertFlag()
         {
             var alerts = CreateAlertableList("app6");
-            _rabbitRepoMock.Setup(r => r.PublishAsync<List<int>>(It.IsAny<string>(), It.IsAny<List<int>>(), ""))
+            _rabbitRepoMock.Setup(r => r.PublishAsync<BackendIntListMessage>(It.IsAny<string>(), It.IsAny<BackendIntListMessage>(), ""))
                 .Returns(Task.CompletedTask);
 
             await PublishAlertsRepo.PredictAlertFlag(_loggerMock.Object, _rabbitRepoMock.Object, alerts);
 
-            _rabbitRepoMock.Verify(r => r.PublishAsync<List<int>>("predictAlertFlag", It.Is<List<int>>(ids => ids.Count == 2), ""), Times.Once);
+            _rabbitRepoMock.Verify(r => r.PublishAsync<BackendIntListMessage>("predictAlertFlag", It.Is<BackendIntListMessage>(m => m.Values.Count == 2), ""), Times.Once);
             Assert.All(alerts, a => Assert.True(a.AlertFlag));
         }
 
@@ -126,12 +127,12 @@ namespace NetworkMonitorAlert.Tests.Services
         public async Task PredictResetAlerts_Publishes()
         {
             var ids = new List<int> { 1, 2, 3 };
-            _rabbitRepoMock.Setup(r => r.PublishAsync<List<int>>(It.IsAny<string>(), It.IsAny<List<int>>(), ""))
+            _rabbitRepoMock.Setup(r => r.PublishAsync<BackendIntListMessage>(It.IsAny<string>(), It.IsAny<BackendIntListMessage>(), ""))
                 .Returns(Task.CompletedTask);
 
             await PublishAlertsRepo.PredictResetAlerts(_loggerMock.Object, _rabbitRepoMock.Object, ids);
 
-            _rabbitRepoMock.Verify(r => r.PublishAsync<List<int>>("predictResetAlerts", It.Is<List<int>>(l => l.Count == 3), ""), Times.Once);
+            _rabbitRepoMock.Verify(r => r.PublishAsync<BackendIntListMessage>("predictResetAlerts", It.Is<BackendIntListMessage>(m => m.Values.Count == 3), ""), Times.Once);
         }
 
         [Fact]
@@ -178,7 +179,7 @@ namespace NetworkMonitorAlert.Tests.Services
         public async Task PredictAlertSent_HandlesException_AndLogsCritical()
         {
             var alerts = CreateAlertableList("app9");
-            _rabbitRepoMock.Setup(r => r.PublishAsync<List<int>>(It.IsAny<string>(), It.IsAny<List<int>>(), ""))
+            _rabbitRepoMock.Setup(r => r.PublishAsync<BackendIntListMessage>(It.IsAny<string>(), It.IsAny<BackendIntListMessage>(), ""))
                 .ThrowsAsync(new Exception("Test exception"));
 
             await PublishAlertsRepo.PredictAlertSent(_loggerMock.Object, _rabbitRepoMock.Object, alerts);
@@ -195,7 +196,7 @@ namespace NetworkMonitorAlert.Tests.Services
         public async Task PredictResetAlerts_HandlesException_AndLogsError()
         {
             var ids = new List<int> { 1, 2, 3 };
-            _rabbitRepoMock.Setup(r => r.PublishAsync<List<int>>(It.IsAny<string>(), It.IsAny<List<int>>(), ""))
+            _rabbitRepoMock.Setup(r => r.PublishAsync<BackendIntListMessage>(It.IsAny<string>(), It.IsAny<BackendIntListMessage>(), ""))
                 .ThrowsAsync(new Exception("Test exception"));
 
             await PublishAlertsRepo.PredictResetAlerts(_loggerMock.Object, _rabbitRepoMock.Object, ids);

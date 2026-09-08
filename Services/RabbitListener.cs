@@ -35,11 +35,13 @@ namespace NetworkMonitor.Alert.Services
         private IAlertMessageService _alertMessageService;
         private IDataQueueService _dataQueueService;
         private readonly IBackendMessageSignatureVerifier? _backendMessageSignatureVerifier;
-        public RabbitListener(IAlertMessageService alertMessageService, IDataQueueService dataQueueService, ILogger<RabbitListenerBase> logger, SystemParams systemParams, IBackendMessageSignatureVerifier? backendMessageSignatureVerifier = null) : base(logger, DeriveSystemUrl(systemParams))
+        private readonly IBackendMessageHmacService _backendHmac;
+        public RabbitListener(IAlertMessageService alertMessageService, IDataQueueService dataQueueService, ILogger<RabbitListenerBase> logger, SystemParams systemParams, IBackendMessageHmacService backendHmac, IBackendMessageSignatureVerifier? backendMessageSignatureVerifier = null) : base(logger, DeriveSystemUrl(systemParams))
         {
             _alertMessageService = alertMessageService;
             _dataQueueService = dataQueueService;
             _backendMessageSignatureVerifier = backendMessageSignatureVerifier;
+            _backendHmac = backendHmac;
         }
 
 
@@ -354,17 +356,10 @@ namespace NetworkMonitor.Alert.Services
                 result.Message += " Error : alertServiceAlertObj is Null ";
                 return result;
             }
-            if (_alertMessageService.IsBadAuthKey(alertServiceAlertObj.AuthKey, alertServiceAlertObj.AppID))
+            if (!await _backendHmac.VerifyAsync("alertMessageResetPredictAlerts", "alertMessageResetPredictAlerts", alertServiceAlertObj))
             {
-                result.Message += " Error : alertServiceAlertObj is invalid ";
-                return result;
-            }
-            if (!ValidatePublisherIdentityForApp(
-                result,
-                alertServiceAlertObj.AppID,
-                "AlertMessageResetPredictAlerts",
-                allowDefaultPublisher: true))
-            {
+                result.Message += " Error : invalid backend HMAC.";
+                _logger.LogWarning(result.Message);
                 return result;
             }
             try

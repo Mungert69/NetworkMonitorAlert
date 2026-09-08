@@ -25,6 +25,7 @@ namespace NetworkMonitor.Alert.Tests
         private readonly Mock<INetConnectCollection> _netConnectCollectionMock;
         private readonly Mock<ISystemParamsHelper> _systemParamsHelperMock;
         private readonly Mock<SystemParams> _systemParamsMock;
+        private readonly Mock<IBackendMessageHmacService> _backendHmacMock;
 
 
         public MonitorAlertTests()
@@ -37,6 +38,8 @@ namespace NetworkMonitor.Alert.Tests
             _netConnectCollectionMock = new Mock<INetConnectCollection>();
             _systemParamsHelperMock = new Mock<ISystemParamsHelper>();
             _systemParamsMock = new Mock<SystemParams>();
+            _backendHmacMock = new Mock<IBackendMessageHmacService>();
+            _backendHmacMock.Setup(h => h.VerifyAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IBackendSignedMessage>(), default)).ReturnsAsync(true);
         }
 
 
@@ -161,7 +164,7 @@ namespace NetworkMonitor.Alert.Tests
             // Setup _systemParamsHelperMock to return the mocked SystemParams object from GetSystemParams()
             _systemParamsHelperMock.Setup(p => p.GetSystemParams()).Returns(systemParams);
 
-            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object);
+            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object, _backendHmacMock.Object);
 
             _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
@@ -186,7 +189,7 @@ namespace NetworkMonitor.Alert.Tests
 
         }
         [Fact]
-        public async Task DataQueue_TestSupersededAuthKey()
+        public async Task DataQueue_TestInvalidBackendHmac()
         {
             var systemParams = AlertTestData.GetSystemParams();
             _systemParamsHelperMock.Setup(p => p.GetSystemParams()).Returns(systemParams);
@@ -200,7 +203,9 @@ namespace NetworkMonitor.Alert.Tests
             var dataQueueService = new DataQueueService(
                 _loggerDataQueueMock.Object,
                 _systemParamsHelperMock.Object,
-                _processorStateMock.Object);
+                _processorStateMock.Object,
+                _backendHmacMock.Object);
+            _backendHmacMock.Setup(h => h.VerifyAsync("alertUpdatePredictStatusAlerts", "alertUpdatePredictStatusAlerts", It.IsAny<IBackendSignedMessage>(), default)).ReturnsAsync(false);
             var processorDataObj = new ProcessorDataObj
             {
                 AppID = appId,
@@ -213,7 +218,7 @@ namespace NetworkMonitor.Alert.Tests
             var result = await dataQueueService.AddPredictDataStringToQueue(predictDataString, new List<IAlertable>());
 
             Assert.False(result.Success);
-            Assert.Contains("expired AuthKey", result.Message);
+            Assert.Contains("invalid backend HMAC", result.Message);
         }
         [Fact]
         public async Task DataQueue_TestInvalidAppIDInData()
@@ -222,7 +227,7 @@ namespace NetworkMonitor.Alert.Tests
             // Setup _systemParamsHelperMock to return the mocked SystemParams object from GetSystemParams()
             _systemParamsHelperMock.Setup(p => p.GetSystemParams()).Returns(systemParams);
 
-            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object);
+            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object, _backendHmacMock.Object);
 
             _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
@@ -257,7 +262,7 @@ namespace NetworkMonitor.Alert.Tests
             // Setup _systemParamsHelperMock to return the mocked SystemParams object from GetSystemParams()
             _systemParamsHelperMock.Setup(p => p.GetSystemParams()).Returns(systemParams);
 
-            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object);
+            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object, _backendHmacMock.Object);
 
             _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
@@ -304,7 +309,7 @@ namespace NetworkMonitor.Alert.Tests
             // Setup _systemParamsHelperMock to return the mocked SystemParams object from GetSystemParams()
             _systemParamsHelperMock.Setup(p => p.GetSystemParams()).Returns(systemParams);
 
-            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object);
+            var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object, _backendHmacMock.Object);
 
             _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());

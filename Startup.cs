@@ -49,7 +49,11 @@ namespace NetworkMonitor.Alert
             services.AddSingleton<IAlertMessageService, AlertMessageService>();
             services.Configure<HostOptions>(s => s.ShutdownTimeout = TimeSpan.FromSeconds(30));
             services.AddSingleton(_cancellationTokenSource);
-            services.AddSingleton<IRabbitRepo, RabbitRepo>();
+            services.AddSingleton<RabbitRepo>();
+            services.AddSingleton<IBackendMessageHmacService, BackendMessageHmacService>();
+            services.AddSingleton<IRabbitRepo>(sp => new BackendHmacRabbitRepo(
+                sp.GetRequiredService<RabbitRepo>(),
+                sp.GetRequiredService<IBackendMessageHmacService>()));
             services.AddSingleton<IRabbitListener, RabbitListener>();
             services.AddSingleton<ISystemParamsHelper, SystemParamsHelper>();
             services.AddSingleton<AlertParams>(sp =>

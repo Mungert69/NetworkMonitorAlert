@@ -65,7 +65,7 @@ namespace NetworkMonitor.Objects.Repository
                 List<int> predictStatusAlertIDs = publishAlertSentList.Select(s => s.ID).ToList();
                 if (predictStatusAlertIDs.Count != 0)
                 {
-                    await rabbitRepo.PublishAsync<List<int>>("predictAlertSent", predictStatusAlertIDs);
+                    await rabbitRepo.PublishAsync("predictAlertSent", new BackendIntListMessage { Values = predictStatusAlertIDs });
                     logger.LogInformation("Sent event predictAlertSent ");
                 }
 
@@ -81,7 +81,7 @@ namespace NetworkMonitor.Objects.Repository
             List<int> predictStatusAlertIDs = publishAlertFlagList.Select(s => s.ID).ToList();
             if (predictStatusAlertIDs.Count != 0)
             {
-                await rabbitRepo.PublishAsync<List<int>>("predictAlertFlag", predictStatusAlertIDs);
+                await rabbitRepo.PublishAsync("predictAlertFlag", new BackendIntListMessage { Values = predictStatusAlertIDs });
                 logger.LogInformation("Sent event predictAlertFlag ");
             }
             publishAlertFlagList.ToList().ForEach(f => f.AlertFlag = true);
@@ -93,7 +93,7 @@ namespace NetworkMonitor.Objects.Repository
             {
 
                 // Dont publish this at the moment as its causing alerts to refire?
-                await rabbitRepo.PublishAsync<List<int>>("predictResetAlerts", monitorIPIDs);
+                await rabbitRepo.PublishAsync("predictResetAlerts", new BackendIntListMessage { Values = monitorIPIDs });
 
             }
             catch (Exception e)

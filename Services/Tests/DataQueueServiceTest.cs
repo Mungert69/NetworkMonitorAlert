@@ -17,6 +17,7 @@ namespace NetworkMonitorAlert.Tests.Services
         private readonly Mock<ILogger<DataQueueService>> _loggerMock = new();
         private readonly Mock<ISystemParamsHelper> _systemParamsHelperMock = new();
         private readonly Mock<IProcessorState> _processorStateMock = new();
+        private readonly Mock<IBackendMessageHmacService> _backendHmacMock = new();
 
         private const string ValidAppId = "testApp";
         private const string ValidAuthKey = "validkey";
@@ -31,7 +32,8 @@ namespace NetworkMonitorAlert.Tests.Services
             _systemParamsHelperMock.Setup(s => s.GetSystemParams()).Returns(CreateSystemParams());
             _processorStateMock.Setup(s => s.GetProcessorFromID(ValidAppId, true))
                 .Returns(new ProcessorObj { AppID = ValidAppId, AuthKey = ValidAuthKey });
-            return new DataQueueService(_loggerMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object);
+            _backendHmacMock.Setup(h => h.VerifyAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IBackendSignedMessage>(), default)).ReturnsAsync(true);
+            return new DataQueueService(_loggerMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object, _backendHmacMock.Object);
         }
 
         private string CreateProcessorDataString(ProcessorDataObj obj)
