@@ -34,10 +34,12 @@ namespace NetworkMonitor.Alert.Services
     {
         private IAlertMessageService _alertMessageService;
         private IDataQueueService _dataQueueService;
-        public RabbitListener(IAlertMessageService alertMessageService, IDataQueueService dataQueueService, ILogger<RabbitListenerBase> logger, SystemParams systemParams) : base(logger, DeriveSystemUrl(systemParams))
+        private readonly IBackendMessageSignatureVerifier? _backendMessageSignatureVerifier;
+        public RabbitListener(IAlertMessageService alertMessageService, IDataQueueService dataQueueService, ILogger<RabbitListenerBase> logger, SystemParams systemParams, IBackendMessageSignatureVerifier? backendMessageSignatureVerifier = null) : base(logger, DeriveSystemUrl(systemParams))
         {
             _alertMessageService = alertMessageService;
             _dataQueueService = dataQueueService;
+            _backendMessageSignatureVerifier = backendMessageSignatureVerifier;
         }
 
 
@@ -210,19 +212,19 @@ namespace NetworkMonitor.Alert.Services
                         case "userHostExpire":
                             await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "userHostExpire", async (model, ea) =>
                             {
-                                result = await UserHostExpire(ConvertToList<List<GenericEmailObj>>(model, ea));
+                                result = await UserHostExpire(ConvertToObject<GenericEmailBatch>(model, ea));
                             });
                             break;
                         case "userProcessorExpire":
                             await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "userProcessorExpire", async (model, ea) =>
                             {
-                                result = await UserProccesorExpire(ConvertToList<List<GenericEmailObj>>(model, ea));
+                                result = await UserProccesorExpire(ConvertToObject<GenericEmailBatch>(model, ea));
                             });
                             break;
                         case "userUpgrade":
                             await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "userUpgrade", async (model, ea) =>
                             {
-                                result = await UserUpgrade(ConvertToList<List<GenericEmailObj>>(model, ea));
+                                result = await UserUpgrade(ConvertToObject<GenericEmailBatch>(model, ea));
                             });
                             break;
                         case "sendHostReport":
@@ -537,16 +539,18 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
-        public async Task<ResultObj> UserHostExpire(List<GenericEmailObj>? emailObjs)
+        public async Task<ResultObj> UserHostExpire(GenericEmailBatch? batch)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : UserHostExpire : ";
-            if (emailObjs == null)
+            if (batch == null)
             {
                 result.Message += " Error : emailObjs is Null ";
                 return result;
             }
+            if (!await ValidateBackendSignatureAsync(result, "userHostExpire", batch)) return result;
+            var emailObjs = batch.Emails;
             try
             {
                 var results = await _alertMessageService.UserHostExpire(emailObjs);
@@ -573,16 +577,18 @@ namespace NetworkMonitor.Alert.Services
             return result;
         }
 
-        public async Task<ResultObj> UserProccesorExpire(List<GenericEmailObj>? emailObjs)
+        public async Task<ResultObj> UserProccesorExpire(GenericEmailBatch? batch)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : UserProcessorExpire : ";
-            if (emailObjs == null)
+            if (batch == null)
             {
                 result.Message += " Error : emailObjs is Null ";
                 return result;
             }
+            if (!await ValidateBackendSignatureAsync(result, "userProcessorExpire", batch)) return result;
+            var emailObjs = batch.Emails;
             try
             {
                 var results = await _alertMessageService.UserProcessorExpire(emailObjs);
@@ -610,16 +616,18 @@ namespace NetworkMonitor.Alert.Services
         }
 
 
-        public async Task<ResultObj> UserUpgrade(List<GenericEmailObj>? emailObjs)
+        public async Task<ResultObj> UserUpgrade(GenericEmailBatch? batch)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
             result.Message = "MessageAPI : UserUpgrade : ";
-            if (emailObjs == null)
+            if (batch == null)
             {
                 result.Message += " Error : emailObjs is Null ";
                 return result;
             }
+            if (!await ValidateBackendSignatureAsync(result, "userUpgrade", batch)) return result;
+            var emailObjs = batch.Emails;
             try
             {
                 var results = await _alertMessageService.UpgradeAccounts(emailObjs);
@@ -657,6 +665,7 @@ namespace NetworkMonitor.Alert.Services
                 result.Message += " Error : hostReport is null . ";
                 return result;
             }
+            if (!await ValidateBackendSignatureAsync(result, "sendHostReport", hostReport)) return result;
             try
             {
                 result = await _alertMessageService.SendHostReport(hostReport);
@@ -683,6 +692,7 @@ namespace NetworkMonitor.Alert.Services
                 result.Message += " Error : genericEmail is null . ";
                 return result;
             }
+            if (!await ValidateBackendSignatureAsync(result, "sendGenericEmail", genericEmail)) return result;
             try
             {
                 result = await _alertMessageService.SendGenericEmail(genericEmail);
@@ -696,6 +706,20 @@ namespace NetworkMonitor.Alert.Services
                 _logger.LogError("Error : Failed to run SendGenericEmail : Error was : " + e.Message + " ");
             }
             return result;
+        }
+
+        private async Task<bool> ValidateBackendSignatureAsync(ResultObj result, string operation, IBackendSignedMessage message)
+        {
+            if (_backendMessageSignatureVerifier != null &&
+                await _backendMessageSignatureVerifier.VerifyAsync(operation, "alert", message).ConfigureAwait(false))
+            {
+                return true;
+            }
+
+            result.Success = false;
+            result.Message += $"Error: Invalid backend ML-DSA signature for {operation}.";
+            _logger.LogWarning("Rejected RabbitMQ operation {Operation}: invalid backend ML-DSA signature.", operation);
+            return false;
         }
 
     }
