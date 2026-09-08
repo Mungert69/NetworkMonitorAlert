@@ -458,7 +458,7 @@ public class AlertProcessor
            }
        });
         alertProcess.AlertMessages.RemoveAll(r => r.AlertFlagObjs.Count() == 0);
-        await PublishAlertsRepo.ProcessorResetAlerts(_logger, _rabbitRepo, monitorIPDic);
+        await PublishAlertsRepo.ProcessorResetAlerts(_logger, _rabbitRepo, monitorIPDic, _processorState.GetProcessorListAll(false));
     }
 
 

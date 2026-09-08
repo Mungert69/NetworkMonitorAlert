@@ -5,6 +5,7 @@ using NetworkMonitor.Objects.ServiceMessage;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using NetworkMonitor.Objects.Repository.Helpers;
 
 namespace NetworkMonitor.Objects.Repository
 {
@@ -19,7 +20,7 @@ namespace NetworkMonitor.Objects.Repository
                     List<int> monitorStatusAlertIDs = publishAlertSentList.Where(w => w.AppID == processorObj.AppID).Select(s => s.ID).ToList();
                     if (monitorStatusAlertIDs.Count != 0)
                     {
-                        await rabbitRepo.PublishAsync<List<int>>("processorAlertSent" + processorObj.AppID, monitorStatusAlertIDs);
+                        await ProcessorRabbitPublisher.PublishAsync(rabbitRepo, processorObj.AppID, "processorAlertSent", monitorStatusAlertIDs, processorObj.RabbitTopologyVersion);
                         logger.LogInformation("Sent event processorAlertSent for AppID  " + processorObj.AppID);
                     }
                 }
@@ -36,13 +37,13 @@ namespace NetworkMonitor.Objects.Repository
                 List<int> monitorStatusAlertIDs = publishAlertFlagList.Where(w => w.AppID == processorObj.AppID).Select(s => s.ID).ToList();
                 if (monitorStatusAlertIDs.Count != 0)
                 {
-                    await rabbitRepo.PublishAsync<List<int>>("processorAlertFlag" + processorObj.AppID, monitorStatusAlertIDs);
+                    await ProcessorRabbitPublisher.PublishAsync(rabbitRepo, processorObj.AppID, "processorAlertFlag", monitorStatusAlertIDs, processorObj.RabbitTopologyVersion);
                     logger.LogInformation("Sent event processorAlertFlag for AppID  " + processorObj.AppID);
                 }
                 publishAlertFlagList.Where(w => w.AppID == processorObj.AppID).ToList().ForEach(f => f.AlertFlag = true);
             }
         }
-        public static async Task ProcessorResetAlerts(ILogger logger, IRabbitRepo rabbitRepo, Dictionary<string, List<int>> monitorIPDic)
+        public static async Task ProcessorResetAlerts(ILogger logger, IRabbitRepo rabbitRepo, Dictionary<string, List<int>> monitorIPDic, List<ProcessorObj>? processors = null)
         {
             try
             {
@@ -50,7 +51,9 @@ namespace NetworkMonitor.Objects.Repository
                 {
                     var monitorIPIDs = new List<int>(kvp.Value);
                     // Dont publish this at the moment as its causing alerts to refire.
-                    await rabbitRepo.PublishAsync<List<int>>("processorResetAlerts" + kvp.Key, monitorIPIDs);
+                    int version = processors?.FirstOrDefault(p => p.AppID == kvp.Key)?.RabbitTopologyVersion
+                        ?? ProcessorRabbitTopology.LegacyVersion;
+                    await ProcessorRabbitPublisher.PublishAsync(rabbitRepo, kvp.Key, "processorResetAlerts", monitorIPIDs, version);
                 }
             }
             catch (Exception e)
