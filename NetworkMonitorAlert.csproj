@@ -29,6 +29,13 @@
     <NoWarn>CS8618</NoWarn>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)'=='Release' AND '$(_IsPublishing)'=='true'">
+    <PublishReadyToRun>true</PublishReadyToRun>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release-Dev' AND '$(_IsPublishing)'=='true'">
+    <PublishReadyToRun>true</PublishReadyToRun>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)'=='Release-Dev'">
     <DefineConstants>DEV</DefineConstants>
     <Optimize>true</Optimize>
