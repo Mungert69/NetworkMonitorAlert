@@ -165,6 +165,7 @@ namespace NetworkMonitor.Alert.Tests
             _systemParamsHelperMock.Setup(p => p.GetSystemParams()).Returns(systemParams);
 
             var dataQueueService = new DataQueueService(_loggerDataQueueMock.Object, _systemParamsHelperMock.Object, _processorStateMock.Object, _backendHmacMock.Object);
+            _backendHmacMock.Setup(h => h.VerifyAsync("alertUpdatePredictStatusAlerts", "alertUpdatePredictStatusAlerts", It.IsAny<IBackendSignedMessage>(), default)).ReturnsAsync(false);
 
             _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
