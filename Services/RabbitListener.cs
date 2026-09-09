@@ -160,13 +160,15 @@ namespace NetworkMonitor.Alert.Services
                     switch (rabbitMQObj.FuncName)
                     {
                         case "serviceWakeUp":
-                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "serviceWakeUp", async (_, _) => { result = await WakeUp(); });
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "serviceWakeUp", async (model, ea) =>
+                            {
+                                result = await WakeUp(ConvertToObject<BackendControlCommand>(model, ea));
+                            });
                             break;
                         case "alertMessageInit":
-                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "alertMessageinit", (model, ea) =>
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "alertMessageinit", async (model, ea) =>
                             {
-                                result = AlertMessageInit(ConvertToObject<AlertServiceInitObj>(model, ea));
-                                return Task.CompletedTask;
+                                result = await AlertMessageInitAsync(ConvertToObject<AlertServiceInitObj>(model, ea));
                             });
                             break;
                         case "alertMessageResetAlerts":
@@ -184,20 +186,26 @@ namespace NetworkMonitor.Alert.Services
                         case "alertMessage":
                             await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "alertMessage", async (model, ea) =>
                             {
-                                result = await AlertMessage(ConvertToObject<AlertMessage>(model, ea));
+                                result = await AlertMessageAsync(ConvertToObject<AlertMessage>(model, ea));
                             });
                             break;
                         case "updateUserInfoAlertMessage":
                             await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "updateUserInfoAlertMessage", async (model, ea) =>
                             {
-                                result = await UpdateUserInfoAlertMessage(ConvertToObject<UserInfo>(model, ea));
+                                result = await UpdateUserInfoAlertMessageAsync(ConvertToObject<UserInfo>(model, ea));
                             });
                             break;
                         case "monitorAlert":
-                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "monitorAlert", async (_, _) => { result = await MonitorAlert(); });
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "monitorAlert", async (model, ea) =>
+                            {
+                                result = await MonitorAlert(ConvertToObject<BackendControlCommand>(model, ea));
+                            });
                             break;
                         case "predictAlert":
-                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "predictAlert", async (_, _) => { result = await PredictAlert(); });
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 1, "predictAlert", async (model, ea) =>
+                            {
+                                result = await PredictAlert(ConvertToObject<BackendControlCommand>(model, ea));
+                            });
                             break;
                         case "alertUpdateMonitorStatusAlerts":
                             await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "alertUpdateMonitorStatusAlerts", async (model, ea) =>
@@ -277,6 +285,21 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
+
+        private async Task<ResultObj> WakeUp(BackendControlCommand? command)
+        {
+            var result = new ResultObj { Success = false, Message = "MessageAPI : WakeUp : " };
+            if (!await ValidateBackendHmacAsync("serviceWakeUp", command, result)) return result;
+            return await WakeUp().ConfigureAwait(false);
+        }
+
+        private async Task<ResultObj> AlertMessageInitAsync(AlertServiceInitObj? initObj)
+        {
+            var result = new ResultObj { Success = false, Message = "MessageAPI : AlertMessageInit : " };
+            if (!await ValidateBackendHmacAsync("alertMessageInit", initObj, result)) return result;
+            return AlertMessageInit(initObj);
+        }
+
         public ResultObj AlertMessageInit(AlertServiceInitObj? initObj)
         {
             ResultObj result = new ResultObj();
@@ -405,6 +428,14 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
+
+        private async Task<ResultObj> AlertMessageAsync(AlertMessage? alertMessage)
+        {
+            var result = new ResultObj { Success = false, Message = "MessageAPI : AlertMessage : " };
+            if (!await ValidateBackendHmacAsync("alertMessage", alertMessage, result)) return result;
+            return await AlertMessage(alertMessage).ConfigureAwait(false);
+        }
+
         public async Task<ResultObj> UpdateUserInfoAlertMessage(UserInfo? userInfo)
         {
             ResultObj result = new ResultObj();
@@ -429,6 +460,14 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
+
+        private async Task<ResultObj> UpdateUserInfoAlertMessageAsync(UserInfo? userInfo)
+        {
+            var result = new ResultObj { Success = false, Message = "MessageAPI : UpdateUserInfoAlertMessage : " };
+            if (!await ValidateBackendHmacAsync("updateUserInfoAlertMessage", userInfo, result)) return result;
+            return await UpdateUserInfoAlertMessage(userInfo).ConfigureAwait(false);
+        }
+
         public async Task<ResultObj> MonitorAlert()
         {
             ResultObj result = new ResultObj();
@@ -448,6 +487,14 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
+
+        private async Task<ResultObj> MonitorAlert(BackendControlCommand? command)
+        {
+            var result = new ResultObj { Success = false, Message = "MessageAPI : MonitorAlert : " };
+            if (!await ValidateBackendHmacAsync("monitorAlert", command, result)) return result;
+            return await MonitorAlert().ConfigureAwait(false);
+        }
+
         public async Task<ResultObj> PredictAlert()
         {
             ResultObj result = new ResultObj();
@@ -466,6 +513,13 @@ namespace NetworkMonitor.Alert.Services
                 _logger.LogError("Error : Failed to run PredictAlert : Error was : " + e.Message + " ");
             }
             return result;
+        }
+
+        private async Task<ResultObj> PredictAlert(BackendControlCommand? command)
+        {
+            var result = new ResultObj { Success = false, Message = "MessageAPI : PredictAlert : " };
+            if (!await ValidateBackendHmacAsync("predictAlert", command, result)) return result;
+            return await PredictAlert().ConfigureAwait(false);
         }
         public async Task<ResultObj> AlertUpdateMonitorStatusAlerts(string? monitorStatusAlertString)
         {
@@ -702,6 +756,21 @@ namespace NetworkMonitor.Alert.Services
                 _logger.LogError("Error : Failed to run SendGenericEmail : Error was : " + e.Message + " ");
             }
             return result;
+        }
+
+        private async Task<bool> ValidateBackendHmacAsync(string operation, IBackendSignedMessage? message, ResultObj result)
+        {
+            if (MessageSecurityPolicyRegistry.Requires(operation, operation, MessageProtection.BackendHmac) &&
+                message != null &&
+                await _backendHmac.VerifyAsync(operation, operation, message).ConfigureAwait(false))
+            {
+                return true;
+            }
+
+            result.Success = false;
+            result.Message += " Error : invalid backend HMAC.";
+            _logger.LogWarning("Rejected RabbitMQ operation {Operation}: invalid backend HMAC.", operation);
+            return false;
         }
 
         private async Task<bool> ValidateBackendSignatureAsync(ResultObj result, string operation, IBackendSignedMessage message)

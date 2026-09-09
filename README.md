@@ -32,6 +32,12 @@ NetworkMonitorAlert/
 - **EmailEncryptKey** – symmetric key used for auth token encryption. Stored in `.env`
   (and consumed via `securefiles/dev/appsettings-*.json`).
 
+RabbitMQ alert/report operations follow the shared
+[message security policy](../NetworkMonitorLib/Objects/Repository/README.md). ML-DSA
+protects backend-to-Alert control and email messages; the existing backend HMAC routes
+remain limited to the backend trust domain. `RabbitListener` and `DataQueueService`
+check the registry before cryptographic verification.
+
 ## Prerequisites
 - .NET 9 SDK
 - SMTP access (configured in `appsettings*.json`)
@@ -79,4 +85,3 @@ Tests are located in `Tests/` and use sample payloads from `TestData/`.
 - **NetworkMonitorML (Predict)** – publishes predict alert payloads.
 - **NetworkMonitorScheduler** – triggers periodic wake-ups (Monitor/Predict checks).
 - **NetworkMonitorAuthKeyGen** – helper to generate valid ServiceAuthKey tokens.
-
