@@ -237,9 +237,19 @@ namespace NetworkMonitor.Alert.Services
 
         internal static bool IsPublisherAuthorizedForApp(string? publisherUserId, string? appId)
         {
-            return !string.IsNullOrWhiteSpace(publisherUserId) &&
-                   !string.IsNullOrWhiteSpace(appId) &&
-                   appId.StartsWith(publisherUserId + "-", StringComparison.Ordinal);
+            if (string.IsNullOrWhiteSpace(publisherUserId) ||
+                string.IsNullOrWhiteSpace(appId))
+            {
+                return false;
+            }
+
+            // System processors are allowed to send any AppID.
+            if (string.Equals(publisherUserId, "systemprocessor", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            return appId.StartsWith(publisherUserId + "-", StringComparison.Ordinal);
         }
 
     }

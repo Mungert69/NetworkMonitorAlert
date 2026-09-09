@@ -122,9 +122,24 @@ namespace NetworkMonitorAlert.Tests.Services
             Assert.True(DataQueueService.IsPublisherAuthorizedForApp("systemprocessor", "systemprocessor-monitor-1"));
         }
 
+        [Fact]
+        public void IsPublisherAuthorizedForApp_AcceptsNumericAppID_ForSystemProcessor()
+        {
+            Assert.True(DataQueueService.IsPublisherAuthorizedForApp("systemprocessor", "2"));
+            Assert.True(DataQueueService.IsPublisherAuthorizedForApp("systemprocessor", "0"));
+            Assert.True(DataQueueService.IsPublisherAuthorizedForApp("systemprocessor", "99"));
+        }
+
+        [Fact]
+        public void IsPublisherAuthorizedForApp_AcceptsAnyAppID_ForSystemProcessor()
+        {
+            Assert.True(DataQueueService.IsPublisherAuthorizedForApp("systemprocessor", "user-123-agent"));
+            Assert.True(DataQueueService.IsPublisherAuthorizedForApp("systemprocessor", "anything"));
+        }
+
         [Theory]
         [InlineData("user-123", "other-user-agent")]
-        [InlineData("systemprocessor", "user-123-agent")]
+        [InlineData("systemprocessor", "")]
         [InlineData("", "user-123-agent")]
         public void IsPublisherAuthorizedForApp_RejectsMismatchedIdentity(string publisherUserId, string appId)
         {
