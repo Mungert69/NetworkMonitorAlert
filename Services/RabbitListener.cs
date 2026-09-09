@@ -356,7 +356,8 @@ namespace NetworkMonitor.Alert.Services
                 result.Message += " Error : alertServiceAlertObj is Null ";
                 return result;
             }
-            if (!await _backendHmac.VerifyAsync("alertMessageResetPredictAlerts", "alertMessageResetPredictAlerts", alertServiceAlertObj))
+            if (!MessageSecurityPolicyRegistry.Requires("alertMessageResetPredictAlerts", "alertMessageResetPredictAlerts", MessageProtection.BackendHmac) ||
+                !await _backendHmac.VerifyAsync("alertMessageResetPredictAlerts", "alertMessageResetPredictAlerts", alertServiceAlertObj))
             {
                 result.Message += " Error : invalid backend HMAC.";
                 _logger.LogWarning(result.Message);
@@ -705,7 +706,8 @@ namespace NetworkMonitor.Alert.Services
 
         private async Task<bool> ValidateBackendSignatureAsync(ResultObj result, string operation, IBackendSignedMessage message)
         {
-            if (_backendMessageSignatureVerifier != null &&
+            if (MessageSecurityPolicyRegistry.Requires(operation, "alert", MessageProtection.MlDsa) &&
+                _backendMessageSignatureVerifier != null &&
                 await _backendMessageSignatureVerifier.VerifyAsync(operation, "alert", message).ConfigureAwait(false))
             {
                 return true;

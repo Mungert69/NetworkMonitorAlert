@@ -134,7 +134,8 @@ namespace NetworkMonitor.Alert.Services
                 _logger.LogWarning(ex, "Rejected alertUpdatePredictStatusAlerts: invalid compressed payload.");
                 return new ResultObj { Success = false, Message = " Error : invalid predict status payload." };
             }
-            if (message == null || !await _backendHmac.VerifyAsync("alertUpdatePredictStatusAlerts", "alertUpdatePredictStatusAlerts", message))
+            if (!MessageSecurityPolicyRegistry.Requires("alertUpdatePredictStatusAlerts", "alertUpdatePredictStatusAlerts", MessageProtection.BackendHmac) ||
+                message == null || !await _backendHmac.VerifyAsync("alertUpdatePredictStatusAlerts", "alertUpdatePredictStatusAlerts", message))
             {
                 _logger.LogWarning("Rejected alertUpdatePredictStatusAlerts: invalid backend HMAC.");
                 return new ResultObj { Success = false, Message = " Error : invalid backend HMAC." };
