@@ -22,7 +22,11 @@ namespace NetworkMonitor.Alert.Services
 {
     public interface IDataQueueService
     {
-        Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<IAlertable> monitorStatusAlerts);
+        Task<ResultObj> AddProcessorDataStringToQueue(
+            string processorDataString,
+            List<IAlertable> monitorStatusAlerts,
+            string publisherUserId = "",
+            bool requirePublisherUserId = false);
         Task<ResultObj> AddPredictDataStringToQueue(string processorDataString, List<IAlertable> predictStatusAlerts);
 
     }
@@ -40,13 +44,22 @@ namespace NetworkMonitor.Alert.Services
             _processorState = processorState;
             _backendHmac = backendHmac;
         }
-        public Task<ResultObj> AddProcessorDataStringToQueue(string processorDataString, List<IAlertable> monitorStatusAlerts)
+        public Task<ResultObj> AddProcessorDataStringToQueue(
+            string processorDataString,
+            List<IAlertable> monitorStatusAlerts,
+            string publisherUserId = "",
+            bool requirePublisherUserId = false)
         {
-            Func<string, List<IAlertable>, Task<ResultObj>> func = CommitProcessorDataString;
+            Func<string, List<IAlertable>, Task<ResultObj>> func = (data, alerts) =>
+                CommitProcessorDataString(data, alerts, publisherUserId, requirePublisherUserId);
             return taskQueue.EnqueueStatusString<ResultObj>(func, processorDataString, monitorStatusAlerts);
         }
 
-        private Task<ResultObj> CommitProcessorDataString(string processorDataString, List<IAlertable> monitorStatusAlerts)
+        private Task<ResultObj> CommitProcessorDataString(
+            string processorDataString,
+            List<IAlertable> monitorStatusAlerts,
+            string publisherUserId,
+            bool requirePublisherUserId)
         {
             return Task<ResultObj>.Run(() =>
             {
@@ -68,6 +81,13 @@ namespace NetworkMonitor.Alert.Services
                         result.Success = false;
                         result.Message = " Error : Failed CommitProcessorDataBytes processorDataObj.AppID is null.";
                         _logger.LogError(result.Message);
+                        return result;
+                    }
+                    if (requirePublisherUserId && !IsPublisherAuthorizedForApp(publisherUserId, processorDataObj.AppID))
+                    {
+                        result.Success = false;
+                        result.Message = $" Error : Failed CommitProcessorDataBytes AppID '{processorDataObj.AppID}' is not bound to publisher '{publisherUserId}'.";
+                        _logger.LogWarning(result.Message);
                         return result;
                     }
                     if (processorDataObj.AuthKey == null)
@@ -213,6 +233,13 @@ namespace NetworkMonitor.Alert.Services
             return CryptographicOperations.FixedTimeEquals(
                 Encoding.UTF8.GetBytes(suppliedAuthKey),
                 Encoding.UTF8.GetBytes(currentAuthKey));
+        }
+
+        internal static bool IsPublisherAuthorizedForApp(string? publisherUserId, string? appId)
+        {
+            return !string.IsNullOrWhiteSpace(publisherUserId) &&
+                   !string.IsNullOrWhiteSpace(appId) &&
+                   appId.StartsWith(publisherUserId + "-", StringComparison.Ordinal);
         }
 
     }

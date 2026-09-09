@@ -539,7 +539,11 @@ namespace NetworkMonitor.Alert.Services
                     await Task.Delay(5000);
                 }
                 _alertMessageService.IsMonitorAlertRunning = true;
-                var returnResult = await _dataQueueService.AddProcessorDataStringToQueue(monitorStatusAlertString, _alertMessageService.MonitorAlerts);
+                var returnResult = await _dataQueueService.AddProcessorDataStringToQueue(
+                    monitorStatusAlertString,
+                    _alertMessageService.MonitorAlerts,
+                    CurrentPublisherUserId,
+                    _systemUrl.RequirePublisherUserId);
                 _alertMessageService.IsMonitorAlertRunning = false;
                 result.Message += returnResult.Message;
                 result.Success = returnResult.Success;

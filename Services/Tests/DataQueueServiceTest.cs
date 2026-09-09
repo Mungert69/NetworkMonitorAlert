@@ -114,5 +114,21 @@ namespace NetworkMonitorAlert.Tests.Services
             Assert.False(result.Success);
             Assert.Contains("Error : failed to process Data. Error was", result.Message);
         }
+
+        [Fact]
+        public void IsPublisherAuthorizedForApp_AcceptsMatchingOwnerPrefix()
+        {
+            Assert.True(DataQueueService.IsPublisherAuthorizedForApp("user-123", "user-123-agent-laptop"));
+            Assert.True(DataQueueService.IsPublisherAuthorizedForApp("systemprocessor", "systemprocessor-monitor-1"));
+        }
+
+        [Theory]
+        [InlineData("user-123", "other-user-agent")]
+        [InlineData("systemprocessor", "user-123-agent")]
+        [InlineData("", "user-123-agent")]
+        public void IsPublisherAuthorizedForApp_RejectsMismatchedIdentity(string publisherUserId, string appId)
+        {
+            Assert.False(DataQueueService.IsPublisherAuthorizedForApp(publisherUserId, appId));
+        }
     }
 }
