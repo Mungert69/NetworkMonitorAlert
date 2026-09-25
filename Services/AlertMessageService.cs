@@ -10,6 +10,8 @@ using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Security.Cryptography;
+using System.Text;
 using NetworkMonitor.Utils.Helpers;
 using NetworkMonitor.Connection;
 
@@ -43,6 +45,7 @@ namespace NetworkMonitor.Alert.Services
 
         Task<ResultObj> SendHostReport(HostReportObj hostReport);
         bool IsBadAuthKey(string authKey, string appID);
+        bool IsCurrentProcessorAuthKey(string appId, string authKey);
 
     }
     public class AlertMessageService : IAlertMessageService
@@ -261,6 +264,17 @@ namespace NetworkMonitor.Alert.Services
         public bool IsBadAuthKey(string authKey, string appID)
         {
             return EncryptHelper.IsBadKey(_systemParams.EmailEncryptKey, authKey, appID);
+        }
+
+        public bool IsCurrentProcessorAuthKey(string appId, string authKey)
+        {
+            if (string.IsNullOrWhiteSpace(appId) || string.IsNullOrEmpty(authKey)) return false;
+            string? expected = _processorState.AuthKeyFromID(appId);
+            if (string.IsNullOrEmpty(expected)) return false;
+            byte[] actualBytes = Encoding.UTF8.GetBytes(authKey);
+            byte[] expectedBytes = Encoding.UTF8.GetBytes(expected);
+            return actualBytes.Length == expectedBytes.Length &&
+                CryptographicOperations.FixedTimeEquals(actualBytes, expectedBytes);
         }
 
         public async Task<ResultObj> Send(AlertMessage alertMessage)

@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using NetworkMonitor.Utils;
 using NetworkMonitor.Utils.Helpers;
 using NetworkMonitor.Objects.Repository;
+using NetworkMonitor.Objects.Repository.Helpers;
 using Microsoft.Extensions.Logging;
 namespace NetworkMonitor.Alert.Services
 {
@@ -102,6 +103,25 @@ namespace NetworkMonitor.Alert.Services
                 FuncName = "alertUpdateMonitorStatusAlerts",
                 MessageTimeout = 60000
             });
+            if (_systemUrl.EnableMqttProcessorIngress)
+            {
+                _rabbitMQObjs.Add(new RabbitMQObj {
+                    ExchangeName = ProcessorMqttTopology.Exchange,
+                    FuncName = "mqttProcessorStatusAlerts",
+                    Type = ExchangeType.Topic,
+                    DeclareExchange = false,
+                    RoutingKeys = new List<string> { ProcessorMqttTopology.StatusAlerts },
+                    MessageTimeout = 60000
+                });
+                _rabbitMQObjs.Add(new RabbitMQObj {
+                    ExchangeName = ProcessorMqttTopology.Exchange,
+                    FuncName = "mqttProcessorResetAlerts",
+                    Type = ExchangeType.Topic,
+                    DeclareExchange = false,
+                    RoutingKeys = new List<string> { ProcessorMqttTopology.ResetAlerts },
+                    MessageTimeout = 60000
+                });
+            }
             _rabbitMQObjs.Add(new RabbitMQObj()
             {
                 ExchangeName = "alertUpdatePredictStatusAlerts",
@@ -177,6 +197,14 @@ namespace NetworkMonitor.Alert.Services
                                 result = await AlertMessageResetAlerts(ConvertToObject<AlertServiceAlertObj>(model, ea));
                             });
                             break;
+                        case "mqttProcessorResetAlerts":
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "mqttProcessorResetAlerts", async (model, ea) =>
+                            {
+                                result = await AlertMessageResetAlerts(
+                                    ConvertToObject<AlertServiceAlertObj>(model, ea, ProcessorMqttTopology.ResetAlerts),
+                                    IsMqttProcessorIngress(ea, ProcessorMqttTopology.ResetAlerts));
+                            });
+                            break;
                         case "alertMessageResetPredictAlerts":
                             await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "alertMessageResetPredictAlerts", async (model, ea) =>
                             {
@@ -211,6 +239,14 @@ namespace NetworkMonitor.Alert.Services
                             await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "alertUpdateMonitorStatusAlerts", async (model, ea) =>
                             {
                                 result = await AlertUpdateMonitorStatusAlerts(ConvertToString(model, ea));
+                            });
+                            break;
+                        case "mqttProcessorStatusAlerts":
+                            await RegisterConsumerHandlerAsync(rabbitMQObj, 10, "mqttProcessorStatusAlerts", async (model, ea) =>
+                            {
+                                result = await AlertUpdateMonitorStatusAlerts(
+                                    ConvertToString(model, ea, ProcessorMqttTopology.StatusAlerts),
+                                    IsMqttProcessorIngress(ea, ProcessorMqttTopology.StatusAlerts));
                             });
                             break;
                         case "alertUpdatePredictStatusAlerts":
@@ -327,7 +363,11 @@ namespace NetworkMonitor.Alert.Services
             }
             return result;
         }
-        public async Task<ResultObj> AlertMessageResetAlerts(AlertServiceAlertObj? alertServiceAlertObj)
+        public Task<ResultObj> AlertMessageResetAlerts(AlertServiceAlertObj? alertServiceAlertObj) =>
+            AlertMessageResetAlerts(alertServiceAlertObj, false);
+
+        public async Task<ResultObj> AlertMessageResetAlerts(AlertServiceAlertObj? alertServiceAlertObj,
+            bool mqttIngress)
         {
             ResultObj result = new ResultObj();
             result.Success = false;
@@ -342,7 +382,13 @@ namespace NetworkMonitor.Alert.Services
                 result.Message += " Error : alertServiceAlertObj is invalid ";
                 return result;
             }
-            if (!ValidatePublisherIdentityForApp(
+            if (mqttIngress && !_alertMessageService.IsCurrentProcessorAuthKey(
+                    alertServiceAlertObj.AppID, alertServiceAlertObj.AuthKey))
+            {
+                result.Message += " MQTT processor AuthKey is not current.";
+                return result;
+            }
+            if (!mqttIngress && !ValidatePublisherIdentityForApp(
                 result,
                 alertServiceAlertObj.AppID,
                 "AlertMessageResetAlerts",
@@ -521,7 +567,11 @@ namespace NetworkMonitor.Alert.Services
             if (!await ValidateBackendHmacAsync("predictAlert", command, result)) return result;
             return await PredictAlert().ConfigureAwait(false);
         }
-        public async Task<ResultObj> AlertUpdateMonitorStatusAlerts(string? monitorStatusAlertString)
+        public Task<ResultObj> AlertUpdateMonitorStatusAlerts(string? monitorStatusAlertString) =>
+            AlertUpdateMonitorStatusAlerts(monitorStatusAlertString, false);
+
+        public async Task<ResultObj> AlertUpdateMonitorStatusAlerts(string? monitorStatusAlertString,
+            bool mqttIngress)
         {
             var result = new ResultObj();
             result.Success = false;
@@ -543,7 +593,7 @@ namespace NetworkMonitor.Alert.Services
                     monitorStatusAlertString,
                     _alertMessageService.MonitorAlerts,
                     CurrentPublisherUserId,
-                    _systemUrl.RequirePublisherUserId);
+                    _systemUrl.RequirePublisherUserId && !mqttIngress);
                 _alertMessageService.IsMonitorAlertRunning = false;
                 result.Message += returnResult.Message;
                 result.Success = returnResult.Success;
