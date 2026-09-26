@@ -109,6 +109,13 @@ namespace NetworkMonitorAlert.Tests.Services
         }
 
         [Fact]
+        public void RemovedProcessorCannotResetAlertsWithItsOldKey()
+        {
+            _processorStateMock.Setup(p => p.AuthKeyFromID("removed-device")).Returns(string.Empty);
+            Assert.True(CreateService().IsBadAuthKey("old-key", "removed-device"));
+        }
+
+        [Fact]
         public async Task Send_DelegatesToEmailProcessor()
         {
             // Arrange

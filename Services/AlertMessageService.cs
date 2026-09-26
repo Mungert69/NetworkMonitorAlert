@@ -263,7 +263,8 @@ namespace NetworkMonitor.Alert.Services
 
         public bool IsBadAuthKey(string authKey, string appID)
         {
-            return EncryptHelper.IsBadKey(_systemParams.EmailEncryptKey, authKey, appID);
+            return !IsCurrentProcessorAuthKey(appID, authKey) ||
+                EncryptHelper.IsBadKey(_systemParams.EmailEncryptKey, authKey, appID);
         }
 
         public bool IsCurrentProcessorAuthKey(string appId, string authKey)
