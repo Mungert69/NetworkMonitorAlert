@@ -80,6 +80,22 @@ Tests are located in `Tests/` and use sample payloads from `TestData/`.
 - SMTP failures are logged at warning level; enable debug logging for
   `NetworkMonitor.Alert.Services.AlertMessageService` to trace email content.
 
+## Processor command signing
+
+Alert uses the shared signing pipeline and supports the optional
+`ProcessorCommandSigning` key configuration alongside the existing ML-DSA
+signer. See `../NetworkMonitorLib/PROCESSOR-COMMAND-SIGNING.md` for configuration.
+Its HMAC publishing and incoming ML-DSA verification are unchanged.
+`ProcessorObj.IsQuantumCapable` selects the signer from shared state, defaulting
+to true for existing processors; no AppID list is needed.
+
+The policy still matches .NET processors: `processorAlertFlag`,
+`processorAlertSent` and `processorResetAlerts` are not signature-protected.
+Their payloads and legacy/v2 routing are unchanged, including for configured
+ESP32 devices. Therefore Alert's current behavior needs no new private-key
+mount. If Alert later publishes a protected operation, the shared pipeline
+requires its selected profile's key and fails publishing if it is unavailable.
+
 ## Related services
 - **NetworkMonitorService** – publishes monitor alert payloads.
 - **NetworkMonitorML (Predict)** – publishes predict alert payloads.

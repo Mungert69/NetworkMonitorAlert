@@ -10,6 +10,7 @@ using NetworkMonitor.Objects.Repository;
 using NetworkMonitor.Objects.ServiceMessage;
 using NetworkMonitor.Objects;
 using NetworkMonitor.Utils.Helpers;
+using NetworkMonitor.Utils;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -51,8 +52,13 @@ namespace NetworkMonitor.Alert
             services.AddSingleton(_cancellationTokenSource);
             services.AddSingleton<RabbitRepo>();
             services.AddSingleton<IBackendMessageHmacService, BackendMessageHmacService>();
+            services.AddSingleton<IBackendMessageSignatureService>(sp => new BackendMessageSignatureService(
+                Configuration, sp.GetRequiredService<ILogger<BackendMessageSignatureService>>()));
+            services.AddSingleton<IProcessorCommandSigner, EcdsaProcessorCommandSigner>();
             services.AddSingleton<IRabbitRepo>(sp => new BackendHmacRabbitRepo(
-                sp.GetRequiredService<RabbitRepo>(),
+                new BackendSignedRabbitRepo(sp.GetRequiredService<RabbitRepo>(),
+                    sp.GetRequiredService<IBackendMessageSignatureService>(),
+                    sp.GetRequiredService<IProcessorCommandSigner>()),
                 sp.GetRequiredService<IBackendMessageHmacService>()));
             services.AddSingleton<IRabbitListener, RabbitListener>();
             services.AddSingleton<ISystemParamsHelper, SystemParamsHelper>();
