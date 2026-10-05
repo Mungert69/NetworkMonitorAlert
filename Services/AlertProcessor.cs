@@ -153,6 +153,10 @@ public class AlertProcessor
         }
         return result;
     }
+    private static string? AlertReason(IAlertable status) => status is MonitorStatusAlert { MeasurementBreach: { } breach }
+        ? $"{breach.Direction} measurement threshold breached: {breach.Value:G6} {breach.Unit}, limit {breach.Limit:G6} {breach.Unit}, observed {breach.ObservedAt:O}"
+        : status.Message;
+
     public async Task<String> InitAlerts(List<UserInfo> userInfos, IAlertProcess alertProcess)
     {
         string resultStr = " InitAlerts : ";
@@ -219,7 +223,8 @@ public class AlertProcessor
             statusAlert.UserName = userInfo.Name;
             bool alertTriggered = statusAlert is PredictStatusAlert
                 ? statusAlert.AlertFlag
-                : statusAlert.DownCount > alertProcess.AlertThreshold;
+                : statusAlert.DownCount > alertProcess.AlertThreshold ||
+                  statusAlert is MonitorStatusAlert { MeasurementBreach: not null };
             if (alertTriggered && statusAlert.AlertSent == false && noAlertSentStored)
             {
                 // Its not the first messge for this user so we need to add a new line
@@ -231,9 +236,10 @@ public class AlertProcessor
                         _logger.LogWarning($" Warning : No alert messages contains userId {userId} .");
                         continue;
                     }
-                    alertMessage.Message += "\n" + statusAlert.EndPointType!.ToUpper() + " Alert for host at address " + statusAlert.Address + " status message is " + statusAlert.Message + " . " +
+                    alertMessage.Message += "\n" + statusAlert.EndPointType!.ToUpper() + " Alert for host at address " + statusAlert.Address + " status message is " + AlertReason(statusAlert) + " . " +
                                                "\nHost down count is " + statusAlert.DownCount + "\nThe time of this event is  " + statusAlert.EventTime + "\n" +
-                                               " The Processing server ID was " + statusAlert.AppID + " The timeout was set to " + statusAlert.Timeout + " ms. \n\n";
+                                               " The Processing server ID was " + statusAlert.AppID +
+                                               (statusAlert is MonitorStatusAlert { MeasurementBreach: not null } ? " . \n\n" : " The timeout was set to " + statusAlert.Timeout + " ms. \n\n");
                     alertMessage.AlertFlagObjs.Add(statusAlert);
                 }
                 // This is the first message for this user so we need to add a new AlertMessage.                   
@@ -249,9 +255,10 @@ public class AlertProcessor
                     {
                         // Add start message
                         alertMessage.Message = "Alert message for " + statusAlert.UserName + " . ";
-                        alertMessage.Message += "\n" + statusAlert.EndPointType!.ToUpper() + " Alert for host at address " + statusAlert.Address + " status message is " + statusAlert.Message + " . " +
+                        alertMessage.Message += "\n" + statusAlert.EndPointType!.ToUpper() + " Alert for host at address " + statusAlert.Address + " status message is " + AlertReason(statusAlert) + " . " +
                                   "\nNumber of events " + statusAlert.DownCount + "\nThe time of latest event is  " + statusAlert.EventTime + "\n" +
-                                  " The Agents ID processing the host was " + statusAlert.AppID + " The timeout was set to " + statusAlert.Timeout + " ms. \n\n";
+                                  " The Agents ID processing the host was " + statusAlert.AppID +
+                                  (statusAlert is MonitorStatusAlert { MeasurementBreach: not null } ? " . \n\n" : " The timeout was set to " + statusAlert.Timeout + " ms. \n\n");
                         if (statusAlert is PredictStatusAlert)
                         {
                             alertMessage.dontSend = userInfo.DisableEmail || !userInfo.PredictAlertEnabled;
@@ -385,6 +392,7 @@ public class AlertProcessor
                 {
                     foreach (var updateStatusAlert in updateStatusAlerts)
                     {
+                        if (updateStatusAlert is MonitorStatusAlert monitor) monitor.MeasurementBreach = null;
                         updateStatusAlert.AlertFlag = false;
                         updateStatusAlert.AlertSent = false;
                         updateStatusAlert.DownCount = 0;
@@ -413,7 +421,7 @@ public class AlertProcessor
         int maxTimeout = 0;
         // exclude MonitorPingInfos that have EndPointType set to string values in ExcludeEndPointTypList
         var excludeEndPoints = new ExcludeEndPointTypeList();
-        updateAlertFlagList.Where(w => !excludeEndPoints.Contains(w.EndPointType!)).ToList().ForEach(a =>
+        updateAlertFlagList.Where(w => w is not MonitorStatusAlert { MeasurementBreach: not null } && !excludeEndPoints.Contains(w.EndPointType!)).ToList().ForEach(a =>
         {
             monitorPingInfos.Add(new MonitorPingInfo()
             {
@@ -427,6 +435,7 @@ public class AlertProcessor
             });
             if (a.Timeout > maxTimeout) maxTimeout = a.Timeout;
         });
+        if (monitorPingInfos.Count == 0) return;
         _logger.LogInformation(" Checking " + monitorPingInfos.Count() + " Alerts ");
         SemaphoreSlim semaphore = new SemaphoreSlim(1);
         _netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams, true, false, semaphore).Wait();

@@ -35,6 +35,34 @@ namespace NetworkMonitorAlert.Tests.Services
         }
 
         [Fact]
+        public async Task PhysicalBreachTriggersOnceUntilResetWithoutAvailabilityRecheck()
+        {
+            var processor = CreateProcessor();
+            processor.MonitorAlertProcess.PublishProcessor = false;
+            processor.MonitorAlertProcess.CheckAlerts = true;
+            _emailProcessorMock.Setup(e => e.VerifyEmail(It.IsAny<UserInfo>(), It.IsAny<IAlertable>())).Returns(true);
+            _emailProcessorMock.Setup(e => e.SendAlert(It.IsAny<AlertMessage>())).ReturnsAsync(new ResultObj { Success = true });
+            _processorStateMock.Setup(p => p.EnabledProcessorList(true)).Returns(new List<ProcessorObj>());
+            var status = new MonitorStatusAlert { ID = 75, UserID = "user1", Address = "device", EndPointType = "blebroadcast", IsUp = true,
+                MeasurementBreach = new("low", -1.1, -1, "A", DateTime.UtcNow) };
+            processor.MonitorAlerts = new() { status };
+            await processor.InitAlerts(_userInfos, processor.MonitorAlertProcess);
+            var message = Assert.Single(processor.MonitorAlertProcess.AlertMessages);
+            Assert.Contains("low measurement threshold", message.Message);
+            Assert.Contains("A", message.Message);
+            _netConnectCollectionMock.Verify(c => c.NetConnectFactory(It.IsAny<List<MonitorPingInfo>>(), It.IsAny<PingParams>(), true, false, It.IsAny<System.Threading.SemaphoreSlim>()), Times.Never);
+            await processor.SendAlerts(processor.MonitorAlertProcess);
+            Assert.True(status.AlertSent);
+            await processor.InitAlerts(_userInfos, processor.MonitorAlertProcess);
+            Assert.Empty(processor.MonitorAlertProcess.AlertMessages);
+            await processor.ResetMonitorAlerts(new() { new AlertFlagObj { ID = 75 } });
+            Assert.Null(status.MeasurementBreach); Assert.False(status.AlertSent);
+            status.MeasurementBreach = new("high", 3, 2, "A", DateTime.UtcNow);
+            await processor.InitAlerts(_userInfos, processor.MonitorAlertProcess);
+            Assert.Single(processor.MonitorAlertProcess.AlertMessages);
+        }
+
+        [Fact]
         public void MonitorAlerts_GetterAndSetter_Works()
         {
             var processor = CreateProcessor();
