@@ -60,6 +60,8 @@ namespace NetworkMonitorAlert.Tests.Services
 
             // Assert
             Assert.True(alertObj.IsAlertServiceReady);
+            Assert.Empty(service.MonitorAlerts);
+            Assert.Empty(service.PredictAlerts);
             _rabbitRepoMock.Verify(r => r.PublishAsync<AlertServiceInitObj>("alertServiceReady", alertObj, ""), Times.Once);
         }
 
@@ -68,13 +70,11 @@ namespace NetworkMonitorAlert.Tests.Services
         {
             // Arrange
             var service = CreateService();
-            var netConnectCollectionMock = new Mock<NetworkMonitor.Connection.INetConnectCollection>();
             var alertProcessor = new AlertProcessor(
                 _loggerMock.Object,
                 _rabbitRepoMock.Object,
                 Mock.Of<IEmailProcessor>(),
                 _processorStateMock.Object,
-                netConnectCollectionMock.Object,
                 _alertParams,
                 new List<UserInfo>()
             );
@@ -206,13 +206,11 @@ namespace NetworkMonitorAlert.Tests.Services
         {
             // Arrange
             var service = CreateService();
-            var netConnectCollectionMock = new Mock<NetworkMonitor.Connection.INetConnectCollection>();
             var alertProcessor = new AlertProcessor(
                 _loggerMock.Object,
                 _rabbitRepoMock.Object,
                 Mock.Of<IEmailProcessor>(),
                 _processorStateMock.Object,
-                netConnectCollectionMock.Object,
                 _alertParams,
                 new List<UserInfo>()
             );
@@ -243,13 +241,11 @@ namespace NetworkMonitorAlert.Tests.Services
             // Arrange
             var service = CreateService();
             var alertFlagObjs = new List<AlertFlagObj>();
-            var netConnectCollectionMock = new Mock<NetworkMonitor.Connection.INetConnectCollection>();
             var alertProcessor = new AlertProcessor(
                 _loggerMock.Object,
                 _rabbitRepoMock.Object,
                 Mock.Of<IEmailProcessor>(),
                 _processorStateMock.Object,
-                netConnectCollectionMock.Object,
                 _alertParams,
                 new List<UserInfo>()
             );
@@ -273,13 +269,11 @@ namespace NetworkMonitorAlert.Tests.Services
             // Arrange
             var service = CreateService();
             var alertFlagObjs = new List<AlertFlagObj>();
-            var netConnectCollectionMock = new Mock<NetworkMonitor.Connection.INetConnectCollection>();
             var alertProcessor = new AlertProcessor(
                 _loggerMock.Object,
                 _rabbitRepoMock.Object,
                 Mock.Of<IEmailProcessor>(),
                 _processorStateMock.Object,
-                netConnectCollectionMock.Object,
                 _alertParams,
                 new List<UserInfo>()
             );

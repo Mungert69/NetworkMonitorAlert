@@ -17,7 +17,6 @@ namespace NetworkMonitorAlert.Tests.Services
         private readonly Mock<IRabbitRepo> _rabbitRepoMock = new();
         private readonly Mock<IEmailProcessor> _emailProcessorMock = new();
         private readonly Mock<IProcessorState> _processorStateMock = new();
-        private readonly Mock<NetworkMonitor.Connection.INetConnectCollection> _netConnectCollectionMock = new();
         private readonly AlertParams _alertParams = new();
         private readonly List<UserInfo> _userInfos = new() { new UserInfo { UserID = "user1", Email = "user1@test.com", Email_verified = true } };
 
@@ -28,7 +27,6 @@ namespace NetworkMonitorAlert.Tests.Services
                 _rabbitRepoMock.Object,
                 _emailProcessorMock.Object,
                 _processorStateMock.Object,
-                _netConnectCollectionMock.Object,
                 _alertParams,
                 _userInfos
             );
@@ -39,7 +37,6 @@ namespace NetworkMonitorAlert.Tests.Services
         {
             var processor = CreateProcessor();
             processor.MonitorAlertProcess.PublishProcessor = false;
-            processor.MonitorAlertProcess.CheckAlerts = true;
             _emailProcessorMock.Setup(e => e.VerifyEmail(It.IsAny<UserInfo>(), It.IsAny<IAlertable>())).Returns(true);
             _emailProcessorMock.Setup(e => e.SendAlert(It.IsAny<AlertMessage>())).ReturnsAsync(new ResultObj { Success = true });
             _processorStateMock.Setup(p => p.EnabledProcessorList(true)).Returns(new List<ProcessorObj>());
@@ -50,7 +47,6 @@ namespace NetworkMonitorAlert.Tests.Services
             var message = Assert.Single(processor.MonitorAlertProcess.AlertMessages);
             Assert.Contains("low measurement threshold", message.Message);
             Assert.Contains("A", message.Message);
-            _netConnectCollectionMock.Verify(c => c.NetConnectFactory(It.IsAny<List<MonitorPingInfo>>(), It.IsAny<PingParams>(), true, false, It.IsAny<System.Threading.SemaphoreSlim>()), Times.Never);
             await processor.SendAlerts(processor.MonitorAlertProcess);
             Assert.True(status.AlertSent);
             await processor.InitAlerts(_userInfos, processor.MonitorAlertProcess);

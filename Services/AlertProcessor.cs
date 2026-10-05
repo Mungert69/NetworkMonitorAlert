@@ -1,7 +1,6 @@
 using NetworkMonitor.Objects;
 using NetworkMonitor.Objects.ServiceMessage;
 using NetworkMonitor.Objects.Repository;
-using NetworkMonitor.Connection;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -19,27 +18,24 @@ public class AlertProcessor
     private List<UserInfo> _userInfos = new List<UserInfo>();
     private IEmailProcessor _emailProcessor;
     private IProcessorState _processorState;
-    private INetConnectCollection _netConnectCollection;
     private AlertParams _alertParams;
 
 
-    private IAlertProcess _monitorAlertProcess = new AlertProcess() { PublishScheduler = true, PublishProcessor = true, CheckAlerts = true, PublishPrefix = "Monitor" };
-    private IAlertProcess _predictAlertProcess = new AlertProcess() { PublishScheduler = true, PublishPredict = true, CheckAlerts = false, PublishPrefix = "Predict" };
+    private IAlertProcess _monitorAlertProcess = new AlertProcess() { PublishScheduler = true, PublishProcessor = true, PublishPrefix = "Monitor" };
+    private IAlertProcess _predictAlertProcess = new AlertProcess() { PublishScheduler = true, PublishPredict = true, PublishPrefix = "Predict" };
 
     public IAlertProcess MonitorAlertProcess { get => _monitorAlertProcess; set => _monitorAlertProcess = value; }
     public IAlertProcess PredictAlertProcess { get => _predictAlertProcess; set => _predictAlertProcess = value; }
 
-    public AlertProcessor(ILogger logger, IRabbitRepo rabbitRepo, IEmailProcessor emailProcessor, IProcessorState processorState, INetConnectCollection netConnectCollection, AlertParams alertParmas, List<UserInfo> userInfos)
+    public AlertProcessor(ILogger logger, IRabbitRepo rabbitRepo, IEmailProcessor emailProcessor, IProcessorState processorState, AlertParams alertParmas, List<UserInfo> userInfos)
     {
         _rabbitRepo = rabbitRepo;
         _logger = logger;
         _emailProcessor = emailProcessor;
         _processorState = processorState;
-        _netConnectCollection = netConnectCollection;
         _alertParams = alertParmas;
         _monitorAlertProcess.AlertThreshold = alertParmas.AlertThreshold;
         _predictAlertProcess.AlertThreshold = alertParmas.PredictThreshold;
-        _monitorAlertProcess.CheckAlerts = alertParmas.CheckAlerts;
         _monitorAlertProcess.DisableEmailAlert = alertParmas.DisableMonitorEmailAlert;
         _predictAlertProcess.DisableEmailAlert = alertParmas.DisablePredictEmailAlert;
 
@@ -283,7 +279,6 @@ public class AlertProcessor
             if (alertProcess.PublishPredict) await PublishAlertsRepo.PredictAlertSent(_logger, _rabbitRepo, publishAlertSentList);
 
         }
-        if (alertProcess.CheckAlerts) await CheckAlerts(updateAlertFlagList, alertProcess);
 
         if (updateAlertFlagList.Count() > 0)
         {
@@ -413,62 +408,4 @@ public class AlertProcessor
         }
         return results;
     }
-    private async Task CheckAlerts(List<IAlertable> updateAlertFlagList, IAlertProcess alertProcess)
-    {
-        if (updateAlertFlagList == null || updateAlertFlagList.Count() == 0) return;
-        var pingParams = new PingParams();
-        var monitorPingInfos = new List<MonitorPingInfo>();
-        int maxTimeout = 0;
-        // exclude MonitorPingInfos that have EndPointType set to string values in ExcludeEndPointTypList
-        var excludeEndPoints = new ExcludeEndPointTypeList();
-        updateAlertFlagList.Where(w => w is not MonitorStatusAlert { MeasurementBreach: not null } && !excludeEndPoints.Contains(w.EndPointType!)).ToList().ForEach(a =>
-        {
-            monitorPingInfos.Add(new MonitorPingInfo()
-            {
-                ID = a.ID,
-                MonitorIPID = a.ID,
-                Address = a.Address!,
-                AppID = a.AppID,
-                EndPointType = a.EndPointType!,
-                Timeout = a.Timeout,
-                Enabled = true
-            });
-            if (a.Timeout > maxTimeout) maxTimeout = a.Timeout;
-        });
-        if (monitorPingInfos.Count == 0) return;
-        _logger.LogInformation(" Checking " + monitorPingInfos.Count() + " Alerts ");
-        SemaphoreSlim semaphore = new SemaphoreSlim(1);
-        _netConnectCollection.NetConnectFactory(monitorPingInfos, pingParams, true, false, semaphore).Wait();
-        var netConnects = _netConnectCollection.GetNonLongRunningNetConnects().ToList();
-        var pingConnectTasks = new List<Task>();
-        netConnects.Where(w => w.MpiStatic.Enabled == true).ToList().ForEach(
-            netConnect =>
-            {
-                pingConnectTasks.Add(netConnect.Connect());
-            }
-        );
-        Task.WhenAll(pingConnectTasks.ToArray()).Wait();
-        var monitorIPDic = new Dictionary<string, List<int>>();
-        monitorPingInfos.Where(w => w.MonitorStatus.IsUp == true).ToList().ForEach(m =>
-       {
-           updateAlertFlagList.RemoveAll(r => r.ID == m.MonitorIPID);
-           _logger.LogWarning(" Warning : Overturned Alert with MonitorPingID = " + m.MonitorIPID + " . On Processor with AppID " + m.AppID + " . ");
-           alertProcess.AlertMessages.ForEach(a =>
-           {
-               a.AlertFlagObjs.RemoveAll(r => r.ID == m.MonitorIPID);
-           });
-           if (!monitorIPDic.ContainsKey(m.AppID!))
-           {
-               monitorIPDic.Add(m.AppID!, new List<int>() { m.MonitorIPID });
-           }
-           else
-           {
-               monitorIPDic[m.AppID!].Add(m.MonitorIPID);
-           }
-       });
-        alertProcess.AlertMessages.RemoveAll(r => r.AlertFlagObjs.Count() == 0);
-        await PublishAlertsRepo.ProcessorResetAlerts(_logger, _rabbitRepo, monitorIPDic, _processorState.GetProcessorListAll(false));
-    }
-
-
 }

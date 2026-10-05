@@ -13,7 +13,6 @@ using System.Threading;
 using System.Security.Cryptography;
 using System.Text;
 using NetworkMonitor.Utils.Helpers;
-using NetworkMonitor.Connection;
 
 namespace NetworkMonitor.Alert.Services
 {
@@ -226,6 +225,17 @@ namespace NetworkMonitor.Alert.Services
             }
             try
             {
+                _alertProcessor = new AlertProcessor(_logger, _rabbitRepo, _emailProcessor, _processorState, _alertParams, _userInfos);
+
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Unable to initialize AlertProcessor");
+                throw;
+
+            }
+            try
+            {
                 alertObj.IsAlertServiceReady = true;
                 await _rabbitRepo.PublishAsync<AlertServiceInitObj>("alertServiceReady", alertObj);
                 _logger.LogInformation("Published event AlertServiceItitObj.IsAlertServiceReady = true");
@@ -233,22 +243,6 @@ namespace NetworkMonitor.Alert.Services
             catch (Exception e)
             {
                 _logger.LogError("Error : Can not publish event  AlertServiceItitObj.IsAlertServiceReady Error was : " + e.Message.ToString());
-            }
-            try
-            {
-                string appDataDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-
-                var netConnectConfig = new NetConnectConfig(_config, appDataDirectory);
-                var connectFactory = new ConnectFactory(_logger, netConnectConfig);
-                var netConnectCollection = new NetConnectCollection(_logger, netConnectConfig, connectFactory);
-
-                _alertProcessor = new AlertProcessor(_logger, _rabbitRepo, _emailProcessor, _processorState, netConnectCollection, _alertParams, _userInfos);
-
-            }
-            catch (Exception e)
-            {
-                _logger.LogError("Error : unable to setup AlertProcessor . Error was : " + e.Message.ToString());
-
             }
         }
 

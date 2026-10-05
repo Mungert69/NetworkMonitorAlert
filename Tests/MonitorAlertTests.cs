@@ -3,7 +3,6 @@ using Moq;
 using NetworkMonitor.Alert.Services;
 using NetworkMonitor.Objects;
 using NetworkMonitor.Objects.Repository;
-using NetworkMonitor.Connection;
 using NetworkMonitor.Objects.ServiceMessage;
 using NetworkMonitor.Utils.Helpers;
 using NetworkMonitor.Utils;
@@ -22,7 +21,6 @@ namespace NetworkMonitor.Alert.Tests
         private readonly Mock<IRabbitRepo> _rabbitRepoMock;
         private readonly Mock<IEmailProcessor> _emailProcessorMock;
         private readonly Mock<IProcessorState> _processorStateMock;
-        private readonly Mock<INetConnectCollection> _netConnectCollectionMock;
         private readonly Mock<ISystemParamsHelper> _systemParamsHelperMock;
         private readonly Mock<SystemParams> _systemParamsMock;
         private readonly Mock<IBackendMessageHmacService> _backendHmacMock;
@@ -35,7 +33,6 @@ namespace NetworkMonitor.Alert.Tests
             _rabbitRepoMock = new Mock<IRabbitRepo>();
             _emailProcessorMock = new Mock<IEmailProcessor>();
             _processorStateMock = new Mock<IProcessorState>();
-            _netConnectCollectionMock = new Mock<INetConnectCollection>();
             _systemParamsHelperMock = new Mock<ISystemParamsHelper>();
             _systemParamsMock = new Mock<SystemParams>();
             _backendHmacMock = new Mock<IBackendMessageHmacService>();
@@ -55,7 +52,7 @@ namespace NetworkMonitor.Alert.Tests
             _emailProcessorMock.Setup(p => p.VerifyEmail(It.IsAny<UserInfo>(), It.IsAny<IAlertable>())).Returns(true);
             _emailProcessorMock.Setup(p => p.VerifyEmail(It.Is<UserInfo>(u => u.UserID == "default"), It.Is<IAlertable>(a => a.ID == 4))).Returns(false);
 
-            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
+            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
             // Act
             alertProcessor.MonitorAlertProcess.Alerts = AlertTestData.GetMonitorAlerts();
 
@@ -98,7 +95,7 @@ namespace NetworkMonitor.Alert.Tests
             _emailProcessorMock.Setup(p => p.VerifyEmail(It.IsAny<UserInfo>(), It.IsAny<IAlertable>())).Returns(true);
             _emailProcessorMock.Setup(p => p.VerifyEmail(It.Is<UserInfo>(u => u.UserID == "default"), It.Is<IAlertable>(a => a.ID == 4))).Returns(false);
 
-            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
+            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
             // Act
             alertProcessor.PredictAlertProcess.Alerts = AlertTestData.GetPredictAlerts();
 
@@ -143,7 +140,7 @@ namespace NetworkMonitor.Alert.Tests
             _emailProcessorMock.Setup(p => p.VerifyEmail(It.Is<UserInfo>(u => u.UserID == "default"), It.Is<IAlertable>(a => a.ID == 4))).Returns(false);
             var alertParams = AlertTestData.GetAlertParams();
             alertParams.DisableEmails = true;
-            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, alertParams, AlertTestData.GetUserInfos());
+            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, alertParams, AlertTestData.GetUserInfos());
             // Act
             alertProcessor.MonitorAlertProcess.Alerts = AlertTestData.GetMonitorAlerts();
 
@@ -170,7 +167,7 @@ namespace NetworkMonitor.Alert.Tests
             _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
 
-            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
+            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
             // Act
             alertProcessor.PredictAlertProcess.Alerts = AlertTestData.GetPredictAlerts();
             var fileRepo = new FileRepo();
@@ -233,7 +230,7 @@ namespace NetworkMonitor.Alert.Tests
             _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
 
-            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
+            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
             // Act
             alertProcessor.PredictAlertProcess.Alerts = AlertTestData.GetPredictAlerts();
             //Add bad data.
@@ -268,7 +265,7 @@ namespace NetworkMonitor.Alert.Tests
             _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
 
-            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
+            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
             // Act
             alertProcessor.PredictAlertProcess.Alerts = AlertTestData.GetPredictAlerts();
             var fileRepo = new FileRepo();
@@ -315,7 +312,7 @@ namespace NetworkMonitor.Alert.Tests
             _processorStateMock.Setup(p => p.EnabledProcessorList(true))
                                              .Returns(new List<ProcessorObj>());
 
-            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, _netConnectCollectionMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
+            var alertProcessor = new AlertProcessor(_loggerAlertProcessorMock.Object, _rabbitRepoMock.Object, _emailProcessorMock.Object, _processorStateMock.Object, AlertTestData.GetAlertParams(), AlertTestData.GetUserInfos());
             // Act
             alertProcessor.MonitorAlertProcess.Alerts = AlertTestData.GetMonitorAlerts();
             var fileRepo = new FileRepo();

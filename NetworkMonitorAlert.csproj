@@ -13,7 +13,7 @@
     <!-- Multi-arch ASP.NET base -->
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0</ContainerBaseImage>
 
-    <ContainerImageTag>1.15.9</ContainerImageTag>
+    <ContainerImageTag>1.16.0</ContainerImageTag>
     <ContainerImageFormat>OCI</ContainerImageFormat>
 
     <PublishProfile>DefaultContainer</PublishProfile>
@@ -75,13 +75,7 @@
     </Content>
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="..\NetworkMonitorProcessorAgent\openssl\**">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <TargetPath>openssl\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-    </Content>
-  </ItemGroup>
+
 
 
 </Project>

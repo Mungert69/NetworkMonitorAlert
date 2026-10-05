@@ -18,7 +18,6 @@ public interface IAlertProcess
     bool PublishProcessor { get; set; }
     bool PublishPredict { get; set; }
     bool PublishScheduler { get; set; }
-    bool CheckAlerts { get; set; }
     public bool DisableEmailAlert { get; set; }
     bool IsPredictProcess { get; }
     bool IsMonitorProcess { get; }
@@ -35,7 +34,6 @@ public class AlertProcess : IAlertProcess
     private bool _alert;
     private bool _isAlertRunning;
     private int _alertThreshold;
-    private bool _checkAlerts;
     private bool _disableEmailAlert;
     private List<AlertMessage> _alertMessages = new List<AlertMessage>();
     List<IAlertable> _updateAlertSentList = new List<IAlertable>();
@@ -51,7 +49,6 @@ public class AlertProcess : IAlertProcess
     public bool PublishPredict { get => _publishPredict; set => _publishPredict = value; }
     public bool PublishScheduler { get => _publishScheduler; set => _publishScheduler = value; }
     public bool IsAlertRunning { get => _isAlertRunning; set => _isAlertRunning = value; }
-    public bool CheckAlerts { get => _checkAlerts; set => _checkAlerts = value; }
     public bool DisableEmailAlert { get => _disableEmailAlert; set => _disableEmailAlert = value; }
     public bool IsPredictProcess { get => Alerts.Any(a => a is PredictStatusAlert); }
     public bool IsMonitorProcess { get => Alerts.Any(a => a is MonitorStatusAlert); }
