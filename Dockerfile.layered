@@ -1,6 +1,5 @@
 # syntax=docker/dockerfile:1.6
 
-ARG ASPNET_VERSION=10.0.11
 FROM debian:trixie-slim
 
 ARG TARGETARCH
@@ -12,6 +11,7 @@ ENV DOTNET_RUNNING_IN_CONTAINER=true \
     PATH="/usr/share/dotnet:${PATH}"
 
 RUN set -eux; \
+    : "${ASPNET_VERSION:?ASPNET_VERSION must be supplied with --build-arg}"; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
       ca-certificates curl openssl \
