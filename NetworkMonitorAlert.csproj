@@ -15,7 +15,6 @@
     <ContainerImageTag>1.17.0</ContainerImageTag>
     <ContainerImageFormat>OCI</ContainerImageFormat>
 
-    <PublishProfile>DefaultContainer</PublishProfile>
     <RollForward>Minor</RollForward>
 
     <Nullable>enable</Nullable>
