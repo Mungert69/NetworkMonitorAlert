@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Text;
+using MailKit;
 using MailKit.Net.Smtp;
 using MimeKit;
 using MimeKit.Text;
