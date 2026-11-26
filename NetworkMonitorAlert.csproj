@@ -12,7 +12,7 @@
 
     <!-- Multi-arch ASP.NET base -->
 
-    <ContainerImageTag>1.17.0</ContainerImageTag>
+    <ContainerImageTag>1.17.1</ContainerImageTag>
     <ContainerImageFormat>OCI</ContainerImageFormat>
 
     <RollForward>Minor</RollForward>
