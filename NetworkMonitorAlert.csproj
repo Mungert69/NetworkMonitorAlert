@@ -43,7 +43,7 @@
   <ItemGroup>
 
     <PackageReference Include="MailKit" Version="5.0.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
     <PackageReference Include="MimeKit" Version="5.0.0" />
     <PackageReference Include="Moq" Version="4.21.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
@@ -51,7 +51,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="coverlet.collector" Version="10.1.0">
+    <PackageReference Include="coverlet.collector" Version="10.1.1">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
@@ -79,8 +79,7 @@
 
   <!-- Match SDK-published containers to the local ASP.NET Core runtime. -->
   <Target Name="SelectLocalContainerRuntime" BeforeTargets="ComputeContainerBaseImage">
-    <Exec Command="dotnet --list-runtimes | awk '$1 == &quot;Microsoft.AspNetCore.App&quot; { print $2 }' | sort -V | tail -n1"
-          ConsoleToMSBuild="true" StandardOutputImportance="Low">
+    <Exec Command="dotnet --list-runtimes | awk '$1 == &quot;Microsoft.AspNetCore.App&quot; { print $2 }' | sort -V | tail -n1" ConsoleToMSBuild="true" StandardOutputImportance="Low">
       <Output TaskParameter="ConsoleOutput" PropertyName="LocalAspNetVersion" />
     </Exec>
     <Error Condition="'$(LocalAspNetVersion)' == ''" Text="No local ASP.NET Core runtime found by dotnet --list-runtimes." />
